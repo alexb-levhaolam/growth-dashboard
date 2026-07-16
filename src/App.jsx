@@ -91,6 +91,7 @@ function Main({profile}){
 function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily,mPlans}){
   const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
   const pins=rep.pinned_projects||[];const shown=pins.length>0?projects.filter(p=>pins.includes(p.id)):projects.filter(p=>p.priority==='key').slice(0,8)
+  const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const visCh=rep.visible_channels||(ch.map(c=>c.name).filter(n=>!DEFAULT_HIDDEN.includes(n)))
   const[showPaste,setShowPaste]=useState(false);const[pasteText,setPasteText]=useState('')
   // Get monthly plan for this week's month
@@ -102,8 +103,6 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const chPlanMap={'Meta':'meta','Google':'google','Taboola':'newChannels','TikTok':'newChannels','Reddit':'newChannels','Pinterest':'newChannels','Rumble':'newChannels'}
   const chGroupCount={'meta':1,'google':1,'newChannels':ch.filter(c=>['Taboola','TikTok','Reddit','Pinterest','Rumble'].includes(c.name)&&(c.sales||0)>0).length||1}
   const getChPlan=(name)=>{const pk=chPlanMap[name];if(!pk)return{};const mp=cp[pk];if(!mp)return{};const cnt=chGroupCount[pk]||1;return{planSales:Math.round((mp.planSales||0)/dim*7/cnt),planCpo:mp.planCpo||null}}
-  // Default hidden channels
-  const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const upM=(k,v)=>up({metrics:{...m,[k]:v===''?null:isNaN(Number(v))?v:Number(v)}})
   const upCh=(idx,f,v)=>{const nc=[...ch];nc[idx]={...nc[idx],[f]:f==='name'?v:(v===''?null:Number(v))};up({channels:nc})}
   const addCh=()=>{const name=prompt('Название канала:');if(!name||!name.trim())return;up({channels:[...ch,{name:name.trim(),sales:0,prevSales:null,cpo:null,prevCpo:null,planSales:null,planCpo:null}]})}
