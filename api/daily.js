@@ -132,11 +132,25 @@ export default async function handler(req, res) {
       cpo: v.sales > 0 && v.spent > 0 ? Math.round(v.spent / v.sales) : null
     }));
 
+      // Sample one data row for debugging
+      const sampleRow = days.length > 0 ? null : (() => {
+        for (let ri = headerIdx + 1; ri < rows.length; ri++) {
+          const dc = rows[ri][C('Date')] || rows[ri][0] || '';
+          if (dc.match(/^13\.07/)) return { rowIdx: ri, cells: rows[ri].slice(0, 20).map((v,i) => `[${i}]=${v}`) };
+        }
+        return null;
+      })();
+
     res.json({
       days, channels: chArr, totalSales,
       defaultHidden: ['Reddit','Pinterest','Rumble','TikTok'],
       daysFound: days.length,
-      debug: { headerRow: headerIdx, columnsFound: Object.keys(col).length, seenDates: [...seenDates] }
+      debug: { headerRow: headerIdx, columnsFound: Object.keys(col).length, seenDates: [...seenDates],
+        columnNames: Object.keys(col).slice(0, 30),
+        dateColIdx: C('Date'),
+        metaSalesColIdx: C('All_MetaAds_Sales'),
+        adminSalesColIdx: C('Admin_Sales'),
+        sampleRow }
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
