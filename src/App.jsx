@@ -153,7 +153,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         {l:'Продажи',k:'totalSales'},
         {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$'},
         {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$'},
-        {l:'Бюджет Ads',k:'budgetSpent',pre:'$',v3:adSpend},
+        {l:'Бюджет Ads',k2:'budgetSpent',v2:adSpend||m.budgetSpent,calc:adSpend,pre:'$'},
       ].map((x,i)=><div key={i} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'12px 14px'}}>
         <div style={{fontSize:12,color:S.i3}}>{x.l}</div>
         <div style={{fontSize:22,fontWeight:500,margin:'2px 0'}}>
@@ -163,9 +163,9 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>
         <div style={{fontSize:12,color:S.i2,display:'flex',alignItems:'center',gap:4}}>
           {i===0&&<>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:12,color:S.i2}}/></>}
-          {i===1&&<>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:12,color:S.i2}}/>{cpoAds!=null&&(m.planCpoAds||planCpoAds)!=null&&<> · <CpoCompare fact={cpoAds} plan={m.planCpoAds||planCpoAds}/></>}</>}
-          {i===2&&<>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:12,color:S.i2}}/>{cpoTotal!=null&&(m.planCpoTotal||planCpoTotal)!=null&&<> · <CpoCompare fact={cpoTotal} plan={m.planCpoTotal||planCpoTotal}/></>}</>}
-          {i===3&&<>из $<EdNum value={m.budgetPlan||(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:12,color:S.i2}}/>K{adSpend>0&&<span style={{color:S.i3}}> · потрачено ${adSpend.toLocaleString()}</span>}</>}
+          {i===1&&<>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:12,color:S.i2}}/></>}
+          {i===2&&<>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:12,color:S.i2}}/></>}
+          {i===3&&<>из $<EdNum value={m.budgetPlan||(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:12,color:S.i2}}/>K</>}
         </div>
       </div>)}
     </div>
