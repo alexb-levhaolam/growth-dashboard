@@ -112,10 +112,12 @@ export default async function handler(req, res) {
       debugRows.push({ date:dateKey, row:ri, meta:meta_sa, google:g_sa, email:email_sa, direct:dir_sa, total:tot });
     }
 
-    // Sort days chronologically (since we iterated in reverse)
+    // Sort days chronologically by actual date
     days.sort((a,b) => {
-      const da=a.day.split(' ')[1], db=b.day.split(' ')[1];
-      return da.localeCompare(db);
+      const pa=a.day.split(' ')[1].split('.'), pb=b.day.split(' ')[1].split('.');
+      const da=new Date(wsYear,parseInt(pa[1])-1,parseInt(pa[0]));
+      const db=new Date(wsYear,parseInt(pb[1])-1,parseInt(pb[0]));
+      return da-db;
     });
 
     const chArr = Object.entries(channels).map(([name,v]) => ({
