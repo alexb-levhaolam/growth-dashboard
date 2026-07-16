@@ -39,7 +39,7 @@ function Main({profile}){
   const rep=reports[aIdx];const ce=profile.role==='admin'||profile.role==='editor';const isA=profile.role==='admin'
   const upRep=async u=>{if(!rep)return;await supabase.from('weekly_reports').update({...u,updated_at:new Date().toISOString()}).eq('id',rep.id);reload()}
   const setWeek=(i)=>{setAIdx(i);aIdxRef.current=i}
-  const loadFromDaily=async(weekId,weekStart)=>{try{const r=await fetch(`/api/daily?weekStart=${weekStart}`);if(!r.ok)throw new Error('API недоступен');const d=await r.json();if(d.error)throw new Error(d.error);const upd={};if(d.days?.length){upd.daily_data=d.days;upd.metrics={totalSales:d.totalSales}}if(d.channels?.length){upd.channels=d.channels.map(c=>({name:c.name,sales:c.sales,cpo:c.cpo,prevSales:null,prevCpo:null,planSales:null,planCpo:null}))}if(Object.keys(upd).length){await supabase.from('weekly_reports').update({...upd,updated_at:new Date().toISOString()}).eq('id',weekId);await load()}return d.daysFound||0}catch(e){console.warn('Daily import:',e.message);return 0}}
+  const loadFromDaily=async(weekId,weekStart)=>{try{const r=await fetch(`/api/daily?weekStart=${weekStart}`);if(!r.ok)throw new Error('API недоступен');const d=await r.json();if(d.error)throw new Error(d.error);const{data:cur}=await supabase.from('weekly_reports').select('metrics,channels').eq('id',weekId).single();const upd={};if(d.days?.length){const d7=d.days.slice(0,7);while(d7.length<7)d7.push({day:'',sales:null,note:''});upd.daily_data=d7}upd.metrics={...(cur?.metrics||{}),totalSales:d.totalSales};if(d.channels?.length){const ec=cur?.channels||[];upd.channels=d.channels.map(c=>{const ex=ec.find(e=>e.name===c.name);return{name:c.name,sales:c.sales,spent:c.spent||0,cpo:c.cpo,prevSales:ex?.prevSales||null,prevCpo:ex?.prevCpo||null,planSales:ex?.planSales||null,planCpo:ex?.planCpo||null}})}if(Object.keys(upd).length){await supabase.from('weekly_reports').update({...upd,updated_at:new Date().toISOString()}).eq('id',weekId)}return d.daysFound||0}catch(e){console.warn('Daily import:',e.message);return 0}}
   const createWeek=async()=>{try{const last=reports[reports.length-1];const lsStr=last?last.week_start:new Date().toISOString().slice(0,10);const[ly,lm,ld]=lsStr.split('-').map(Number);const ns=new Date(ly,lm-1,ld+7);while(ns.getDay()!==1)ns.setDate(ns.getDate()-1);const ne=new Date(ns.getFullYear(),ns.getMonth(),ns.getDate()+6);const f=d=>`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;const label=`${f(ns)} – ${f(ne)}`;const wsStr=`${ns.getFullYear()}-${String(ns.getMonth()+1).padStart(2,'0')}-${String(ns.getDate()).padStart(2,'0')}`;const maxNum=reports.reduce((mx,r)=>{const m=r.id.match(/LH-(\d+)/);return m?Math.max(mx,parseInt(m[1])):mx},0);const id=`LH-${String(maxNum+1).padStart(5,'0')}`;const days=[];const dnL=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];for(let i=0;i<7;i++){const d=new Date(ns.getFullYear(),ns.getMonth(),ns.getDate()+i);days.push({day:`${dnL[i]} ${f(d)}`,sales:null,note:''})}const chs=(last?.channels||[]).map(c=>({...c,prevSales:c.sales,prevCpo:c.cpo,sales:null,cpo:null}));const{error}=await supabase.from('weekly_reports').insert({id,week_label:label,week_start:wsStr,status:'yellow',status_note:'',metrics:{planSales:last?.metrics?.planSales||null,budgetPlan:last?.metrics?.budgetPlan||null,planCpoAds:last?.metrics?.planCpoAds||null,planCpoTotal:last?.metrics?.planCpoTotal||null},channels:chs,improved:[],worsened:[],focus:last?.focus||[],asks:last?.asks||[],daily_data:days,pinned_projects:last?.pinned_projects||[],project_snapshots:[]});if(error){alert('Ошибка создания: '+error.message);return}const{data:fresh}=await supabase.from('weekly_reports').select('*').order('week_start');if(fresh){setReports(fresh);setWeek(fresh.length-1)};loadFromDaily(id,wsStr).then(n=>{if(n>0){alert(`✅ Загружено ${n} дней из Daily`);load()}})}catch(e){alert('Ошибка: '+e.message)}}
   const refreshFromDaily=async()=>{if(!rep)return;const n=await loadFromDaily(rep.id,rep.week_start);if(n>0)alert(`✅ Обновлено: ${n} дней`);else alert('Данные не найдены.')}
   const deleteWeek=async()=>{if(!rep)return;if(!confirm(`Удалить отчёт "${rep.week_label}"? Это действие необратимо.`))return;await supabase.from('weekly_reports').delete().eq('id',rep.id);const{data:fresh}=await supabase.from('weekly_reports').select('*').order('week_start');if(fresh){setReports(fresh);setWeek(Math.max(0,fresh.length-1))}}
@@ -94,24 +94,28 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const[showPaste,setShowPaste]=useState(false);const[pasteText,setPasteText]=useState('')
   // Get monthly plan for this week's month
   const weekMonth=rep.week_start?.slice(0,7);const mPlan=mPlans.find(p=>p.id===weekMonth)
+  const cp=mPlan?.channel_plans||{};const dim=weekMonth?new Date(parseInt(weekMonth.slice(0,4)),parseInt(weekMonth.slice(5,7)),0).getDate():30
+  // Weekly plan from monthly: totalPlan/daysInMonth*7
+  const weekPlanSales=mPlan?.total_plan?Math.round(mPlan.total_plan/dim*7):m.planSales||null
+  // Channel plan mapper: monthlyPlanKey → channel name
+  const chPlanMap={'Meta':'meta','Google':'google','Israel 365':'google','Taboola':'newChannels','TikTok':'newChannels','Reddit':'newChannels','Pinterest':'newChannels','Rumble':'newChannels'}
+  const getChPlan=(name)=>{const pk=chPlanMap[name];if(!pk)return{};const mp=cp[pk];if(!mp)return{};return{planSales:Math.round((mp.planSales||0)/dim*7),planCpo:mp.planCpo||null}}
   const upM=(k,v)=>up({metrics:{...m,[k]:v===''?null:isNaN(Number(v))?v:Number(v)}})
   const upCh=(idx,f,v)=>{const nc=[...ch];nc[idx]={...nc[idx],[f]:f==='name'?v:(v===''?null:Number(v))};up({channels:nc})}
   const addCh=()=>{const name=prompt('Название канала:');if(!name||!name.trim())return;up({channels:[...ch,{name:name.trim(),sales:0,prevSales:null,cpo:null,prevCpo:null,planSales:null,planCpo:null}]})}
   const remCh=(idx)=>{if(!confirm(`Удалить "${ch[idx]?.name}"?`))return;const nc=[...ch];nc.splice(idx,1);up({channels:nc})}
   const upDay=(idx,f,v)=>{const nd=[...daily];nd[idx]={...nd[idx],[f]:f==='note'||f==='day'?v:(v===''?null:Number(v))};up({daily_data:nd})}
-  // CPO calcs — with manual override support
-  const paidSales=ch.filter(c=>(c.cpo||0)>0).reduce((s,c)=>s+(c.sales||0),0)
-  const adSpend=ch.reduce((s,c)=>s+((c.sales||0)*(c.cpo||0)),0)
-  const teamWeek=Math.round(TEAM_MONTHLY/30*7)
+  // CPO calcs — use spent from channels (imported from Daily)
+  const adSpend=ch.reduce((s,c)=>s+(c.spent||0),0)
+  const paidSales=ch.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0)
+  const teamWeek=Math.round((mPlan?.team_budget||TEAM_MONTHLY)/dim*7)
   const calcCpoAds=paidSales>0?Math.round(adSpend/paidSales):null
   const calcCpoTotal=(m.totalSales||0)>0?Math.round((adSpend+teamWeek)/(m.totalSales||1)):null
   const cpoAds=m.cpoAdsOverride!=null?m.cpoAdsOverride:calcCpoAds
   const cpoTotal=m.cpoTotalOverride!=null?m.cpoTotalOverride:calcCpoTotal
-  // Plan CPO
-  const planPaidSales=ch.filter(c=>(c.planCpo||0)>0).reduce((s,c)=>s+(c.planSales||0),0)
-  const planAdSpend=ch.reduce((s,c)=>s+((c.planSales||0)*(c.planCpo||0)),0)
-  const planCpoAds=planPaidSales>0?Math.round(planAdSpend/planPaidSales):null
-  const planTotal=m.planSales||0;const planCpoTotal=planTotal>0?Math.round((planAdSpend+teamWeek)/planTotal):null
+  // Plan from monthly
+  const planCpoAds=m.planCpoAds!=null?m.planCpoAds:null
+  const planCpoTotal=m.planCpoTotal!=null?m.planCpoTotal:null
   const ws=rep.week_start
   const getTP=(taskId)=>{const all=tProgress.filter(p=>p.task_id===taskId&&p.week_start<=ws).sort((a,b)=>b.week_start.localeCompare(a.week_start));return all[0]||null}
   // Paste daily data handler
@@ -146,7 +150,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         {l:'Продажи',k:'totalSales'},
         {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$'},
         {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$'},
-        {l:'Бюджет Ads',k:'budgetSpent',pre:'$'},
+        {l:'Бюджет Ads',k:'budgetSpent',pre:'$',v3:adSpend},
       ].map((x,i)=><div key={i} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'12px 14px'}}>
         <div style={{fontSize:12,color:S.i3}}>{x.l}</div>
         <div style={{fontSize:22,fontWeight:500,margin:'2px 0'}}>
@@ -155,10 +159,10 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
           :x.v}
         </div>
         <div style={{fontSize:12,color:S.i2,display:'flex',alignItems:'center',gap:4}}>
-          {i===0&&<>план <EdNum value={m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:12,color:S.i2}}/></>}
+          {i===0&&<>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:12,color:S.i2}}/></>}
           {i===1&&<>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:12,color:S.i2}}/>{cpoAds!=null&&(m.planCpoAds||planCpoAds)!=null&&<> · <CpoCompare fact={cpoAds} plan={m.planCpoAds||planCpoAds}/></>}</>}
           {i===2&&<>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:12,color:S.i2}}/>{cpoTotal!=null&&(m.planCpoTotal||planCpoTotal)!=null&&<> · <CpoCompare fact={cpoTotal} plan={m.planCpoTotal||planCpoTotal}/></>}</>}
-          {i===3&&<>из $<EdNum value={m.budgetPlan} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:12,color:S.i2}}/>K</>}
+          {i===3&&<>из $<EdNum value={m.budgetPlan||(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:12,color:S.i2}}/>K{adSpend>0&&<span style={{color:S.i3}}> · потрачено ${adSpend.toLocaleString()}</span>}</>}
         </div>
       </div>)}
     </div>
@@ -177,7 +181,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       <div style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'8px 12px',background:S.bg,fontSize:10,color:S.i3,fontWeight:600,textTransform:'uppercase'}}>
         <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Прод</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO пл</span><span style={{textAlign:'right'}}>Δ cpo</span>
       </div>
-      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const barPct=c.planSales?(Math.min((c.sales||0)/c.planSales*100,100)):((c.sales||0)>0?100:0);const barColor=c.planSales?((c.sales||0)>=c.planSales?'#1D9E75':(c.sales||0)>=c.planSales*0.7?'#EF9F27':'#E24B4A'):S.gl
+      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales||mp.planSales||0;const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#1D9E75':(c.sales||0)>=ps*0.7?'#EF9F27':'#E24B4A'):S.gl;const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
         return<div key={i} style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'5px 12px',borderBottom:`0.5px solid ${S.ln}`,alignItems:'center',fontSize:13}}>
         <div style={{display:'flex',alignItems:'center',gap:3}}>
           {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:11,padding:0,lineHeight:1}}>×</button>}
@@ -185,12 +189,12 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>
         <div style={{height:7,background:S.bg,borderRadius:20,overflow:'hidden'}}><div style={{height:7,borderRadius:20,width:`${barPct}%`,background:barColor}}/></div>
         <span style={{textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>upCh(ci,'sales',v)} style={{fontWeight:500,fontSize:13}}/></span>
-        <span style={{textAlign:'right'}}><EdNum value={c.planSales} canEdit={ce} onSave={v=>upCh(ci,'planSales',v)} style={{fontSize:12,color:S.i3}}/></span>
-        <span style={{textAlign:'right'}}><PlanChip fact={c.sales} plan={c.planSales}/></span>
+        <span style={{textAlign:'right'}}><EdNum value={c.planSales||mp.planSales} canEdit={ce} onSave={v=>upCh(ci,'planSales',v)} style={{fontSize:12,color:S.i3}}/></span>
+        <span style={{textAlign:'right'}}><PlanChip fact={c.sales} plan={c.planSales||mp.planSales}/></span>
         <span style={{textAlign:'right'}}><DChip d={pct(c.sales,c.prevSales)}/></span>
-        <span style={{textAlign:'right'}}><EdNum value={c.cpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'cpo',v)} style={{fontSize:12,color:S.i2}}/></span>
-        <span style={{textAlign:'right'}}><EdNum value={c.planCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'planCpo',v)} style={{fontSize:12,color:S.i3}}/></span>
-        <span style={{textAlign:'right'}}><CpoCompare fact={c.cpo} plan={c.planCpo}/></span>
+        <span style={{textAlign:'right'}}><EdNum value={chCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'cpo',v)} style={{fontSize:12,color:S.i2}}/></span>
+        <span style={{textAlign:'right'}}><EdNum value={c.planCpo||mp.planCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'planCpo',v)} style={{fontSize:12,color:S.i3}}/></span>
+        <span style={{textAlign:'right'}}><CpoCompare fact={chCpo} plan={c.planCpo||mp.planCpo}/></span>
       </div>})}
       {ce&&<div style={{padding:'8px 12px'}}><button onClick={addCh} style={{fontSize:12,color:S.gd,background:'none',border:`1px dashed ${S.ln}`,borderRadius:8,padding:'6px 14px',cursor:'pointer',width:'100%'}}>+ Добавить канал</button></div>}
     </div>
