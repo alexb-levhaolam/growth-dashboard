@@ -74,8 +74,8 @@ export default async function handler(req, res) {
     let totalSales = 0;
     const seenDates = new Set(); // dedup
 
-    // Only process rows AFTER the header row
-    for (let ri = headerIdx + 1; ri < rows.length; ri++) {
+    // Process rows BOTTOM-TO-TOP: for duplicate dd.mm dates, first match = most recent year
+    for (let ri = rows.length - 1; ri > headerIdx; ri--) {
       const r = rows[ri];
       const dateCell = r[C('Date')] || r[0] || '';
       const dm = dateCell.match(/^(\d{2})\.(\d{2})\s*$/);
