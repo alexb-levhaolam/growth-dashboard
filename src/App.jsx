@@ -15,7 +15,8 @@ function CpoCompare({fact,plan}){if(!plan||!fact)return null;const d=fact-plan;c
 function Label({children}){return<p style={{fontSize:13,color:S.i2,margin:'0 0 6px 2px',fontWeight:600}}>{children}</p>}
 function Box({title,children}){return<div style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:12,padding:16,marginBottom:16}}><div style={{fontSize:14,fontWeight:600,marginBottom:12}}>{title}</div>{children}</div>}
 function CC({title,children,right}){return<div style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:12,padding:20,marginBottom:16}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}><div style={{fontSize:14,fontWeight:600}}>{title}</div>{right&&<div>{right}</div>}</div>{children}</div>}
-function Ed({value,onSave,canEdit,multi,ph,style={}}){const[editing,setEditing]=useState(false);const[val,setVal]=useState(value);useEffect(()=>setVal(value),[value]);if(!canEdit)return<span style={style}>{value||''}</span>;if(!editing)return<span style={{...style,cursor:'pointer',borderBottom:'1px dashed #E3E1D8'}} onClick={()=>setEditing(true)}>{value||ph||'(кликни)'}</span>;const save=()=>{setEditing(false);if(val!==value)onSave(val)};if(multi)return<textarea value={val||''} onChange={e=>setVal(e.target.value)} onBlur={save} autoFocus rows={2} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:13,resize:'vertical',outline:'none',fontFamily:'inherit',...style}}/>;return<input value={val||''} onChange={e=>setVal(e.target.value)} onBlur={save} onKeyDown={e=>e.key==='Enter'&&save()} autoFocus style={{width:'100%',padding:'4px 8px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:'inherit',outline:'none',...style}}/>}
+function Linkify({children,style={}}){if(!children||typeof children!=='string')return<span style={style}>{children||''}</span>;const urlRe=/(https?:\/\/[^\s<]+)/g;const parts=children.split(urlRe);return<span style={style}>{parts.map((p,i)=>urlRe.test(p)?<a key={i} href={p} target="_blank" rel="noopener" style={{color:S.bm,textDecoration:'underline'}}>{p.length>60?p.slice(0,57)+'…':p}</a>:p)}</span>}
+function Ed({value,onSave,canEdit,multi,ph,style={}}){const[editing,setEditing]=useState(false);const[val,setVal]=useState(value);useEffect(()=>setVal(value),[value]);if(!canEdit)return<Linkify style={style}>{value||''}</Linkify>;if(!editing)return<span style={{...style,cursor:'pointer',borderBottom:'1px dashed #E3E1D8'}} onClick={()=>setEditing(true)}>{value?<Linkify style={style}>{value}</Linkify>:<span style={style}>{ph||'(кликни)'}</span>}</span>;const save=()=>{setEditing(false);if(val!==value)onSave(val)};if(multi)return<textarea value={val||''} onChange={e=>setVal(e.target.value)} onBlur={save} autoFocus rows={2} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:13,resize:'vertical',outline:'none',fontFamily:'inherit',...style}}/>;return<input value={val||''} onChange={e=>setVal(e.target.value)} onBlur={save} onKeyDown={e=>e.key==='Enter'&&save()} autoFocus style={{width:'100%',padding:'4px 8px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:'inherit',outline:'none',...style}}/>}
 function EdNum({value,onSave,canEdit,prefix,style={}}){const[editing,setEditing]=useState(false);const[val,setVal]=useState(String(value??''));useEffect(()=>setVal(String(value??'')),[value]);if(!canEdit)return<span style={style}>{prefix||''}{value??'—'}</span>;if(!editing)return<span style={{...style,cursor:'pointer',borderBottom:'1px dashed #E3E1D8'}} onClick={()=>setEditing(true)}>{prefix||''}{value??'—'}</span>;const save=()=>{setEditing(false);const n=val===''?null:Number(val);onSave(n)};return<input value={val} onChange={e=>setVal(e.target.value)} onBlur={save} onKeyDown={e=>e.key==='Enter'&&save()} autoFocus type="number" style={{width:80,padding:'2px 6px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:'inherit',outline:'none',...style}}/>}
 function EdDate({value,onSave,canEdit,style={}}){if(!canEdit)return<span style={{fontSize:12,color:S.i2,...style}}>{value||'—'}</span>;return<input type="date" value={value||''} onChange={e=>onSave(e.target.value||null)} style={{fontSize:12,padding:'2px 6px',borderRadius:6,border:`1px solid ${S.ln}`,outline:'none',color:S.i2,...style}}/>}
 function EList({items,onSave,canEdit,ph,color}){const[ni,setNi]=useState('');const add=()=>{if(!ni.trim())return;onSave([...(items||[]),ni.trim()]);setNi('')};return<div><ul style={{margin:0,paddingLeft:18,fontSize:13,lineHeight:1.75,color:color||'inherit'}}>{(items||[]).map((t,i)=><li key={i} style={{display:'flex',alignItems:'flex-start',gap:6}}><Ed value={t} canEdit={canEdit} onSave={v=>{const n=[...(items||[])];n[i]=v;onSave(n)}} style={{flex:1,fontSize:13,color:'inherit'}}/>{canEdit&&<button onClick={()=>{const n=[...(items||[])];n.splice(i,1);onSave(n)}} style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:14,padding:0}}>×</button>}</li>)}</ul>{canEdit&&<div style={{display:'flex',gap:6,marginTop:6}}><input value={ni} onChange={e=>setNi(e.target.value)} placeholder={ph||'Добавить...'} onKeyDown={e=>e.key==='Enter'&&add()} style={{flex:1,padding:'4px 10px',borderRadius:6,border:`1px solid ${S.ln}`,fontSize:12,outline:'none'}}/><button onClick={add} style={{padding:'4px 12px',borderRadius:6,border:'none',background:S.gd,color:S.gp,fontSize:12,cursor:'pointer'}}>+</button></div>}</div>}
@@ -37,12 +38,19 @@ function Main({profile}){
   const rep=reports[aIdx];const ce=profile.role==='admin'||profile.role==='editor';const isA=profile.role==='admin'
   const upRep=async u=>{if(!rep)return;await supabase.from('weekly_reports').update({...u,updated_at:new Date().toISOString()}).eq('id',rep.id);load()}
   const setWeek=(i)=>{setAIdx(i);aIdxRef.current=i}
-  const createWeek=async()=>{const last=reports[reports.length-1];const ls=last?new Date(last.week_start):new Date();const ns=new Date(ls);ns.setDate(ns.getDate()+7);const ne=new Date(ns);ne.setDate(ne.getDate()+6);const f=d=>`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;const label=`${f(ns)} – ${f(ne)}`;const id=`${ns.getFullYear()}-W${String(Math.ceil((ns-new Date(ns.getFullYear(),0,1))/604800000)).padStart(2,'0')}`;const days=[];const dn=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];for(let i=0;i<7;i++){const d=new Date(ns);d.setDate(d.getDate()+i);days.push({day:`${dn[i]} ${f(d)}`,sales:null,note:''})}const chs=(last?.channels||[]).map(c=>({...c,prevSales:c.sales,prevCpo:c.cpo,sales:null,cpo:null}));await supabase.from('weekly_reports').insert({id,week_label:label,week_start:ns.toISOString().slice(0,10),status:'yellow',status_note:'',metrics:{},channels:chs,improved:[],worsened:[],focus:[],asks:[],daily_data:days,pinned_projects:last?.pinned_projects||[],project_snapshots:[]});await load();setWeek(reports.length)}
+  const loadFromDaily=async(weekId,weekStart)=>{try{const r=await fetch(`/api/daily?weekStart=${weekStart}`);if(!r.ok)throw new Error('API недоступен');const d=await r.json();if(d.error)throw new Error(d.error);const upd={};if(d.days?.length){upd.daily_data=d.days;upd.metrics={totalSales:d.totalSales}}if(d.channels?.length){upd.channels=d.channels.map(c=>({name:c.name,sales:c.sales,cpo:c.cpo,prevSales:null,prevCpo:null,planSales:null,planCpo:null}))}if(Object.keys(upd).length){await supabase.from('weekly_reports').update({...upd,updated_at:new Date().toISOString()}).eq('id',weekId);await load()}return d.daysFound||0}catch(e){console.warn('Daily import:',e.message);return 0}}
+  const createWeek=async()=>{const last=reports[reports.length-1];const ls=last?new Date(last.week_start):new Date();const ns=new Date(ls);ns.setDate(ns.getDate()+7);const ne=new Date(ns);ne.setDate(ne.getDate()+6);const f=d=>`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;const label=`${f(ns)} – ${f(ne)}`;const id=`${ns.getFullYear()}-W${String(Math.ceil((ns-new Date(ns.getFullYear(),0,1))/604800000)).padStart(2,'0')}`;const days=[];const dn=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];for(let i=0;i<7;i++){const d=new Date(ns);d.setDate(d.getDate()+i);days.push({day:`${dn[i]} ${f(d)}`,sales:null,note:''})}const chs=(last?.channels||[]).map(c=>({...c,prevSales:c.sales,prevCpo:c.cpo,sales:null,cpo:null}));const wsStr=ns.toISOString().slice(0,10);await supabase.from('weekly_reports').insert({id,week_label:label,week_start:wsStr,status:'yellow',status_note:'',metrics:{planSales:last?.metrics?.planSales||null,budgetPlan:last?.metrics?.budgetPlan||null},channels:chs,improved:[],worsened:[],focus:last?.focus||[],asks:last?.asks||[],daily_data:days,pinned_projects:last?.pinned_projects||[],project_snapshots:[]});const n=await loadFromDaily(id,wsStr);const{data:fresh}=await supabase.from('weekly_reports').select('*').order('week_start');if(fresh){setReports(fresh);setWeek(fresh.length-1)};if(n>0)alert(`✅ Загружено ${n} дней из Daily Tracking`);else alert('Неделя создана. Данные из Daily не найдены — загрузите вручную.')}
+  const refreshFromDaily=async()=>{if(!rep)return;const n=await loadFromDaily(rep.id,rep.week_start);if(n>0)alert(`✅ Обновлено: ${n} дней`);else alert('Данные не найдены. Проверьте что файл Daily Tracking доступен по ссылке.')}
 
   const tabs=[{id:'overview',l:'Обзор'},{id:'projects',l:'Проекты'},{id:'tactical',l:'Тактические'},{id:'dynamics',l:'История'},{id:'trends',l:'Тренды'}];if(isA)tabs.push({id:'admin',l:'Настройки'})
   const printOverview=()=>{const el=document.getElementById('overview-print');if(!el)return;const w=window.open('','','width=900,height=700');w.document.write('<html><head><title>Growth Report '+rep?.week_label+'</title><style>body{font-family:-apple-system,sans-serif;padding:20px;color:#2C2C2A}table{border-collapse:collapse;width:100%}td,th{padding:6px 10px;border:1px solid #E3E1D8;font-size:13px}</style></head><body>');w.document.write(el.innerHTML);w.document.write('</body></html>');w.document.close();w.print()}
 
-  return<div style={{minHeight:'100vh',background:S.bg}}><div style={{maxWidth:960,margin:'0 auto',padding:'20px 16px'}}>
+  return<div style={{minHeight:'100vh',background:S.bg}}>
+    <div style={{background:S.ink,padding:'6px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <span style={{fontSize:11,color:'#aaa'}}>Lev Haolam · Growth Dashboard</span>
+      <span style={{fontSize:11,color:S.gl}}>🟢 {profile.name||profile.email} <span style={{color:'#888'}}>({profile.role})</span></span>
+    </div>
+    <div style={{maxWidth:960,margin:'0 auto',padding:'20px 16px'}}>
     <div style={{background:S.gd,borderRadius:14,padding:'18px 22px',marginBottom:16}} className="no-print">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{fontSize:12,letterSpacing:'.09em',textTransform:'uppercase',color:S.gs,fontWeight:600}}>Growth · еженедельный отчёт</div>
@@ -56,16 +64,16 @@ function Main({profile}){
           {ce?<select value={rep.status} onChange={e=>upRep({status:e.target.value})} style={{fontSize:13,padding:'3px 11px',borderRadius:20,border:'none',background:STATUS_CFG[rep.status]?.bg,color:STATUS_CFG[rep.status]?.tx,cursor:'pointer',fontWeight:600}}>{Object.entries(STATUS_CFG).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}</select>:<Chip bg={STATUS_CFG[rep.status]?.bg} tx={STATUS_CFG[rep.status]?.tx}>{STATUS_CFG[rep.status]?.emoji} {STATUS_CFG[rep.status]?.label}</Chip>}
           <Ed value={rep.status_note} canEdit={ce} onSave={v=>upRep({status_note:v})} ph="Описание статуса..." style={{fontSize:13,color:S.gs}}/>
         </div>
+      </>}
         <div style={{marginTop:10,display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
           {reports.map((r,i)=><button key={r.id} onClick={()=>setWeek(i)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:i===aIdx?S.gp:'rgba(255,255,255,0.15)',color:i===aIdx?S.gd:S.gs}}>{r.week_label}</button>)}
           {ce&&<button onClick={createWeek} style={{padding:'4px 12px',borderRadius:14,border:'1px dashed rgba(255,255,255,0.4)',cursor:'pointer',fontSize:11,fontWeight:600,background:'transparent',color:S.gs}}>+ новая неделя</button>}
         </div>
-      </>}
     </div>
     <div style={{display:'flex',gap:2,marginBottom:16,background:S.sf,borderRadius:10,padding:3,border:`0.5px solid ${S.ln}`}} className="no-print">
       {tabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:1,padding:'8px',border:'none',borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:600,background:view===t.id?S.gd:'transparent',color:view===t.id?S.gp:S.i2}}>{t.l}</button>)}
     </div>
-    {view==='overview'&&rep&&<Overview rep={rep} reports={reports} projects={projects} comments={comments} ce={ce} up={upRep} tTasks={tTasks} tProgress={tProgress} print={printOverview}/>}
+    {view==='overview'&&rep&&<Overview rep={rep} reports={reports} projects={projects} comments={comments} ce={ce} up={upRep} tTasks={tTasks} tProgress={tProgress} print={printOverview} refreshDaily={refreshFromDaily}/>}
     {view==='projects'&&<Projects projects={projects} comments={comments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={load}/>}
     {view==='tactical'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={load}/>}
     {view==='dynamics'&&<Dynamics projects={projects} comments={comments} reports={reports} aIdx={aIdx} ce={ce} reload={load}/>}
@@ -75,7 +83,7 @@ function Main({profile}){
 }
 
 // ═══ OVERVIEW ═══
-function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print}){
+function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily}){
   const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
   const pins=rep.pinned_projects||[];const shown=pins.length>0?projects.filter(p=>pins.includes(p.id)):projects.filter(p=>p.priority==='key').slice(0,8)
   const[showPaste,setShowPaste]=useState(false);const[pasteText,setPasteText]=useState('')
@@ -108,7 +116,8 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print}){
     <div style={{display:'flex',gap:8,marginBottom:14,fontSize:11,color:S.i3,flexWrap:'wrap',alignItems:'center'}}>
       {Object.entries(STATUS_CFG).map(([k,v])=><span key={k} style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:'50%',background:v.bg,border:`1px solid ${v.tx}`}}/>{v.emoji} {v.desc}</span>)}
       <span style={{marginLeft:'auto',display:'flex',gap:4}}>
-        {ce&&<button onClick={()=>setShowPaste(true)} style={{fontSize:11,color:S.gd,background:S.gp,border:`1px solid ${S.ln}`,borderRadius:6,padding:'3px 10px',cursor:'pointer'}}>📊 Загрузить данные</button>}
+        {ce&&<button onClick={()=>setShowPaste(true)} style={{fontSize:11,color:S.gd,background:S.gp,border:`1px solid ${S.ln}`,borderRadius:6,padding:'3px 10px',cursor:'pointer'}}>📊 Вставить вручную</button>}
+        {ce&&refreshDaily&&<button onClick={refreshDaily} style={{fontSize:11,color:S.sf,background:S.bm,border:'none',borderRadius:6,padding:'3px 10px',cursor:'pointer'}}>📥 Из Daily Sheet</button>}
         {ce&&<button onClick={refreshTotals} style={{fontSize:11,color:S.bm,background:S.sf,border:`1px solid ${S.ln}`,borderRadius:6,padding:'3px 10px',cursor:'pointer'}}>🔄 Обновить итоги</button>}
         <button onClick={print} style={{fontSize:11,color:S.gd,background:S.sf,border:`1px solid ${S.ln}`,borderRadius:6,padding:'3px 10px',cursor:'pointer'}}>📄 PDF</button>
       </span>
@@ -252,51 +261,59 @@ function Projects({projects,comments,ce,reports,aIdx,profile,reload}){
   const[fPri,setFPri]=useState('all');const[fSt,setFSt]=useState('all')
   const rep=reports[aIdx];const ws=rep?.week_start
   const upProj=async(id,f,v)=>{await supabase.from('projects').update({[f]:v}).eq('id',id);reload()}
+  const delProj=async(id,name)=>{if(!confirm(`Удалить проект "${name}"? Комментарии тоже удалятся.`))return;await supabase.from('project_comments').delete().eq('project_id',id);await supabase.from('projects').delete().eq('id',id);reload()}
   const addC=async pid=>{if(!nc.trim())return;setSav(true);const sum=nc.length>150?nc.slice(0,120).replace(/\s\S*$/,'')+'…':nc;await supabase.from('project_comments').insert({project_id:pid,author:profile.name||profile.email,full_text:nc,summary:sum,week_start:ws||new Date().toISOString().slice(0,10)});setNc('');setSav(false);reload()}
   const delC=async(cid)=>{if(!confirm('Удалить комментарий?'))return;await supabase.from('project_comments').delete().eq('id',cid);reload()}
   const getWC=pid=>comments.filter(c=>c.project_id===pid&&c.week_start===ws)
   const getPrev=pid=>{const s=comments.filter(c=>c.project_id===pid&&c.week_start<ws).sort((a,b)=>b.week_start.localeCompare(a.week_start));return s[0]||null}
   const sortP=(arr)=>[...arr].sort((a,b)=>{if(a.status==='blocked'&&b.status!=='blocked')return -1;if(b.status==='blocked'&&a.status!=='blocked')return 1;return(a.sort_order||0)-(b.sort_order||0)})
   const setConstraints=async(pid,v)=>{await supabase.from('projects').update({constraints_text:v}).eq('id',pid);const proj=projects.find(p=>p.id===pid);if(v&&v.trim()&&proj?.status!=='blocked'){if(confirm('Поставить статус "блокер"?')){await supabase.from('projects').update({status:'blocked'}).eq('id',pid)}}else if((!v||!v.trim())&&proj?.status==='blocked'){if(confirm('Снять статус "блокер"?')){await supabase.from('projects').update({status:'progress'}).eq('id',pid)}};reload()}
-  // Filters
-  let filtered=projects
+  const fmtDate=(d)=>{if(!d)return null;const p=d.split('-');return`${p[2]}.${p[1]}`}
+  const dates=(p)=>[p.date_start&&`с ${fmtDate(p.date_start)}`,p.date_test&&`тест ${fmtDate(p.date_test)}`,p.date_done&&`✓ ${fmtDate(p.date_done)}`].filter(Boolean).join(' · ')
+  // Separate active vs archive (done)
+  const active=projects.filter(p=>p.status!=='done')
+  const archive=projects.filter(p=>p.status==='done')
+  let filtered=active
   if(fPri==='key')filtered=filtered.filter(p=>p.priority==='key')
   if(fPri==='current')filtered=filtered.filter(p=>p.priority==='current')
   if(fSt!=='all')filtered=filtered.filter(p=>p.status===fSt)
   const keyP=sortP(filtered.filter(p=>p.priority==='key'));const curP=sortP(filtered.filter(p=>p.priority==='current'))
   const secs=fPri==='all'?[{t:'🔴 Ключевые',items:keyP},{t:'🔵 Текущие',items:curP}]:fPri==='key'?[{t:'🔴 Ключевые',items:keyP}]:[{t:'🔵 Текущие',items:curP}]
-  const fmtDate=(d)=>{if(!d)return null;const p=d.split('-');return`${p[2]}.${p[1]}`}
-  const dates=(p)=>[p.date_start&&`с ${fmtDate(p.date_start)}`,p.date_test&&`тест ${fmtDate(p.date_test)}`,p.date_done&&`✓ ${fmtDate(p.date_done)}`].filter(Boolean).join(' · ')
+
+  const ProjCard=({p})=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const wcs=getWC(p.id);const prev=getPrev(p.id);const isO=exp===p.id;const isBlocked=p.status==='blocked';const hasBlock=p.constraints_text&&p.constraints_text.trim();const ds=dates(p)
+    return<div style={{background:isBlocked?'#FFF0F0':S.sf,border:`0.5px solid ${isO?S.gl:isBlocked?'#E8AAAA':S.ln}`,borderRadius:12,padding:'12px 16px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,cursor:'pointer'}} onClick={()=>setExp(isO?null:p.id)}>
+        <div style={{flex:1}}>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>{isBlocked&&<span style={{fontSize:16}} title="Блокер">🛑</span>}<Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:500}}/><span style={{fontSize:12,color:S.i3}}>{p.id} · {p.owner}</span></div>
+          {ds&&<div style={{fontSize:11,color:S.i3,marginTop:2}}>📅 {ds}</div>}
+          {hasBlock&&!isO&&<div style={{fontSize:11,color:'#791F1F',marginTop:2}}>⚠️ {p.constraints_text.slice(0,60)}{p.constraints_text.length>60?'…':''}</div>}
+        </div>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>{ce?<select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:12,padding:'2px 6px',borderRadius:6,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}{ce&&<button onClick={e=>{e.stopPropagation();delProj(p.id,p.name)}} style={{fontSize:12,background:'none',border:'none',cursor:'pointer',color:'#ccc'}} title="Удалить">🗑</button>}<span style={{color:S.i3}}>{isO?'▲':'▼'}</span></div>
+      </div>
+      {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
+      {wcs.length===0&&prev&&<div style={{marginTop:6,padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:10,color:'#BA7517'}}>⏮ {prev.week_start} ({prev.author})</div><div style={{fontSize:13,color:S.i3,fontStyle:'italic'}}>{prev.summary||prev.full_text?.slice(0,120)}</div></div>}
+      {isO&&<div style={{marginTop:12,borderTop:`0.5px solid ${S.ln}`,paddingTop:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f} style={{fontSize:11}}><span style={{color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div>
+        <div style={{marginBottom:10}}><span style={{fontSize:11,color:S.i3,display:'block',marginBottom:2}}>Ограничения</span><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={v=>setConstraints(p.id,v)} ph="Блокеры / ограничения..." style={{fontSize:12,color:hasBlock?'#791F1F':S.i2,display:'block',background:hasBlock?'#FFF5F5':'transparent',padding:hasBlock?'4px 8px':0,borderRadius:6}}/></div>
+        <Ed value={p.last_update} canEdit={ce} multi onSave={v=>upProj(p.id,'last_update',v)} ph="Общее описание..." style={{color:S.i2,fontSize:13,display:'block',marginBottom:12}}/>
+        {ce&&<div style={{display:'flex',gap:8}}><textarea value={nc} onChange={e=>setNc(e.target.value)} placeholder={`Комментарий за ${rep?.week_label||''}...`} rows={2} style={{flex:1,padding:'8px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:13,resize:'vertical',outline:'none',fontFamily:'inherit'}}/><button onClick={()=>addC(p.id)} disabled={sav} style={{padding:'8px 16px',borderRadius:8,border:'none',background:S.gd,color:S.gp,fontSize:13,fontWeight:600,cursor:'pointer',alignSelf:'flex-end'}}>{sav?'...':'→'}</button></div>}
+      </div>}
+    </div>}
 
   return<>
     <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
       <div style={{fontSize:12,color:S.i3,marginRight:4}}>Фильтр:</div>
       {[{k:'all',l:'Все'},{k:'key',l:'🔴 Ключевые'},{k:'current',l:'🔵 Текущие'}].map(f=><button key={f.k} onClick={()=>setFPri(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fPri===f.k?S.gd:'#F1EFE8',color:fPri===f.k?S.gp:S.i2}}>{f.l}</button>)}
       <span style={{color:S.ln}}>|</span>
-      {[{k:'all',l:'Все статусы'},...Object.entries(PROJ_ST).map(([k,v])=>({k,l:v.l}))].map(f=><button key={f.k} onClick={()=>setFSt(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fSt===f.k?S.gd:'#F1EFE8',color:fSt===f.k?S.gp:S.i2}}>{f.l}</button>)}
-      <span style={{marginLeft:'auto',fontSize:12,color:S.i3}}>{filtered.length} из {projects.length}</span>
+      {[{k:'all',l:'Все статусы'},...Object.entries(PROJ_ST).filter(([k])=>k!=='done').map(([k,v])=>({k,l:v.l}))].map(f=><button key={f.k} onClick={()=>setFSt(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fSt===f.k?S.gd:'#F1EFE8',color:fSt===f.k?S.gp:S.i2}}>{f.l}</button>)}
+      <span style={{marginLeft:'auto',fontSize:12,color:S.i3}}>{filtered.length} из {active.length}</span>
     </div>
     <div style={{fontSize:12,color:S.i3,marginBottom:12,padding:'8px 12px',background:S.sf,borderRadius:8,border:`0.5px solid ${S.ln}`}}>📅 <b>{rep?.week_label||'—'}</b></div>
     {secs.map(s=><div key={s.t}><Label>{s.t} ({s.items.length})</Label><div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
-      {s.items.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const wcs=getWC(p.id);const prev=getPrev(p.id);const isO=exp===p.id;const isBlocked=p.status==='blocked';const hasBlock=p.constraints_text&&p.constraints_text.trim();const ds=dates(p)
-        return<div key={p.id} style={{background:isBlocked?'#FFF0F0':S.sf,border:`0.5px solid ${isO?S.gl:isBlocked?'#E8AAAA':S.ln}`,borderRadius:12,padding:'12px 16px'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,cursor:'pointer'}} onClick={()=>setExp(isO?null:p.id)}>
-            <div style={{flex:1}}>
-              <div style={{display:'flex',alignItems:'center',gap:6}}>{isBlocked&&<span style={{fontSize:16}} title="Блокер">🛑</span>}<span style={{fontWeight:500}}>{p.name}</span><span style={{fontSize:12,color:S.i3}}>{p.id} · {p.owner}</span></div>
-              {ds&&<div style={{fontSize:11,color:S.i3,marginTop:2}}>📅 {ds}</div>}
-              {hasBlock&&!isO&&<div style={{fontSize:11,color:'#791F1F',marginTop:2}}>⚠️ {p.constraints_text.slice(0,60)}{p.constraints_text.length>60?'…':''}</div>}
-            </div>
-            <div style={{display:'flex',gap:6,alignItems:'center'}}>{ce?<select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:12,padding:'2px 6px',borderRadius:6,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}<span style={{color:S.i3}}>{isO?'▲':'▼'}</span></div>
-          </div>
-          {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
-          {wcs.length===0&&prev&&<div style={{marginTop:6,padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:10,color:'#BA7517'}}>⏮ {prev.week_start} ({prev.author})</div><div style={{fontSize:13,color:S.i3,fontStyle:'italic'}}>{prev.summary||prev.full_text?.slice(0,120)}</div></div>}
-          {isO&&<div style={{marginTop:12,borderTop:`0.5px solid ${S.ln}`,paddingTop:12}}>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f} style={{fontSize:11}}><span style={{color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div>
-            <div style={{marginBottom:10}}><span style={{fontSize:11,color:S.i3,display:'block',marginBottom:2}}>Ограничения</span><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={v=>setConstraints(p.id,v)} ph="Блокеры / ограничения..." style={{fontSize:12,color:hasBlock?'#791F1F':S.i2,display:'block',background:hasBlock?'#FFF5F5':'transparent',padding:hasBlock?'4px 8px':0,borderRadius:6}}/></div>
-            <Ed value={p.last_update} canEdit={ce} multi onSave={v=>upProj(p.id,'last_update',v)} ph="Общее описание..." style={{color:S.i2,fontSize:13,display:'block',marginBottom:12}}/>
-            {ce&&<div style={{display:'flex',gap:8}}><textarea value={nc} onChange={e=>setNc(e.target.value)} placeholder={`Комментарий за ${rep?.week_label||''}...`} rows={2} style={{flex:1,padding:'8px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:13,resize:'vertical',outline:'none',fontFamily:'inherit'}}/><button onClick={()=>addC(p.id)} disabled={sav} style={{padding:'8px 16px',borderRadius:8,border:'none',background:S.gd,color:S.gp,fontSize:13,fontWeight:600,cursor:'pointer',alignSelf:'flex-end'}}>{sav?'...':'→'}</button></div>}
-          </div>}
-        </div>})}</div></div>)}</>
+      {s.items.map(p=><ProjCard key={p.id} p={p}/>)}</div></div>)}
+    {archive.length>0&&<><div style={{marginTop:24,borderTop:`2px solid ${S.ln}`,paddingTop:16}}><Label>📦 Архив · готово ({archive.length})</Label></div><div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20,opacity:0.75}}>
+      {archive.map(p=><ProjCard key={p.id} p={p}/>)}</div></>}
+  </>
 }
 function CItem({c,ce,reload,onDel}){const[es,setEs]=useState(false);const[sv,setSv]=useState(c.summary);const isL=c.full_text?.length>150;const saveS=async()=>{setEs(false);await supabase.from('project_comments').update({summary:sv}).eq('id',c.id);reload()};return<div style={{marginTop:6,padding:'8px 12px',background:S.bg,borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:S.i3,marginBottom:2}}><span><b>{c.author}</b> · {c.week_start}</span><div style={{display:'flex',gap:6}}>{ce&&<button onClick={()=>setEs(!es)} style={{fontSize:11,color:S.bm,background:'none',border:'none',cursor:'pointer'}}>✏️</button>}{ce&&onDel&&<button onClick={onDel} style={{fontSize:11,color:'#ccc',background:'none',border:'none',cursor:'pointer'}}>🗑</button>}</div></div>{es?<div><textarea value={sv} onChange={e=>setSv(e.target.value)} rows={2} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:13,outline:'none',fontFamily:'inherit'}}/><button onClick={saveS} style={{fontSize:12,color:S.gd,background:'none',border:'none',cursor:'pointer'}}>💾</button></div>:<div style={{fontSize:13,color:S.i2}}>{c.summary||c.full_text?.slice(0,120)}</div>}{isL&&!es&&<details style={{marginTop:4}}><summary style={{fontSize:11,color:S.gm,cursor:'pointer'}}>Полная версия</summary><div style={{fontSize:12,color:S.ink,marginTop:4,whiteSpace:'pre-wrap'}}>{c.full_text}</div></details>}</div>}
 
