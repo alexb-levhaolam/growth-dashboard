@@ -1,5 +1,5 @@
-// Vercel Serverless: reads Daily Tracking → structured channel data
-// v10fix3: header-based column lookup + dedup dates
+// Vercel Serverless: Daily Tracking → channel data
+// v10fix6: hardcoded column indices from exact sheet positions
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const { weekStart } = req.query;
@@ -14,104 +14,81 @@ export default async function handler(req, res) {
     const csv = await resp.text();
 
     // Parse CSV
-    const rows = []; let cur = '', inQ = false, row = [], i = 0;
-    while (i < csv.length) {
+    const rows = []; let cur = '', inQ = false, row = [];
+    for (let i = 0; i < csv.length; i++) {
       const ch = csv[i];
       if (ch === '"') inQ = !inQ;
       else if (ch === ',' && !inQ) { row.push(cur.trim()); cur = ''; }
-      else if ((ch === '\n' || ch === '\r') && !inQ) { if (cur || row.length) { row.push(cur.trim()); rows.push(row); row = []; cur = ''; } if (ch === '\r' && csv[i+1] === '\n') i++; }
-      else cur += ch;
-      i++;
+      else if ((ch === '\n' || ch === '\r') && !inQ) {
+        if (cur || row.length) { row.push(cur.trim()); rows.push(row); row = []; cur = ''; }
+        if (ch === '\r' && csv[i+1] === '\n') i++;
+      } else cur += ch;
     }
     if (cur || row.length) { row.push(cur.trim()); rows.push(row); }
 
-    // Find header row by looking for "All_MetaAds_Spent" or "All_MetaAds_Sales"
-    let headerIdx = -1;
-    let col = {};
-    for (let ri = 0; ri < rows.length; ri++) {
-      const r = rows[ri];
-      const metaCol = r.findIndex(c => c.replace(/\\/g,'').includes('All_MetaAds_Spent'));
-      if (metaCol >= 0) {
-        headerIdx = ri;
-        // Build column map from header names
-        r.forEach((name, ci) => {
-          const clean = name.replace(/\\/g, '').replace(/_/g, '_').trim();
-          if (clean) col[clean] = ci;
-        });
-        break;
-      }
-    }
-    if (headerIdx < 0) throw new Error('Header row not found in CSV');
-
-    // Column lookup helper — fuzzy match because CSV merges multi-row headers
-    const C = (name) => {
-      if (col[name] !== undefined) return col[name];
-      const key = Object.keys(col).find(k => k.startsWith(name));
-      return key !== undefined ? col[key] : -1;
-    };
-    const pn = (s) => { if (!s) return 0; return Number(s.replace(/[$,\s\u00a0]/g, '')) || 0; };
-    const getCol = (r, name) => C(name) >= 0 ? pn(r[C(name)]) : 0;
-
+    const pn = s => { if (!s) return 0; return Number(s.replace(/[$,\s\u00a0]/g, '')) || 0; };
     const ws = new Date(weekStart + 'T12:00:00');
     const we = new Date(ws); we.setDate(we.getDate() + 6);
     const wsYear = ws.getFullYear();
 
+    // Exact column indices from sheet (0-based: A=0, B=1, ... Z=25, AA=26, etc.)
+    // Col 0=Date(A), 13=Meta_Spent(N), 14=Meta_Sales(O)
+    // Google Sales: 17(R)+20(U)+23(X)+26(AA)+29(AD)+35(AJ)
+    // Google Spent: 16(Q)+19(T)+22(W)+25(Z)+28(AC)+34(AI)
+    // Israel365: 31(AF)spent, 32(AG)sales
+    // TikTok: 37(AL)spent, 38(AM)sales
+    // Reddit: 40(AO)spent, 41(AP)sales
+    // Pinterest: 43(AR)spent, 44(AS)sales
+    // Rumble: 46(AU)spent, 47(AV)sales
+    // Taboola: 49(AX)spent, 50(AY)sales
+    // Email sales: 52(BA)+53(BB)+54(BC)+55(BD)
+    // SMM sales: 56(BE)+57(BF)
+    // Direct sales: 60(BI)
+    // Total sales: 61(BJ)
+
     const channels = {
-      Meta: { spent: 0, sales: 0 },
-      Google: { spent: 0, sales: 0 },
-      'Israel 365': { spent: 0, sales: 0 },
-      Email: { spent: 0, sales: 0 },
-      SMM: { spent: 0, sales: 0 },
-      SEO: { spent: 0, sales: 0 },
-      Direct: { spent: 0, sales: 0 },
-      TikTok: { spent: 0, sales: 0 },
-      Reddit: { spent: 0, sales: 0 },
-      Pinterest: { spent: 0, sales: 0 },
-      Rumble: { spent: 0, sales: 0 },
-      Taboola: { spent: 0, sales: 0 },
+      Meta:{spent:0,sales:0}, Google:{spent:0,sales:0}, 'Israel 365':{spent:0,sales:0},
+      Email:{spent:0,sales:0}, SMM:{spent:0,sales:0}, SEO:{spent:0,sales:0},
+      Direct:{spent:0,sales:0}, TikTok:{spent:0,sales:0}, Reddit:{spent:0,sales:0},
+      Pinterest:{spent:0,sales:0}, Rumble:{spent:0,sales:0}, Taboola:{spent:0,sales:0},
     };
     const days = [];
     let totalSales = 0;
-    const seenDates = new Set(); // dedup
+    const debugRows = [];
 
-    // Process rows BOTTOM-TO-TOP: for duplicate dd.mm dates, first match = most recent year
-    for (let ri = rows.length - 1; ri > headerIdx; ri--) {
+    // Iterate BOTTOM-TO-TOP to prefer most recent year for duplicate dd.mm dates
+    const seenDates = new Set();
+    for (let ri = rows.length - 1; ri >= 0; ri--) {
       const r = rows[ri];
-      const dateCell = r[C('Date')] || r[0] || '';
-      const dm = dateCell.match(/^(\d{2})\.(\d{2})\s*$/);
+      if (!r || !r[0]) continue;
+      const dm = r[0].match(/^(\d{2})\.(\d{2})\s*$/);
       if (!dm) continue;
 
       const dateKey = `${dm[1]}.${dm[2]}`;
-      if (seenDates.has(dateKey)) continue; // skip duplicates
+      if (seenDates.has(dateKey)) continue;
       seenDates.add(dateKey);
 
       const day = parseInt(dm[1]), month = parseInt(dm[2]);
       const rd = new Date(wsYear, month - 1, day, 12);
       if (rd < ws || rd > we) continue;
 
-      // Meta Total
-      const meta_sp = getCol(r, 'All_MetaAds_Spent');
-      const meta_sa = getCol(r, 'All_MetaAds_Sales');
-      // Google = PMAX + YTB + Brand + Search + DemandGen + Bing
-      const g_sp = getCol(r,'Google_PMAX_Spent')+getCol(r,'YTB_Ads_Spent')+getCol(r,'Google_Brand_Spent')+getCol(r,'Search_Spent')+getCol(r,'Google_DemandGen_Spent')+getCol(r,'Bing_Brand_Spent');
-      const g_sa = getCol(r,'Google_PMAX_Sales')+getCol(r,'YTB_Ads_Sales')+getCol(r,'Google_Brand_Sales')+getCol(r,'Search_Sales')+getCol(r,'Google_DemandGen_Sales')+getCol(r,'Bing_Brand_Sales');
-      // Israel 365 = Awareness
-      const i365_sp = getCol(r,'Google_Awareness_Spent');
-      const i365_sa = getCol(r,'Google_Awareness_Sales');
-      // Other channels
-      const tt_sp=getCol(r,'TikTok_Spent'),tt_sa=getCol(r,'TikTok_Sales');
-      const rd_sp=getCol(r,'Reddit_Spent'),rd_sa=getCol(r,'Reddit_Sales');
-      const pin_sp=getCol(r,'Pinterest_Spent'),pin_sa=getCol(r,'Pinterest_Sales');
-      const rum_sp=getCol(r,'Rumble_Spent'),rum_sa=getCol(r,'Rumble_Sales');
-      const tab_sp=getCol(r,'Taboola_Spent'),tab_sa=getCol(r,'Taboola_Sales');
-      // Email = Cold + React + Welcome + Abandoned
-      const email_sa = getCol(r,'Cold_base')+getCol(r,'Reactivation_base')+getCol(r,'Welcome_flow')+getCol(r,'Abandoned_flow');
-      // SMM, SEO, Direct
-      const smm_sa = getCol(r,'Social_Sales');
-      const seo_sa = getCol(r,'SEO_Sales');
-      const dir_sp = getCol(r,'Direct_Spent'), dir_sa = getCol(r,'Direct_Sales');
-      // Total
-      const tot = getCol(r,'Admin_Sales');
+      // Skip rows with no actual data (future dates with 0)
+      const tot = pn(r[61]);
+      if (tot === 0 && pn(r[14]) === 0 && pn(r[17]) === 0) continue;
+
+      const meta_sp=pn(r[13]), meta_sa=pn(r[14]);
+      const g_sp=pn(r[16])+pn(r[19])+pn(r[22])+pn(r[25])+pn(r[28])+pn(r[34]);
+      const g_sa=pn(r[17])+pn(r[20])+pn(r[23])+pn(r[26])+pn(r[29])+pn(r[35]);
+      const i365_sp=pn(r[31]), i365_sa=pn(r[32]);
+      const tt_sp=pn(r[37]), tt_sa=pn(r[38]);
+      const rd_sp=pn(r[40]), rd_sa=pn(r[41]);
+      const pin_sp=pn(r[43]), pin_sa=pn(r[44]);
+      const rum_sp=pn(r[46]), rum_sa=pn(r[47]);
+      const tab_sp=pn(r[49]), tab_sa=pn(r[50]);
+      const email_sa=pn(r[52])+pn(r[53])+pn(r[54])+pn(r[55]);
+      const smm_sa=pn(r[56])+pn(r[57]);
+      const seo_sa=pn(r[58]);
+      const dir_sa=pn(r[60]);
 
       channels.Meta.spent+=meta_sp; channels.Meta.sales+=meta_sa;
       channels.Google.spent+=g_sp; channels.Google.sales+=g_sa;
@@ -124,39 +101,32 @@ export default async function handler(req, res) {
       channels.Email.sales+=email_sa;
       channels.SMM.sales+=smm_sa;
       channels.SEO.sales+=seo_sa;
-      channels.Direct.spent+=dir_sp; channels.Direct.sales+=dir_sa;
-      totalSales += tot;
+      channels.Direct.sales+=dir_sa;
+      totalSales+=tot;
 
       const dn=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-      days.push({ day:`${dn[rd.getDay()]} ${dm[1]}.${dm[2]}`, sales: tot, note:'' });
+      days.push({ day:`${dn[rd.getDay()]} ${dm[1]}.${dm[2]}`, sales:tot, note:'' });
+      debugRows.push({ date:dateKey, row:ri, meta:meta_sa, google:g_sa, email:email_sa, direct:dir_sa, total:tot });
     }
 
+    // Sort days chronologically (since we iterated in reverse)
+    days.sort((a,b) => {
+      const da=a.day.split(' ')[1], db=b.day.split(' ')[1];
+      return da.localeCompare(db);
+    });
+
     const chArr = Object.entries(channels).map(([name,v]) => ({
-      name, sales: v.sales, spent: v.spent,
-      cpo: v.sales > 0 && v.spent > 0 ? Math.round(v.spent / v.sales) : null
+      name, sales:v.sales, spent:v.spent,
+      cpo: v.sales>0 && v.spent>0 ? Math.round(v.spent/v.sales) : null
     }));
 
-      // Sample one data row for debugging
-      const sampleRow = days.length > 0 ? null : (() => {
-        for (let ri = headerIdx + 1; ri < rows.length; ri++) {
-          const dc = rows[ri][C('Date')] || rows[ri][0] || '';
-          if (dc.match(/^13\.07/)) return { rowIdx: ri, cells: rows[ri].slice(0, 20).map((v,i) => `[${i}]=${v}`) };
-        }
-        return null;
-      })();
-
     res.json({
-      days, channels: chArr, totalSales,
-      defaultHidden: ['Reddit','Pinterest','Rumble','TikTok'],
-      daysFound: days.length,
-      debug: { headerRow: headerIdx, columnsFound: Object.keys(col).length, seenDates: [...seenDates],
-        columnNames: Object.keys(col).slice(0, 30),
-        dateColIdx: C('Date'),
-        metaSalesColIdx: C('All_MetaAds_Sales'),
-        adminSalesColIdx: C('Admin_Sales'),
-        sampleRow }
+      days, channels:chArr, totalSales,
+      defaultHidden:['Reddit','Pinterest','Rumble','TikTok'],
+      daysFound:days.length,
+      debug:{ totalRows:rows.length, matchedRows:debugRows }
     });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch(e) {
+    res.status(500).json({ error:e.message });
   }
 }
