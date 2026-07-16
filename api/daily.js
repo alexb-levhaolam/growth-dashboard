@@ -72,9 +72,7 @@ export default async function handler(req, res) {
       const rd = new Date(wsYear, month - 1, day, 12);
       if (rd < ws || rd > we) continue;
 
-      // Skip rows with no actual data (future dates with 0)
       const tot = pn(r[61]);
-      if (tot === 0 && pn(r[14]) === 0 && pn(r[17]) === 0) continue;
 
       const meta_sp=pn(r[13]), meta_sa=pn(r[14]);
       const g_sp=pn(r[16])+pn(r[19])+pn(r[22])+pn(r[25])+pn(r[28])+pn(r[34]);
