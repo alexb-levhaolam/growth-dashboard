@@ -43,8 +43,12 @@ export default async function handler(req, res) {
     }
     if (headerIdx < 0) throw new Error('Header row not found in CSV');
 
-    // Column lookup helper
-    const C = (name) => col[name] ?? -1;
+    // Column lookup helper — fuzzy match because CSV merges multi-row headers
+    const C = (name) => {
+      if (col[name] !== undefined) return col[name];
+      const key = Object.keys(col).find(k => k.startsWith(name));
+      return key !== undefined ? col[key] : -1;
+    };
     const pn = (s) => { if (!s) return 0; return Number(s.replace(/[$,\s\u00a0]/g, '')) || 0; };
     const getCol = (r, name) => C(name) >= 0 ? pn(r[C(name)]) : 0;
 
