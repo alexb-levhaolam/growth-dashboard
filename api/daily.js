@@ -58,6 +58,7 @@ export default async function handler(req, res) {
 
     // Iterate BOTTOM-TO-TOP to prefer most recent year for duplicate dd.mm dates
     const seenDates = new Set();
+    let firstMatchRow = -1;
     for (let ri = rows.length - 1; ri >= 0; ri--) {
       const r = rows[ri];
       if (!r || !r[0]) continue;
@@ -71,6 +72,10 @@ export default async function handler(req, res) {
       const day = parseInt(dm[1]), month = parseInt(dm[2]);
       const rd = new Date(wsYear, month - 1, day, 12);
       if (rd < ws || rd > we) continue;
+
+      // Proximity filter: reject rows from a different year section
+      if (firstMatchRow === -1) firstMatchRow = ri;
+      else if (firstMatchRow - ri > 200) continue; // >200 rows away = different year
 
       const tot = pn(r[61]);
 
