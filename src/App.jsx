@@ -266,9 +266,11 @@ function Tactical({tasks,progress,reports,aIdx,ce,reload}){
 function Projects({projects,comments,ce,reports,aIdx,profile,reload}){
   const[exp,setExp]=useState(null);const[nc,setNc]=useState('');const[sav,setSav]=useState(false)
   const[fPri,setFPri]=useState('all');const[fSt,setFSt]=useState('all')
+  const[showNewP,setShowNewP]=useState(false);const[np,setNp]=useState({id:'',name:'',owner:'',priority:'current'})
   const rep=reports[aIdx];const ws=rep?.week_start
   const upProj=async(id,f,v)=>{await supabase.from('projects').update({[f]:v}).eq('id',id);reload()}
   const delProj=async(id,name)=>{if(!confirm(`Удалить проект "${name}"? Комментарии тоже удалятся.`))return;await supabase.from('project_comments').delete().eq('project_id',id);await supabase.from('projects').delete().eq('id',id);reload()}
+  const addProj=async()=>{if(!np.id.trim()||!np.name.trim())return;const maxSort=Math.max(0,...projects.map(p=>p.sort_order||0))+1;const{error}=await supabase.from('projects').insert({id:np.id.trim(),name:np.name.trim(),owner:np.owner.trim()||'—',priority:np.priority,status:'wait',sort_order:maxSort});if(error){alert('Ошибка: '+error.message);return};setNp({id:'',name:'',owner:'',priority:'current'});setShowNewP(false);reload()}
   const addC=async pid=>{if(!nc.trim())return;setSav(true);const sum=nc.length>150?nc.slice(0,120).replace(/\s\S*$/,'')+'…':nc;await supabase.from('project_comments').insert({project_id:pid,author:profile.name||profile.email,full_text:nc,summary:sum,week_start:ws||new Date().toISOString().slice(0,10)});setNc('');setSav(false);reload()}
   const delC=async(cid)=>{if(!confirm('Удалить комментарий?'))return;await supabase.from('project_comments').delete().eq('id',cid);reload()}
   const getWC=pid=>comments.filter(c=>c.project_id===pid&&c.week_start===ws)
@@ -299,7 +301,7 @@ function Projects({projects,comments,ce,reports,aIdx,profile,reload}){
       </div>
       {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
       {wcs.length===0&&prev&&<div style={{marginTop:6,padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:10,color:'#BA7517'}}>⏮ {prev.week_start} ({prev.author})</div><div style={{fontSize:13,color:S.i3,fontStyle:'italic'}}>{prev.summary||prev.full_text?.slice(0,120)}</div></div>}
-      {isO&&<div style={{marginTop:12,borderTop:`0.5px solid ${S.ln}`,paddingTop:12}}>
+      {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12,borderTop:`0.5px solid ${S.ln}`,paddingTop:12}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f} style={{fontSize:11}}><span style={{color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div>
         <div style={{marginBottom:10}}><span style={{fontSize:11,color:S.i3,display:'block',marginBottom:2}}>Ограничения</span><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={v=>setConstraints(p.id,v)} ph="Блокеры / ограничения..." style={{fontSize:12,color:hasBlock?'#791F1F':S.i2,display:'block',background:hasBlock?'#FFF5F5':'transparent',padding:hasBlock?'4px 8px':0,borderRadius:6}}/></div>
         <Ed value={p.last_update} canEdit={ce} multi onSave={v=>upProj(p.id,'last_update',v)} ph="Общее описание..." style={{color:S.i2,fontSize:13,display:'block',marginBottom:12}}/>
@@ -313,8 +315,18 @@ function Projects({projects,comments,ce,reports,aIdx,profile,reload}){
       {[{k:'all',l:'Все'},{k:'key',l:'🔴 Ключевые'},{k:'current',l:'🔵 Текущие'}].map(f=><button key={f.k} onClick={()=>setFPri(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fPri===f.k?S.gd:'#F1EFE8',color:fPri===f.k?S.gp:S.i2}}>{f.l}</button>)}
       <span style={{color:S.ln}}>|</span>
       {[{k:'all',l:'Все статусы'},...Object.entries(PROJ_ST).filter(([k])=>k!=='done').map(([k,v])=>({k,l:v.l}))].map(f=><button key={f.k} onClick={()=>setFSt(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fSt===f.k?S.gd:'#F1EFE8',color:fSt===f.k?S.gp:S.i2}}>{f.l}</button>)}
-      <span style={{marginLeft:'auto',fontSize:12,color:S.i3}}>{filtered.length} из {active.length}</span>
+      <span style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:12,color:S.i3}}>{filtered.length} из {active.length}</span>{ce&&<button onClick={()=>setShowNewP(!showNewP)} style={{fontSize:12,color:S.gd,background:S.gp,border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontWeight:600}}>{showNewP?'✕':'+ проект'}</button>}</span>
     </div>
+    {showNewP&&<div style={{background:S.sf,border:`1px solid ${S.gl}`,borderRadius:12,padding:16,marginBottom:12}}>
+      <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Новый проект</div>
+      <div style={{display:'grid',gridTemplateColumns:'100px 1fr 120px 120px',gap:8,marginBottom:8}}>
+        <input value={np.id} onChange={e=>setNp({...np,id:e.target.value})} placeholder="ID (ST01)" style={{padding:'6px 10px',borderRadius:6,border:`1px solid ${S.ln}`,fontSize:12,outline:'none'}}/>
+        <input value={np.name} onChange={e=>setNp({...np,name:e.target.value})} placeholder="Название проекта" style={{padding:'6px 10px',borderRadius:6,border:`1px solid ${S.ln}`,fontSize:12,outline:'none'}}/>
+        <input value={np.owner} onChange={e=>setNp({...np,owner:e.target.value})} placeholder="Владелец" style={{padding:'6px 10px',borderRadius:6,border:`1px solid ${S.ln}`,fontSize:12,outline:'none'}}/>
+        <select value={np.priority} onChange={e=>setNp({...np,priority:e.target.value})} style={{padding:'6px 10px',borderRadius:6,border:`1px solid ${S.ln}`,fontSize:12}}><option value="key">🔴 Ключевой</option><option value="current">🔵 Текущий</option></select>
+      </div>
+      <button onClick={addProj} disabled={!np.id.trim()||!np.name.trim()} style={{padding:'6px 16px',borderRadius:8,border:'none',background:S.gd,color:S.gp,fontSize:12,fontWeight:600,cursor:'pointer'}}>Создать</button>
+    </div>}
     <div style={{fontSize:12,color:S.i3,marginBottom:12,padding:'8px 12px',background:S.sf,borderRadius:8,border:`0.5px solid ${S.ln}`}}>📅 <b>{rep?.week_label||'—'}</b></div>
     {secs.map(s=><div key={s.t}><Label>{s.t} ({s.items.length})</Label><div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
       {s.items.map(p=><ProjCard key={p.id} p={p}/>)}</div></div>)}
