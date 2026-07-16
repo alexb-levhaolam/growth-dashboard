@@ -90,7 +90,7 @@ function Main({profile}){
 function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily,mPlans}){
   const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
   const pins=rep.pinned_projects||[];const shown=pins.length>0?projects.filter(p=>pins.includes(p.id)):projects.filter(p=>p.priority==='key').slice(0,8)
-  const visCh=rep.visible_channels||null
+  const visCh=rep.visible_channels||(ch.map(c=>c.name).filter(n=>!DEFAULT_HIDDEN.includes(n)))
   const[showPaste,setShowPaste]=useState(false);const[pasteText,setPasteText]=useState('')
   // Get monthly plan for this week's month
   const weekMonth=rep.week_start?.slice(0,7);const mPlan=mPlans.find(p=>p.id===weekMonth)
@@ -98,8 +98,11 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   // Weekly plan from monthly: totalPlan/daysInMonth*7
   const weekPlanSales=mPlan?.total_plan?Math.round(mPlan.total_plan/dim*7):m.planSales||null
   // Channel plan mapper: monthlyPlanKey → channel name
-  const chPlanMap={'Meta':'meta','Google':'google','Israel 365':'google','Taboola':'newChannels','TikTok':'newChannels','Reddit':'newChannels','Pinterest':'newChannels','Rumble':'newChannels'}
-  const getChPlan=(name)=>{const pk=chPlanMap[name];if(!pk)return{};const mp=cp[pk];if(!mp)return{};return{planSales:Math.round((mp.planSales||0)/dim*7),planCpo:mp.planCpo||null}}
+  const chPlanMap={'Meta':'meta','Google':'google','Taboola':'newChannels','TikTok':'newChannels','Reddit':'newChannels','Pinterest':'newChannels','Rumble':'newChannels'}
+  const chGroupCount={'meta':1,'google':1,'newChannels':ch.filter(c=>['Taboola','TikTok','Reddit','Pinterest','Rumble'].includes(c.name)&&(c.sales||0)>0).length||1}
+  const getChPlan=(name)=>{const pk=chPlanMap[name];if(!pk)return{};const mp=cp[pk];if(!mp)return{};const cnt=chGroupCount[pk]||1;return{planSales:Math.round((mp.planSales||0)/dim*7/cnt),planCpo:mp.planCpo||null}}
+  // Default hidden channels
+  const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const upM=(k,v)=>up({metrics:{...m,[k]:v===''?null:isNaN(Number(v))?v:Number(v)}})
   const upCh=(idx,f,v)=>{const nc=[...ch];nc[idx]={...nc[idx],[f]:f==='name'?v:(v===''?null:Number(v))};up({channels:nc})}
   const addCh=()=>{const name=prompt('Название канала:');if(!name||!name.trim())return;up({channels:[...ch,{name:name.trim(),sales:0,prevSales:null,cpo:null,prevCpo:null,planSales:null,planCpo:null}]})}
@@ -181,7 +184,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       <div style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'8px 12px',background:S.bg,fontSize:10,color:S.i3,fontWeight:600,textTransform:'uppercase'}}>
         <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Прод</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO пл</span><span style={{textAlign:'right'}}>Δ cpo</span>
       </div>
-      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales||mp.planSales||0;const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#1D9E75':(c.sales||0)>=ps*0.7?'#EF9F27':'#E24B4A'):S.gl;const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
+      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales||mp.planSales||0;const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#1D9E75':(c.sales||0)>=ps*0.7?'#EF9F27':'#E24B4A'):((c.sales||0)>0?S.gl:'#E3E1D8');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
         return<div key={i} style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'5px 12px',borderBottom:`0.5px solid ${S.ln}`,alignItems:'center',fontSize:13}}>
         <div style={{display:'flex',alignItems:'center',gap:3}}>
           {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:11,padding:0,lineHeight:1}}>×</button>}
