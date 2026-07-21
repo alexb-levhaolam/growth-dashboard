@@ -97,8 +97,8 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   // Get monthly plan for this week's month
   const weekMonth=rep.week_start?.slice(0,7);const mPlan=mPlans.find(p=>p.id===weekMonth)
   const cp=mPlan?.channel_plans||{};const dim=weekMonth?new Date(parseInt(weekMonth.slice(0,4)),parseInt(weekMonth.slice(5,7)),0).getDate():30
-  // Weekly plan from monthly: totalPlan/daysInMonth*7
-  const weekPlanSales=mPlan?.total_plan?Math.round(mPlan.total_plan/dim*7):m.planSales||null
+  // Weekly plan: manual override > monthly auto-calc
+  const weekPlanSales=m.planSales!=null?m.planSales:(mPlan?.total_plan?Math.round(mPlan.total_plan/dim*7):null)
   // Channel plan mapper: monthlyPlanKey → channel name
   const chPlanMap={'Meta':'meta','Google':'google','Taboola':'newChannels','TikTok':'newChannels','Reddit':'newChannels','Pinterest':'newChannels','Rumble':'newChannels'}
   const chGroupCount={'meta':1,'google':1,'newChannels':ch.filter(c=>['Taboola','TikTok','Reddit','Pinterest','Rumble'].includes(c.name)&&(c.sales||0)>0).length||1}
@@ -116,7 +116,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const calcCpoTotal=(m.totalSales||0)>0?Math.round((adSpend+teamWeek)/(m.totalSales||1)):null
   const cpoAds=m.cpoAdsOverride!=null?m.cpoAdsOverride:calcCpoAds
   const cpoTotal=m.cpoTotalOverride!=null?m.cpoTotalOverride:calcCpoTotal
-  // Plan from monthly
+  // Plan from monthly — manual override always wins
   const planCpoAds=m.planCpoAds!=null?m.planCpoAds:null
   const planCpoTotal=m.planCpoTotal!=null?m.planCpoTotal:null
   const ws=rep.week_start
@@ -168,7 +168,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
           {i===0&&<>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:12,color:S.i2}}/></>}
           {i===1&&<>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:12,color:S.i2}}/></>}
           {i===2&&<>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:12,color:S.i2}}/></>}
-          {i===3&&<>из $<EdNum value={m.budgetPlan||(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:12,color:S.i2}}/>K</>}
+          {i===3&&<>из $<EdNum value={m.budgetPlan!=null?m.budgetPlan:(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:12,color:S.i2}}/>K</>}
         </div>
       </div>)}
     </div>
@@ -187,7 +187,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       <div style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'8px 12px',background:S.bg,fontSize:10,color:S.i3,fontWeight:600,textTransform:'uppercase'}}>
         <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Прод</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO пл</span><span style={{textAlign:'right'}}>Δ cpo</span>
       </div>
-      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales||mp.planSales||0;const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#1D9E75':(c.sales||0)>=ps*0.7?'#EF9F27':'#E24B4A'):((c.sales||0)>0?S.gl:'#E3E1D8');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
+      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales!=null?c.planSales:(mp.planSales||0);const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#1D9E75':(c.sales||0)>=ps*0.7?'#EF9F27':'#E24B4A'):((c.sales||0)>0?S.gl:'#E3E1D8');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
         return<div key={i} style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'5px 12px',borderBottom:`0.5px solid ${S.ln}`,alignItems:'center',fontSize:13}}>
         <div style={{display:'flex',alignItems:'center',gap:3}}>
           {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:11,padding:0,lineHeight:1}}>×</button>}
@@ -195,12 +195,12 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>
         <div style={{height:7,background:S.bg,borderRadius:20,overflow:'hidden'}}><div style={{height:7,borderRadius:20,width:`${barPct}%`,background:barColor}}/></div>
         <span style={{textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>upCh(ci,'sales',v)} style={{fontWeight:500,fontSize:13}}/></span>
-        <span style={{textAlign:'right'}}><EdNum value={c.planSales||mp.planSales} canEdit={ce} onSave={v=>upCh(ci,'planSales',v)} style={{fontSize:12,color:S.i3}}/></span>
-        <span style={{textAlign:'right'}}><PlanChip fact={c.sales} plan={c.planSales||mp.planSales}/></span>
+        <span style={{textAlign:'right'}}><EdNum value={c.planSales!=null?c.planSales:mp.planSales} canEdit={ce} onSave={v=>upCh(ci,'planSales',v)} style={{fontSize:12,color:S.i3}}/></span>
+        <span style={{textAlign:'right'}}><PlanChip fact={c.sales} plan={c.planSales!=null?c.planSales:mp.planSales}/></span>
         <span style={{textAlign:'right'}}><DChip d={pct(c.sales,c.prevSales)}/></span>
         <span style={{textAlign:'right'}}><EdNum value={chCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'cpo',v)} style={{fontSize:12,color:S.i2}}/></span>
-        <span style={{textAlign:'right'}}><EdNum value={c.planCpo||mp.planCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'planCpo',v)} style={{fontSize:12,color:S.i3}}/></span>
-        <span style={{textAlign:'right'}}><CpoCompare fact={chCpo} plan={c.planCpo||mp.planCpo}/></span>
+        <span style={{textAlign:'right'}}><EdNum value={c.planCpo!=null?c.planCpo:mp.planCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'planCpo',v)} style={{fontSize:12,color:S.i3}}/></span>
+        <span style={{textAlign:'right'}}><CpoCompare fact={chCpo} plan={c.planCpo!=null?c.planCpo:mp.planCpo}/></span>
       </div>})}
       {ce&&<div style={{padding:'8px 12px'}}><button onClick={addCh} style={{fontSize:12,color:S.gd,background:'none',border:`1px dashed ${S.ln}`,borderRadius:8,padding:'6px 14px',cursor:'pointer',width:'100%'}}>+ Добавить канал</button></div>}
     </div>
