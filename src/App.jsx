@@ -127,6 +127,9 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const refreshTotals=()=>{const total=daily.reduce((s,d)=>s+(d?.sales||0),0);up({metrics:{...m,totalSales:total}})}
 
   const[analyzing,setAnalyzing]=useState(false)
+  const[monthData,setMonthData]=useState(null)
+  useEffect(()=>{if(!rep?.week_start)return;const mo=rep.week_start.slice(0,7);const wsDate=new Date(rep.week_start+'T12:00:00');const weDate=new Date(wsDate);weDate.setDate(weDate.getDate()+6);const lastDay=weDate.getMonth()+1===parseInt(mo.slice(5,7))?weDate.getDate():new Date(parseInt(mo.slice(0,4)),parseInt(mo.slice(5,7)),0).getDate();fetch(`/api/monthly?month=${mo}&untilDay=${lastDay}`).then(r=>r.json()).then(d=>{if(!d.error)setMonthData(d)}).catch(()=>{})},[rep?.week_start])
+  const Info=({text})=><span title={text} style={{fontSize:10,color:S.i3,cursor:'help',marginLeft:4,background:S.bg,borderRadius:'50%',width:14,height:14,display:'inline-flex',alignItems:'center',justifyContent:'center',fontWeight:600}}>i</span>
   const runAnalysis=async()=>{setAnalyzing(true);try{const prevRep=reports.find(r=>r.week_start<rep.week_start&&r.week_start!==rep.week_start);const body={week:rep.week_label,metrics:m,channels:ch,daily,prevMetrics:prevRep?.metrics,prevChannels:prevRep?.channels};const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(d.error)throw new Error(d.error);const upd={};if(d.improved?.length)upd.improved=d.improved;if(d.worsened?.length)upd.worsened=d.worsened;if(d.insights)upd.metrics={...m,aiInsights:d.insights};if(Object.keys(upd).length)up(upd);alert('✅ Анализ готов!')}catch(e){alert('Ошибка анализа: '+e.message)}finally{setAnalyzing(false)}}
 
   return<div id="overview-print"><>
@@ -150,15 +153,25 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       </div>
     </div>}
 
+    {monthData&&(()=>{const md=monthData;const dd=md.daysWithData||1;const dim_p=mPlan?.days_in_month||dim;const svcPeriod=Math.round((mPlan?.services_budget||0)/dim_p*dd);const awPeriod=Math.round((mPlan?.awareness_budget||0)/dim_p*dd);const teamPeriod=Math.round((mPlan?.team_budget||TEAM_MONTHLY)/dim_p*dd);const mCpoAds=md.paidSales>0?Math.round((md.adSpend+md.discountsBS+svcPeriod+awPeriod)/md.paidSales):null;const mCpoTotal=md.totalSales>0?Math.round((md.adSpend+md.discountsBL+svcPeriod+awPeriod+teamPeriod)/md.totalSales):null;const mBudget=md.adSpend+md.discountsBL+svcPeriod+teamPeriod;const cps=mPlan?.channel_plans||{};const paidPlanSales=(cps.meta?.planSales||0)+(cps.google?.planSales||0)+(cps.newChannels?.planSales||0);const planCpoAdsM=paidPlanSales>0?Math.round(((mPlan?.ads_budget||0)+(mPlan?.services_budget||0)+(mPlan?.awareness_budget||0))/paidPlanSales):null;const planCpoTotalM=(mPlan?.total_plan||0)>0?Math.round(((mPlan?.ads_budget||0)+(mPlan?.team_budget||0)+(mPlan?.services_budget||0)+(mPlan?.awareness_budget||0))/mPlan.total_plan):null;const planBudgetM=(mPlan?.ads_budget||0)+(mPlan?.team_budget||0)+(mPlan?.services_budget||0)+(mPlan?.awareness_budget||0);const pctDiff=(f,p)=>p&&f?Math.round((f-p)/p*100):null;return<div style={{background:'linear-gradient(135deg,#0F6E56 0%,#1D9E75 100%)',borderRadius:12,padding:'14px 20px',marginBottom:16,color:S.gp}}>
+      <div style={{fontSize:11,fontWeight:600,letterSpacing:'.05em',textTransform:'uppercase',color:S.gs,marginBottom:8}}>📊 Итоги месяца · {md.daysWithData} дней</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
+        <div><div style={{fontSize:11,color:S.gs}}>Продажи<Info text="Продажи за месяц (BJ)"/></div><div style={{fontSize:24,fontWeight:600}}>{md.totalSales}</div>{mPlan?.total_plan&&<div style={{fontSize:11,color:S.gs}}>план {mPlan.total_plan} · {Math.round(md.totalSales/mPlan.total_plan*100)}%</div>}</div>
+        <div><div style={{fontSize:11,color:S.gs}}>CPO Ads<Info text="(Траты ADS + Скидки BS + Сервисы + Awareness) / платные продажи"/></div><div style={{fontSize:24,fontWeight:600}}>${mCpoAds||'—'}</div>{planCpoAdsM&&<div style={{fontSize:11,color:S.gs}}>план ${planCpoAdsM}{pctDiff(mCpoAds,planCpoAdsM)!=null&&<span style={{color:pctDiff(mCpoAds,planCpoAdsM)<=0?'#9FE1CB':'#FFC1C1'}}> {pctDiff(mCpoAds,planCpoAdsM)>0?'+':''}{pctDiff(mCpoAds,planCpoAdsM)}%</span>}</div>}</div>
+        <div><div style={{fontSize:11,color:S.gs}}>CPO Total<Info text="(Траты ADS + Скидки BL + Сервисы + Awareness + Команда) / все продажи"/></div><div style={{fontSize:24,fontWeight:600}}>${mCpoTotal||'—'}</div>{planCpoTotalM&&<div style={{fontSize:11,color:S.gs}}>план ${planCpoTotalM}{pctDiff(mCpoTotal,planCpoTotalM)!=null&&<span style={{color:pctDiff(mCpoTotal,planCpoTotalM)<=0?'#9FE1CB':'#FFC1C1'}}> {pctDiff(mCpoTotal,planCpoTotalM)>0?'+':''}{pctDiff(mCpoTotal,planCpoTotalM)}%</span>}</div>}</div>
+        <div><div style={{fontSize:11,color:S.gs}}>Бюджет Ads<Info text="Траты рекламы + скидки + сервисы + команда"/></div><div style={{fontSize:24,fontWeight:600}}>${mBudget?.toLocaleString()}</div>{planBudgetM>0&&<div style={{fontSize:11,color:S.gs}}>план ${planBudgetM.toLocaleString()} · {Math.round(mBudget/planBudgetM*100)}%</div>}</div>
+      </div>
+    </div>})()}
+
     <Label>Ключевые метрики</Label>
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
       {[
-        {l:'Продажи',k:'totalSales'},
-        {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$'},
-        {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$'},
-        {l:'Бюджет Ads',k2:'budgetSpent',v2:m.budgetSpent!=null?m.budgetSpent:adSpend,calc:adSpend,pre:'$'},
+        {l:'Продажи',k:'totalSales',info:'Сумма продаж за неделю (BJ)'},
+        {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'(Затраты ADS + Скидки + Сервисы + Awareness) / платные продажи'},
+        {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$',info:'(Затраты ADS + Скидки + Сервисы + Awareness + Команда) / все продажи'},
+        {l:'Бюджет Ads',k2:'budgetSpent',v2:m.budgetSpent!=null?m.budgetSpent:adSpend,calc:adSpend,pre:'$',info:'Затраты на рекламу, команду, сервисы и скидки'},
       ].map((x,i)=><div key={i} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'12px 14px'}}>
-        <div style={{fontSize:12,color:S.i3}}>{x.l}</div>
+        <div style={{fontSize:12,color:S.i3,display:'flex',alignItems:'center'}}>{x.l}<Info text={x.info}/></div>
         <div style={{fontSize:22,fontWeight:500,margin:'2px 0'}}>
           {x.k?<>{x.pre||''}<EdNum value={m[x.k]} canEdit={ce} onSave={v=>upM(x.k,v)} style={{fontSize:22,fontWeight:500}}/></>
           :x.k2?<>{x.pre||''}<EdNum value={x.v2} canEdit={ce} onSave={v=>upM(x.k2,v===x.calc?null:v)} style={{fontSize:22,fontWeight:500}}/></>
@@ -398,12 +411,12 @@ function Plan({plans,ce,reload}){
     {plans.map(p=><button key={p.id} onClick={()=>setSel(p.id)} style={{padding:'6px 14px',borderRadius:14,border:'none',cursor:'pointer',fontSize:12,fontWeight:600,background:sel===p.id?S.gd:'#F1EFE8',color:sel===p.id?S.gp:S.i2}}>{p.month_label}</button>)}
   </div>
 
-  <CC title={`Бюджет · ${plan.month_label||sel}`}>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
-      {[{l:'Бюджет на команду',k:'team_budget',pre:'$'},{l:'ADS бюджет',k:'ads_budget',pre:'$'},{l:'Общий план продаж',k:'total_plan'}].map(x=>
+  <CC title={<span>{plan.month_label||sel} · <EdNum value={plan.days_in_month||daysInMonth} canEdit={ce} onSave={v=>upP('days_in_month',v)} style={{fontSize:14,fontWeight:600}}/> дней</span>}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12}}>
+      {[{l:'Бюджет команда',k:'team_budget',pre:'$'},{l:'ADS бюджет',k:'ads_budget',pre:'$'},{l:'Бюджет сервисы',k:'services_budget',pre:'$'},{l:'Бюджет Awareness',k:'awareness_budget',pre:'$'},{l:'План продаж',k:'total_plan'}].map(x=>
         <div key={x.k} style={{background:S.bg,borderRadius:10,padding:'12px 14px'}}>
-          <div style={{fontSize:12,color:S.i3}}>{x.l}</div>
-          <div style={{fontSize:22,fontWeight:500,margin:'4px 0'}}>{x.pre||''}<EdNum value={plan[x.k]} canEdit={ce} onSave={v=>upP(x.k,v)} style={{fontSize:22,fontWeight:500}}/></div>
+          <div style={{fontSize:11,color:S.i3}}>{x.l}</div>
+          <div style={{fontSize:20,fontWeight:500,margin:'4px 0'}}>{x.pre||''}<EdNum value={plan[x.k]} canEdit={ce} onSave={v=>upP(x.k,v)} style={{fontSize:20,fontWeight:500}}/></div>
         </div>)}
     </div>
   </CC>
