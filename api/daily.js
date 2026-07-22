@@ -108,7 +108,8 @@ export default async function handler(req, res) {
       totalSales+=tot;
 
       const dn=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-      days.push({ day:`${dn[rd.getDay()]} ${dm[1]}.${dm[2]}`, sales:tot, note:'' });
+      const dayCh={Meta:meta_sa,Google:g_sa,'Israel 365':i365_sa,Email:email_sa,SMM:smm_sa,SEO:seo_sa,Direct:dir_sa,TikTok:tt_sa,Taboola:tab_sa};
+      days.push({ day:`${dn[rd.getDay()]} ${dm[1]}.${dm[2]}`, sales:tot, note:'', ch:dayCh });
       debugRows.push({ date:dateKey, row:ri, meta:meta_sa, google:g_sa, email:email_sa, direct:dir_sa, total:tot });
     }
 

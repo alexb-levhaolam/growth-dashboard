@@ -161,7 +161,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     return<div style={{background:'linear-gradient(135deg,#0F6E56 0%,#1D9E75 100%)',borderRadius:12,padding:'14px 20px',marginBottom:16,color:S.gp}}>
       <div style={{fontSize:11,fontWeight:600,letterSpacing:'.05em',textTransform:'uppercase',color:S.gs,marginBottom:8}}>📊 Итоги месяца · {md.daysWithData} дней</div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
-        <div><div style={{fontSize:11,color:S.gs}}>Продажи<Info text="Продажи за месяц (BJ)"/></div><div style={{fontSize:24,fontWeight:600}}><EdNum value={mS} canEdit={ce} onSave={v=>upMo('actual_sales',v===calcSalesM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:11,color:S.gs}}>план <EdNum value={pS} canEdit={ce} onSave={v=>upMo('total_plan',v)} style={{fontSize:11,color:S.gs}}/>{pS&&<span> · {Math.round((mS||0)/pS*100)}%</span>}</div></div>
+        <div><div style={{fontSize:11,color:S.gs}}>Продажи<Info text={md.channels?md.channels.filter(c=>c.sales>0).map(c=>`${c.name}: ${c.sales}`).join('\n'):'Продажи за месяц (BJ)'}/></div><div style={{fontSize:24,fontWeight:600}}><EdNum value={mS} canEdit={ce} onSave={v=>upMo('actual_sales',v===calcSalesM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:11,color:S.gs}}>план <EdNum value={pS} canEdit={ce} onSave={v=>upMo('total_plan',v)} style={{fontSize:11,color:S.gs}}/>{pS&&<span> · {Math.round((mS||0)/pS*100)}%</span>}</div></div>
         <div><div style={{fontSize:11,color:S.gs}}>CPO Ads<Info text="(ADS+Скидки BS+Сервисы+Awareness)/платные"/></div><div style={{fontSize:24,fontWeight:600}}>$<EdNum value={mCA} canEdit={ce} onSave={v=>upMo('actual_cpo_ads',v===calcCpoAdsM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:11,color:S.gs}}>план $<EdNum value={pCA} canEdit={ce} onSave={v=>upMo('plan_cpo_ads',v===calcPCpoAds?null:v)} style={{fontSize:11,color:S.gs}}/>{pd(mCA,pCA)!=null&&<span style={{color:pd(mCA,pCA)<=0?'#9FE1CB':'#FFC1C1'}}> {pd(mCA,pCA)>0?'+':''}{pd(mCA,pCA)}%</span>}</div></div>
         <div><div style={{fontSize:11,color:S.gs}}>CPO Total<Info text="(ADS+Скидки BL+Сервисы+Awareness+Команда)/все"/></div><div style={{fontSize:24,fontWeight:600}}>$<EdNum value={mCT} canEdit={ce} onSave={v=>upMo('actual_cpo_total',v===calcCpoTotalM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:11,color:S.gs}}>план $<EdNum value={pCT} canEdit={ce} onSave={v=>upMo('plan_cpo_total',v===calcPCpoTotal?null:v)} style={{fontSize:11,color:S.gs}}/>{pd(mCT,pCT)!=null&&<span style={{color:pd(mCT,pCT)<=0?'#9FE1CB':'#FFC1C1'}}> {pd(mCT,pCT)>0?'+':''}{pd(mCT,pCT)}%</span>}</div></div>
         <div><div style={{fontSize:11,color:S.gs}}>Бюджет<Info text="Реклама+скидки+сервисы+команда"/></div><div style={{fontSize:24,fontWeight:600}}>$<EdNum value={mB} canEdit={ce} onSave={v=>upMo('actual_budget',v===calcBudgetM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:11,color:S.gs}}>план $<EdNum value={pB} canEdit={ce} onSave={v=>upMo('plan_budget',v===calcPBudget?null:v)} style={{fontSize:11,color:S.gs}}/>{pB>0&&<span> · {Math.round((mB||0)/pB*100)}%</span>}</div></div>
@@ -193,11 +193,11 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
 
     <Label>Брэкдаун по дням</Label>
     <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:6,marginBottom:16}}>
-      {(daily.length>0?daily:Array(7).fill(null)).map((d,i)=><div key={i} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'8px 4px',textAlign:'center'}}>
+      {(daily.length>0?daily:Array(7).fill(null)).map((d,i)=>{const chTip=d?.ch?Object.entries(d.ch).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join('\n'):'';return<div key={i} title={chTip} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'8px 4px',textAlign:'center',cursor:chTip?'help':'default'}}>
         <Ed value={d?.day||''} canEdit={ce} onSave={v=>upDay(i,'day',v)} style={{fontSize:11,color:S.i3}}/>
         <div style={{margin:'4px 0'}}><EdNum value={d?.sales} canEdit={ce} onSave={v=>upDay(i,'sales',v)} style={{fontSize:18,fontWeight:500}}/></div>
         <Ed value={d?.note||(d?.sales==null?'—':'продаж')} canEdit={ce} onSave={v=>upDay(i,'note',v)} style={{fontSize:10,color:d?.sales==null?'#BA7517':S.i2}}/>
-      </div>)}
+      </div>})}
     </div>
 
     <Label>Каналы</Label>
