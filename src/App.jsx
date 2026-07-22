@@ -171,7 +171,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     <Label>Ключевые метрики</Label>
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
       {[
-        {l:'Продажи',k:'totalSales',info:'Сумма продаж за неделю (BJ)'},
+        {l:'Продажи',k:'totalSales',info:ch.filter(c=>(c.sales||0)>0).map(c=>`${c.name}: ${c.sales}`).join('\n')||'Продажи за неделю (BJ)'},
         {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'(Затраты ADS + Скидки + Сервисы + Awareness) / платные продажи'},
         {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$',info:'(Затраты ADS + Скидки + Сервисы + Awareness + Команда) / все продажи'},
         {l:'Бюджет Ads',k2:'budgetSpent',v2:m.budgetSpent!=null?m.budgetSpent:adSpend,calc:adSpend,pre:'$',info:'Затраты на рекламу, команду, сервисы и скидки'},
