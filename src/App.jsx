@@ -27,11 +27,11 @@ export default function App(){const[session,setSession]=useState(null);const[pro
 
 function Main({profile}){
   const[view,setView]=useState('overview');const[reports,setReports]=useState([]);const[projects,setProjects]=useState([]);const[comments,setComments]=useState([]);const[aIdx,setAIdx]=useState(0);const[allProfiles,setAllProfiles]=useState([]);const[tTasks,setTTasks]=useState([]);const[tProgress,setTProgress]=useState([]);const[mPlans,setMPlans]=useState([])
-  const aIdxRef=useRef(0)
+  const aIdxRef=useRef(-1)
   const load=useCallback(async()=>{
     const[r,p,c,tt,tp]=await Promise.all([supabase.from('weekly_reports').select('*').order('week_start'),supabase.from('projects').select('*').order('sort_order'),supabase.from('project_comments').select('*').order('created_at',{ascending:false}),supabase.from('tactical_tasks').select('*').order('sort_order'),supabase.from('tactical_progress').select('*').order('week_start')])
     try{const{data:mpd}=await supabase.from('monthly_plans').select('*').order('id');if(mpd)setMPlans(mpd)}catch(e){console.warn('monthly_plans:',e)}
-    if(r.data){setReports(r.data);const max=r.data.length-1;setAIdx(prev=>{const safe=prev<=max?prev:max;aIdxRef.current=safe;return safe})}
+    if(r.data){setReports(r.data);const max=r.data.length-1;setAIdx(prev=>{const isFirst=aIdxRef.current===-1;const safe=isFirst?max:(prev<=max?prev:max);aIdxRef.current=safe;return safe})}
     if(p.data)setProjects(p.data);if(c.data)setComments(c.data);if(tt.data)setTTasks(tt.data);if(tp.data)setTProgress(tp.data)
     if(profile.role==='admin'){const{data}=await supabase.from('profiles').select('*');if(data)setAllProfiles(data)}
   },[profile]);useEffect(()=>{load()},[load])
@@ -316,7 +316,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   const[surveying,setSurveying]=useState(false)
   const sendSurvey=async()=>{setSurveying(true);try{const r=await fetch('/api/slack?action=send');const d=await r.json();if(d.ok){const sent=d.results?.filter(r=>r.sent).length||0;alert(`✅ Опрос отправлен ${sent} сотрудникам за ${d.week}`)}else{alert('Ошибка: '+(d.error||'unknown'))}}catch(e){alert('Ошибка: '+e.message)}finally{setSurveying(false)}}
   const rep=reports[aIdx];const ws=rep?.week_start
-  const upProj=async(id,f,v)=>{setProjects(prev=>prev.map(p=>p.id===id?{...p,[f]:v}:p));supabase.from('projects').update({[f]:v}).eq('id',id)}
+  const upProj=async(id,f,v)=>{setProjects(prev=>prev.map(p=>p.id===id?{...p,[f]:v}:p));const{error}=await supabase.from('projects').update({[f]:v}).eq('id',id);if(error)alert('Ошибка сохранения: '+error.message)}
   const delProj=async(id,name)=>{if(!confirm(`Удалить проект "${name}"?`))return;setProjects(prev=>prev.filter(p=>p.id!==id));supabase.from('project_comments').delete().eq('project_id',id);supabase.from('projects').delete().eq('id',id)}
   const addProj=async()=>{if(!np.id.trim()||!np.name.trim())return;const maxSort=Math.max(0,...projects.map(p=>p.sort_order||0))+1;const obj={id:np.id.trim(),name:np.name.trim(),owner:np.owner.trim()||'—',priority:np.priority,status:'wait',sort_order:maxSort};setProjects(prev=>[...prev,obj]);setNp({id:'',name:'',owner:'',priority:'current'});setShowNewP(false);const{error}=await supabase.from('projects').insert(obj);if(error)alert('Ошибка: '+error.message)}
   const addC=async pid=>{const nc=ncRef.current;if(!nc.trim())return;setSav(true);const sum=nc.length>150?nc.slice(0,120).replace(/\s\S*$/,'')+'…':nc;const obj={project_id:pid,author:profile.name||profile.email,full_text:nc,summary:sum,week_start:ws||new Date().toISOString().slice(0,10)};const{data,error}=await supabase.from('project_comments').insert(obj).select().single();if(error){alert('Ошибка сохранения: '+error.message);setSav(false);return}setComments(prev=>[data,...prev]);ncRef.current='';const el=document.getElementById('nc-'+pid);if(el)el.value='';setSav(false)}
