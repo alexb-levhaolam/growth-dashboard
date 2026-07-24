@@ -341,7 +341,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
     return<div style={{background:isBlocked?'#FFF0F0':S.sf,border:`0.5px solid ${isO?S.gl:isBlocked?'#E8AAAA':S.ln}`,borderRadius:12,padding:'12px 16px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,cursor:'pointer'}} onClick={()=>setExp(isO?null:p.id)}>
         <div style={{flex:1}}>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>{isBlocked&&<span style={{fontSize:16}} title="Блокер">🛑</span>}<Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:500}}/><span style={{fontSize:12,color:S.i3}}>{p.id} · </span><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:12,color:S.i3}} ph="Владелец"/></div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>{isBlocked&&<span style={{fontSize:16}} title="Блокер">🛑</span>}<Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:500}}/><span style={{fontSize:12,color:S.i3}}>{p.id} · </span><span onClick={e=>e.stopPropagation()}><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:12,color:S.i3}} ph="Владелец"/></span></div>
           {ds&&<div style={{fontSize:11,color:S.i3,marginTop:2}}>📅 {ds}</div>}
           {hasBlock&&!isO&&<div style={{fontSize:11,color:'#791F1F',marginTop:2}}>⚠️ {p.constraints_text.slice(0,60)}{p.constraints_text.length>60?'…':''}</div>}
         </div>
