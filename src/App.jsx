@@ -313,6 +313,8 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   const[exp,setExp]=useState(null);const ncRef=useRef('');const[sav,setSav]=useState(false)
   const[fPri,setFPri]=useState('all');const[fSt,setFSt]=useState('all')
   const[showNewP,setShowNewP]=useState(false);const[np,setNp]=useState({id:'',name:'',owner:'',priority:'current'})
+  const[surveying,setSurveying]=useState(false)
+  const sendSurvey=async()=>{setSurveying(true);try{const r=await fetch('/api/slack?action=send');const d=await r.json();if(d.ok){const sent=d.results?.filter(r=>r.sent).length||0;alert(`✅ Опрос отправлен ${sent} сотрудникам за ${d.week}`)}else{alert('Ошибка: '+(d.error||'unknown'))}}catch(e){alert('Ошибка: '+e.message)}finally{setSurveying(false)}}
   const rep=reports[aIdx];const ws=rep?.week_start
   const upProj=async(id,f,v)=>{setProjects(prev=>prev.map(p=>p.id===id?{...p,[f]:v}:p));supabase.from('projects').update({[f]:v}).eq('id',id)}
   const delProj=async(id,name)=>{if(!confirm(`Удалить проект "${name}"?`))return;setProjects(prev=>prev.filter(p=>p.id!==id));supabase.from('project_comments').delete().eq('project_id',id);supabase.from('projects').delete().eq('id',id)}
@@ -339,7 +341,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
     return<div style={{background:isBlocked?'#FFF0F0':S.sf,border:`0.5px solid ${isO?S.gl:isBlocked?'#E8AAAA':S.ln}`,borderRadius:12,padding:'12px 16px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,cursor:'pointer'}} onClick={()=>setExp(isO?null:p.id)}>
         <div style={{flex:1}}>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>{isBlocked&&<span style={{fontSize:16}} title="Блокер">🛑</span>}<Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:500}}/><span style={{fontSize:12,color:S.i3}}>{p.id} · {p.owner}</span></div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>{isBlocked&&<span style={{fontSize:16}} title="Блокер">🛑</span>}<Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:500}}/><span style={{fontSize:12,color:S.i3}}>{p.id} · </span><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:12,color:S.i3}} ph="Владелец"/></div>
           {ds&&<div style={{fontSize:11,color:S.i3,marginTop:2}}>📅 {ds}</div>}
           {hasBlock&&!isO&&<div style={{fontSize:11,color:'#791F1F',marginTop:2}}>⚠️ {p.constraints_text.slice(0,60)}{p.constraints_text.length>60?'…':''}</div>}
         </div>
@@ -361,7 +363,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {[{k:'all',l:'Все'},{k:'key',l:'🔴 Ключевые'},{k:'current',l:'🔵 Текущие'}].map(f=><button key={f.k} onClick={()=>setFPri(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fPri===f.k?S.gd:'#F1EFE8',color:fPri===f.k?S.gp:S.i2}}>{f.l}</button>)}
       <span style={{color:S.ln}}>|</span>
       {[{k:'all',l:'Все статусы'},...Object.entries(PROJ_ST).filter(([k])=>k!=='done').map(([k,v])=>({k,l:v.l}))].map(f=><button key={f.k} onClick={()=>setFSt(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fSt===f.k?S.gd:'#F1EFE8',color:fSt===f.k?S.gp:S.i2}}>{f.l}</button>)}
-      <span style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:12,color:S.i3}}>{filtered.length} из {active.length}</span>{ce&&<button onClick={()=>setShowNewP(!showNewP)} style={{fontSize:12,color:S.gd,background:S.gp,border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontWeight:600}}>{showNewP?'✕':'+ проект'}</button>}</span>
+      <span style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:12,color:S.i3}}>{filtered.length} из {active.length}</span>{ce&&<button onClick={sendSurvey} disabled={surveying} style={{fontSize:12,color:'#fff',background:S.bm,border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontWeight:600}}>{surveying?'⏳...':'💬 Собрать апдейты'}</button>}{ce&&<button onClick={()=>setShowNewP(!showNewP)} style={{fontSize:12,color:S.gd,background:S.gp,border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontWeight:600}}>{showNewP?'✕':'+ проект'}</button>}</span>
     </div>
     {showNewP&&<div style={{background:S.sf,border:`1px solid ${S.gl}`,borderRadius:12,padding:16,marginBottom:12}}>
       <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Новый проект</div>
