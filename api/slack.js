@@ -66,9 +66,11 @@ export default async function handler(req, res) {
 
     // Group projects by owner
     const byOwner = {};
+    const filterUser = req.query.user || null; // ?user=Sasha B — send only to this person
     for (const p of projects) {
       const owner = p.owner?.trim();
       if (!owner) continue;
+      if (filterUser && owner !== filterUser) continue;
       if (!byOwner[owner]) byOwner[owner] = [];
       byOwner[owner].push(p);
     }
