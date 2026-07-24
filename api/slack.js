@@ -11,154 +11,160 @@ const TEAM = {
   'Sasha B': { slackId: 'U09NTUJL4KT' },
   'Alex':    { slackId: 'U09NTUJL4KT' },
 };
+const SLACK_ID_TO_OWNER = Object.fromEntries(Object.entries(TEAM).map(([name,v])=>[v.slackId,name]));
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
   const TOKEN = process.env.SLACK_BOT_TOKEN;
-  if (!TOKEN) return res.status(500).json({ error: 'SLACK_BOT_TOKEN not set' });
-
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
   const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-  const { action } = req.query;
   const slack = async (method, body) => {
     const r = await fetch(`https://slack.com/api/${method}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
-    });
-    return r.json();
+    }); return r.json();
   };
 
-  // ═══ TEST ═══
-  if (action === 'test') {
-    const r = await slack('auth.test', {});
-    return res.json({ ok: r.ok, team: r.team, user: r.user, supabase: !!supabase, error: r.error });
+  // ═══ SLACK EVENTS API (POST) ═══
+  if (req.method === 'POST' && req.body) {
+    // URL verification challenge
+    if (req.body.type === 'url_verification') {
+      return res.json({ challenge: req.body.challenge });
+    }
+
+    // Message event — user replied in DM
+    if (req.body.event?.type === 'message' && !req.body.event?.bot_id && req.body.event?.channel_type === 'im') {
+      const userId = req.body.event.user;
+      const owner = SLACK_ID_TO_OWNER[userId];
+      if (!owner || !supabase || !TOKEN) return res.status(200).end();
+
+      try {
+        // Get owner's active projects
+        const { data: projects } = await supabase.from('projects').select('id,name,owner,status,priority').neq('status','done').order('sort_order');
+        const ownerProjects = projects?.filter(p => p.owner?.trim() === owner) || [];
+        if (!ownerProjects.length) return res.status(200).end();
+
+        // Read DM history to find where we are
+        const dm = await slack('conversations.open', { users: userId });
+        if (!dm.ok) return res.status(200).end();
+        const hist = await slack('conversations.history', { channel: dm.channel.id, limit: 50 });
+        const msgs = [...(hist.messages || [])].reverse(); // chronological
+
+        // Find which projects have been asked AND answered
+        const answered = new Set();
+        const usedReplies = new Set();
+        for (let i = 0; i < msgs.length; i++) {
+          const m = msgs[i];
+          if (!m.bot_id) continue;
+          const proj = ownerProjects.find(p => m.text?.includes(p.name));
+          if (!proj) continue;
+          const reply = msgs.slice(i + 1).find(r => r.user === userId && !r.bot_id && !usedReplies.has(r.ts));
+          if (reply) { usedReplies.add(reply.ts); answered.add(proj.id); }
+        }
+
+        // Find next unanswered project
+        const nextProj = ownerProjects.find(p => !answered.has(p.id));
+
+        // Save the current answer (last user message maps to last asked project)
+        const userText = req.body.event.text?.trim();
+        const lastBotMsg = [...(hist.messages || [])].find(m => m.bot_id);
+        const lastAskedProj = ownerProjects.find(p => lastBotMsg?.text?.includes(p.name));
+
+        if (lastAskedProj && userText) {
+          // Find previous week
+          const today = new Date();
+          const monday = new Date(today);
+          monday.setDate(monday.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+          const prevMonday = new Date(monday); prevMonday.setDate(prevMonday.getDate() - 7);
+          const { data: reports } = await supabase.from('weekly_reports').select('week_start').order('week_start',{ascending:false}).limit(5);
+          const weekStart = reports?.find(r => r.week_start <= prevMonday.toISOString().slice(0,10))?.week_start || reports?.[0]?.week_start;
+
+          if (!userText.toLowerCase().startsWith('без изменен')) {
+            await supabase.from('project_comments').insert({
+              project_id: lastAskedProj.id, author: owner + ' (Slack)',
+              full_text: userText, summary: userText.length > 120 ? userText.slice(0,117)+'…' : userText,
+              week_start: weekStart
+            });
+          }
+        }
+
+        // Send next project or finish
+        if (nextProj) {
+          const emoji = nextProj.priority === 'key' ? '🔴' : '🔵';
+          const statusMap = {progress:'в работе',wait:'ожидание',test:'тестируем',risk:'риск',blocked:'блокер'};
+          const remaining = ownerProjects.filter(p => !answered.has(p.id) && p.id !== nextProj.id).length;
+          await slack('chat.postMessage', { channel: dm.channel.id,
+            text: `${emoji} *${nextProj.name}*\nСтатус: ${statusMap[nextProj.status]||nextProj.status}\n${remaining > 0 ? `Осталось ещё ${remaining}` : 'Последний проект!'}\n\nЧто изменилось?`
+          });
+        } else {
+          await slack('chat.postMessage', { channel: dm.channel.id,
+            text: `✅ Спасибо ${owner}! Все ${ownerProjects.length} проектов обновлены.\nОтветы сохранены в Growth Dashboard.`
+          });
+        }
+      } catch (e) { console.error('Slack event error:', e); }
+
+      return res.status(200).end();
+    }
+
+    return res.status(200).end();
   }
 
-  // ═══ SEND — one message per project ═══
+  // ═══ GET ACTIONS ═══
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const { action } = req.query;
+
+  if (action === 'test') {
+    const r = await slack('auth.test', {});
+    return res.json({ ok: r.ok, team: r.team, user: r.user, supabase: !!supabase });
+  }
+
   if (action === 'send') {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const filterUser = req.query.user || null;
 
-    // Previous week
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(monday.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-    const prevMonday = new Date(monday); prevMonday.setDate(prevMonday.getDate() - 7);
     const { data: reports } = await supabase.from('weekly_reports').select('id,week_label,week_start').order('week_start',{ascending:false}).limit(5);
-    const prevReport = reports?.find(r => r.week_start <= prevMonday.toISOString().slice(0,10)) || reports?.[0];
+    const today = new Date(); const monday = new Date(today);
+    monday.setDate(monday.getDate() - (today.getDay()===0?6:today.getDay()-1));
+    const prevMonday = new Date(monday); prevMonday.setDate(prevMonday.getDate()-7);
+    const prevReport = reports?.find(r=>r.week_start<=prevMonday.toISOString().slice(0,10))||reports?.[0];
 
-    // Active projects
     const { data: projects } = await supabase.from('projects').select('id,name,owner,status,priority').neq('status','done').order('sort_order');
-    if (!projects?.length) return res.json({ error: 'No active projects' });
-
-    // Group by owner
     const byOwner = {};
-    for (const p of projects) {
+    for (const p of projects||[]) {
       const o = p.owner?.trim();
-      if (!o || (filterUser && o !== filterUser)) continue;
-      if (!byOwner[o]) byOwner[o] = [];
+      if (!o||(filterUser&&o!==filterUser)) continue;
+      if (!byOwner[o]) byOwner[o]=[];
       byOwner[o].push(p);
     }
 
     const results = [];
-    for (const [owner, ops] of Object.entries(byOwner)) {
+    for (const [owner,ops] of Object.entries(byOwner)) {
       const member = TEAM[owner];
-      if (!member) { results.push({ name: owner, error: 'Not in TEAM map' }); continue; }
-
+      if (!member) { results.push({name:owner,error:'Not in TEAM'}); continue; }
       try {
-        const dm = await slack('conversations.open', { users: member.slackId });
-        if (!dm.ok) { results.push({ name: owner, error: dm.error }); continue; }
-        const ch = dm.channel.id;
+        const dm = await slack('conversations.open',{users:member.slackId});
+        if (!dm.ok) { results.push({name:owner,error:dm.error}); continue; }
 
-        // 1. Intro
-        await slack('chat.postMessage', { channel: ch,
-          text: `👋 Привет ${owner}! Провожу еженедельный опрос по твоим проектам.\n\n`
-            + `У тебя *${ops.length}* активных проектов. Я спрошу по каждому — что изменилось за неделю *${prevReport?.week_label||''}*.\n\n`
-            + `Если изменений нет — так и пиши: _«без изменений»_`
+        // Intro
+        await slack('chat.postMessage',{channel:dm.channel.id,
+          text:`👋 Привет ${owner}! Провожу еженедельный опрос.\n\nУ тебя *${ops.length}* активных проектов за неделю *${prevReport?.week_label||''}*.\nЯ буду спрашивать по одному. Если изменений нет — пиши _«без изменений»_`
         });
 
-        // 2. One message per project
-        for (const p of ops) {
-          const emoji = p.priority === 'key' ? '🔴' : '🔵';
-          const statusMap = { progress:'в работе', wait:'ожидание', test:'тестируем', risk:'риск', blocked:'блокер' };
-          await slack('chat.postMessage', { channel: ch,
-            text: `${emoji} *${p.name}*\nСтатус: ${statusMap[p.status]||p.status}\n\nЧто изменилось?`
-          });
-        }
+        // First project only
+        const first = ops[0];
+        const emoji = first.priority==='key'?'🔴':'🔵';
+        const statusMap = {progress:'в работе',wait:'ожидание',test:'тестируем',risk:'риск',blocked:'блокер'};
+        await slack('chat.postMessage',{channel:dm.channel.id,
+          text:`${emoji} *${first.name}*\nСтатус: ${statusMap[first.status]||first.status}\nОсталось ещё ${ops.length-1}\n\nЧто изменилось?`
+        });
 
-        results.push({ name: owner, projects: ops.length, sent: true });
-      } catch (e) {
-        results.push({ name: owner, error: e.message });
-      }
+        results.push({name:owner,projects:ops.length,sent:true});
+      } catch(e) { results.push({name:owner,error:e.message}); }
     }
 
-    return res.json({ ok: true, week: prevReport?.week_label, results });
+    return res.json({ok:true,week:prevReport?.week_label,results});
   }
 
-  // ═══ COLLECT — match bot questions to user answers ═══
-  if (action === 'collect') {
-    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
-
-    const { data: reports } = await supabase.from('weekly_reports').select('id,week_label,week_start').order('week_start',{ascending:false}).limit(5);
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(monday.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-    const prevMonday = new Date(monday); prevMonday.setDate(prevMonday.getDate() - 7);
-    const prevReport = reports?.find(r => r.week_start <= prevMonday.toISOString().slice(0,10)) || reports?.[0];
-    const weekStart = prevReport?.week_start;
-
-    const { data: projects } = await supabase.from('projects').select('id,name,owner').neq('status','done');
-
-    const collected = [];
-    for (const [owner, member] of Object.entries(TEAM)) {
-      try {
-        const dm = await slack('conversations.open', { users: member.slackId });
-        if (!dm.ok) continue;
-
-        const hist = await slack('conversations.history', { channel: dm.channel.id, limit: 50 });
-        if (!hist.ok || !hist.messages) continue;
-
-        // Messages are newest-first, reverse for chronological
-        const msgs = [...hist.messages].reverse();
-
-        // Find bot project questions and the user's next reply
-        const ownerProjects = projects?.filter(p => p.owner?.trim() === owner) || [];
-        let projectIdx = 0;
-
-        for (let i = 0; i < msgs.length; i++) {
-          const m = msgs[i];
-          // Is this a bot message about a project?
-          if (m.bot_id && ownerProjects[projectIdx]) {
-            const proj = ownerProjects.find(p => m.text?.includes(p.name));
-            if (!proj) continue;
-
-            // Find next user message after this bot message
-            const reply = msgs.slice(i + 1).find(r => r.user === member.slackId && !r.bot_id);
-            if (reply && reply.text?.trim()) {
-              const comment = reply.text.trim();
-              if (comment.toLowerCase() === 'без изменений' || comment.toLowerCase() === 'no changes') {
-                collected.push({ owner, project: proj.name, comment: 'Без изменений', saved: true, skipped: true });
-              } else {
-                const { error } = await supabase.from('project_comments').insert({
-                  project_id: proj.id,
-                  author: owner + ' (Slack)',
-                  full_text: comment,
-                  summary: comment.length > 120 ? comment.slice(0, 117) + '…' : comment,
-                  week_start: weekStart
-                });
-                collected.push({ owner, project: proj.name, comment: comment.slice(0, 80), saved: !error, error: error?.message });
-              }
-            }
-          }
-        }
-      } catch (e) { /* skip */ }
-    }
-
-    return res.json({ ok: true, week: prevReport?.week_label, collected });
-  }
-
-  return res.status(400).json({ error: 'action: test | send | collect' });
+  return res.status(400).json({error:'action: test | send'});
 }
