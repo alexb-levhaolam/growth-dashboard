@@ -105,6 +105,46 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const { action } = req.query;
 
+  if (action === 'debug') {
+    if (!supabase) return res.json({ error: 'no supabase' });
+    const user = req.query.user;
+    const member = user ? TEAM[user] : null;
+    if (!member) return res.json({ error: 'user not found', available: Object.keys(TEAM) });
+
+    const { data: projects } = await supabase.from('projects').select('id,name,owner,status').neq('status','done').order('sort_order');
+    const ops = projects?.filter(p => p.owner?.trim() === user) || [];
+
+    const dm = await slack('conversations.open', { users: member.slackId });
+    if (!dm.ok) return res.json({ error: 'cant open DM', detail: dm.error });
+
+    const hist = await slack('conversations.history', { channel: dm.channel.id, limit: 30 });
+    const msgs = [...(hist.messages || [])].reverse();
+
+    const answered = new Set();
+    const usedReplies = new Set();
+    const matchLog = [];
+    for (let i = 0; i < msgs.length; i++) {
+      const m = msgs[i];
+      if (!m.bot_id) continue;
+      const proj = ops.find(p => m.text?.includes(p.name));
+      if (!proj) continue;
+      const reply = msgs.slice(i+1).find(r => r.user === member.slackId && !r.bot_id && !usedReplies.has(r.ts));
+      if (reply) { usedReplies.add(reply.ts); answered.add(proj.id); }
+      matchLog.push({ botMsg: m.text?.slice(0,50), project: proj.name, hasReply: !!reply, replyText: reply?.text?.slice(0,50) });
+    }
+
+    const lastBotMsg = [...(hist.messages||[])].find(m => m.bot_id);
+    const lastProj = ops.find(p => lastBotMsg?.text?.includes(p.name));
+    const nextProj = ops.find(p => !answered.has(p.id) && p.id !== lastProj?.id);
+
+    return res.json({
+      owner: user, slackId: member.slackId, projectCount: ops.length,
+      projects: ops.map(p => ({ id: p.id, name: p.name, answered: answered.has(p.id) })),
+      lastBotAbout: lastProj?.name, nextProject: nextProj?.name,
+      matchLog, msgCount: msgs.length
+    });
+  }
+
   if (action === 'test') {
     const r = await slack('auth.test', {});
     return res.json({ ok: r.ok, team: r.team, user: r.user, supabase: !!supabase });
