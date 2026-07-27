@@ -8,10 +8,10 @@ const TEAM = {
   'Natiia':  { slackId: 'U05SLQ0FSN8' },
   'Ivan':    { slackId: 'U02P4RGETFG' },
   'Olga':    { slackId: 'U0AHYP8NP9P' },
-  'Sasha B': { slackId: 'U09NTUJL4KT' },
   'Alex':    { slackId: 'U09NTUJL4KT' },
   'Rivki':   { slackId: 'U03DAH7HE73' },
 };
+const ALIASES = {'Alex':['Alex','Sasha B'],'Julia':['Julia'],'Nikita':['Nikita'],'Vlada':['Vlada'],'Dasha':['Dasha'],'Natiia':['Natiia'],'Ivan':['Ivan'],'Olga':['Olga'],'Rivki':['Rivki']};
 const ID2OWNER = Object.fromEntries(
   Object.entries(TEAM).flatMap(([n,v])=>[[v.slackId,n]])
 );
@@ -74,7 +74,8 @@ export default async function handler(req, res) {
 
       try {
         const { data: projects } = await supabase.from('projects').select('id,name,owner,status,priority').neq('status','done').order('sort_order');
-        const ops = projects?.filter(p => p.owner?.trim() === owner) || [];
+        const ownerNames = ALIASES[owner] || [owner];
+        const ops = projects?.filter(p => ownerNames.includes(p.owner?.trim())) || [];
         if (!ops.length) return res.status(200).end();
 
         const dm = await slack('conversations.open', { users: userId });
@@ -132,7 +133,8 @@ export default async function handler(req, res) {
     if (!member) return res.json({ error: 'user not found', available: Object.keys(TEAM) });
 
     const { data: projects } = await supabase.from('projects').select('id,name,owner,status').neq('status','done').order('sort_order');
-    const ops = projects?.filter(p => p.owner?.trim() === user) || [];
+    const ownerNames = ALIASES[user] || [user];
+    const ops = projects?.filter(p => ownerNames.includes(p.owner?.trim())) || [];
 
     const dm = await slack('conversations.open', { users: member.slackId });
     if (!dm.ok) return res.json({ error: 'cant open DM', detail: dm.error });
@@ -172,9 +174,11 @@ export default async function handler(req, res) {
     const byOwner = {};
     for (const p of projects||[]) {
       const o = p.owner?.trim();
-      if (!o||(filterUser&&o!==filterUser)) continue;
-      if (!byOwner[o]) byOwner[o]=[];
-      byOwner[o].push(p);
+      if (!o) continue;
+      if (filterUser && !(ALIASES[filterUser]||[filterUser]).includes(o)) continue;
+      const primaryName = Object.entries(ALIASES).find(([k,v])=>v.includes(o))?.[0] || o;
+      if (!byOwner[primaryName]) byOwner[primaryName]=[];
+      byOwner[primaryName].push(p);
     }
 
     const results = [];
