@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const maxDay = untilDay ? parseInt(untilDay) : 31;
 
     let totalSales = 0, adSpend = 0, paidSales = 0, daysWithData = 0;
-    let discountsBL = 0, discountsBS = 0; // BL(63)=Discount_Spent, BS(70)=Discount_Spent_Ivan
+    let discountsBL = 0, discountsBS = 0, totalSpentBM = 0; // BL(63)=Discount_Spent, BS(70)=Discount_Spent_Ivan
     const channels = {};
     const seenDates = new Set();
     let firstMatchRow = -1;
@@ -58,6 +58,7 @@ export default async function handler(req, res) {
       totalSales += tot;
       discountsBL += pn(r[63]);
       discountsBS += pn(r[70]);
+      totalSpentBM += pn(r[64]);
 
       const chData = {
         Meta: { sp: pn(r[13]), sa: pn(r[14]) },
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
       cpo: v.sales > 0 && v.spent > 0 ? Math.round(v.spent / v.sales) : null
     }));
 
-    res.json({ month, totalSales, adSpend, paidSales, daysWithData, discountsBL, discountsBS, channels: chArr });
+    res.json({ month, totalSales, adSpend, paidSales, daysWithData, discountsBL, discountsBS, totalSpentBM, channels: chArr });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
