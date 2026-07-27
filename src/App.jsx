@@ -314,7 +314,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   const[fPri,setFPri]=useState('all');const[fSt,setFSt]=useState('all')
   const[showNewP,setShowNewP]=useState(false);const[np,setNp]=useState({id:'',name:'',owner:'',priority:'current'})
   const[surveying,setSurveying]=useState(false)
-  const sendSurvey=async()=>{setSurveying(true);try{const r=await fetch('/api/slack?action=send');const d=await r.json();if(d.ok){const sent=d.results?.filter(r=>r.sent).length||0;alert(`✅ Опрос отправлен ${sent} сотрудникам за ${d.week}`)}else{alert('Ошибка: '+(d.error||'unknown'))}}catch(e){alert('Ошибка: '+e.message)}finally{setSurveying(false)}}
+  const sendSurvey=async()=>{setSurveying(true);try{const ws=rep?.week_start||'';const wl=rep?.week_label||'';const r=await fetch(`/api/slack?action=send&weekStart=${ws}&weekLabel=${encodeURIComponent(wl)}`);const d=await r.json();if(d.ok){const sent=d.results?.filter(r=>r.sent).length||0;alert(`✅ Опрос отправлен ${sent} сотрудникам за ${d.week}`)}else{alert('Ошибка: '+(d.error||'unknown'))}}catch(e){alert('Ошибка: '+e.message)}finally{setSurveying(false)}}
   const rep=reports[aIdx];const ws=rep?.week_start
   const upProj=async(id,f,v)=>{setProjects(prev=>prev.map(p=>p.id===id?{...p,[f]:v}:p));const{error}=await supabase.from('projects').update({[f]:v}).eq('id',id);if(error)alert('Ошибка сохранения: '+error.message)}
   const delProj=async(id,name)=>{if(!confirm(`Удалить проект "${name}"?`))return;setProjects(prev=>prev.filter(p=>p.id!==id));supabase.from('project_comments').delete().eq('project_id',id);supabase.from('projects').delete().eq('id',id)}
