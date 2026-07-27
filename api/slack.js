@@ -62,6 +62,9 @@ export default async function handler(req, res) {
         const lastBotMsg = [...(hist.messages||[])].find(m => m.bot_id);
         const lastProj = ops.find(p => lastBotMsg?.text?.includes(p.name));
 
+        // Mark current project as answered (event may not be in history yet)
+        if (lastProj) answered.add(lastProj.id);
+
         if (lastProj && userText) {
           const today = new Date();
           const mon = new Date(today); mon.setDate(mon.getDate()-(today.getDay()===0?6:today.getDay()-1));
