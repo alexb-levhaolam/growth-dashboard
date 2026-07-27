@@ -107,9 +107,13 @@ export default async function handler(req, res) {
       channels.Direct.sales+=dir_sa;
       totalSales+=tot;
 
+      // Discounts
+      const discBL = pn(r[63]); // Discount_Spent
+      const discBS = pn(r[70]); // Discount_Spent_Ivan
+
       const dn=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
       const dayCh={Meta:meta_sa,Google:g_sa,'Israel 365':i365_sa,Email:email_sa,SMM:smm_sa,SEO:seo_sa,Direct:dir_sa,TikTok:tt_sa,Taboola:tab_sa};
-      days.push({ day:`${dn[rd.getDay()]} ${dm[1]}.${dm[2]}`, sales:tot, note:'', ch:dayCh });
+      days.push({ day:`${dn[rd.getDay()]} ${dm[1]}.${dm[2]}`, sales:tot, note:'', ch:dayCh, discBL, discBS });
       debugRows.push({ date:dateKey, row:ri, meta:meta_sa, google:g_sa, email:email_sa, direct:dir_sa, total:tot });
     }
 
@@ -125,9 +129,11 @@ export default async function handler(req, res) {
       name, sales:v.sales, spent:v.spent,
       cpo: v.sales>0 && v.spent>0 ? Math.round(v.spent/v.sales) : null
     }));
+    const totalDiscBL = days.reduce((s,d)=>s+(d.discBL||0),0);
+    const totalDiscBS = days.reduce((s,d)=>s+(d.discBS||0),0);
 
     res.json({
-      days, channels:chArr, totalSales,
+      days, channels:chArr, totalSales, totalDiscBL, totalDiscBS,
       defaultHidden:['Reddit','Pinterest','Rumble','TikTok'],
       daysFound:days.length,
       debug:{ totalRows:rows.length, matchedRows:debugRows }
