@@ -103,7 +103,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const chPlanMap={'Meta':'meta','Google':'google','Taboola':'newChannels','TikTok':'newChannels','Reddit':'newChannels','Pinterest':'newChannels','Rumble':'newChannels'}
   const chGroupCount={'meta':1,'google':1,'newChannels':ch.filter(c=>['Taboola','TikTok','Reddit','Pinterest','Rumble'].includes(c.name)&&(c.sales||0)>0).length||1}
   const getChPlan=(name)=>{const pk=chPlanMap[name];if(!pk)return{};const mp=cp[pk];if(!mp)return{};const cnt=chGroupCount[pk]||1;return{planSales:Math.round((mp.planSales||0)/dim*7/cnt),planCpo:mp.planCpo||null}}
-  const upM=(k,v)=>up({metrics:{...m,[k]:v===''?null:isNaN(Number(v))?v:Number(v)}})
+  const upM=(k,v)=>up({metrics:{...m,[k]:v==null?null:(v===''?null:Number(v))}})
   const upCh=(idx,f,v)=>{const nc=[...ch];nc[idx]={...nc[idx],[f]:f==='name'?v:(v===''?null:Number(v))};up({channels:nc})}
   const addCh=()=>{const name=prompt('Название канала:');if(!name||!name.trim())return;up({channels:[...ch,{name:name.trim(),sales:0,prevSales:null,cpo:null,prevCpo:null,planSales:null,planCpo:null}]})}
   const remCh=(idx)=>{if(!confirm(`Удалить "${ch[idx]?.name}"?`))return;const nc=[...ch];nc.splice(idx,1);up({channels:nc})}
@@ -179,7 +179,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         <div style={{fontSize:12,color:S.i3,display:'flex',alignItems:'center'}}>{x.l}<Info text={x.info}/></div>
         <div style={{fontSize:22,fontWeight:500,margin:'2px 0'}}>
           {x.k?<>{x.pre||''}<EdNum value={m[x.k]} canEdit={ce} onSave={v=>upM(x.k,v)} style={{fontSize:22,fontWeight:500}}/></>
-          :x.k2?<>{x.pre||''}<EdNum value={x.v2} canEdit={ce} onSave={v=>upM(x.k2,v===x.calc?null:v)} style={{fontSize:22,fontWeight:500}}/></>
+          :x.k2?<>{x.pre||''}<EdNum value={x.v2} canEdit={ce} onSave={v=>{if(v==null)upM(x.k2,null);else upM(x.k2,v)}} style={{fontSize:22,fontWeight:500}}/></>
           :x.v}
         </div>
         <div style={{fontSize:12,color:S.i2,display:'flex',alignItems:'center',gap:4}}>
