@@ -385,13 +385,43 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
 function CItem({c,ce,reload,onDel}){const[es,setEs]=useState(false);const[sv,setSv]=useState(c.full_text||c.summary);const saveS=async()=>{setEs(false);await supabase.from('project_comments').update({full_text:sv,summary:sv.length>120?sv.slice(0,117)+'…':sv}).eq('id',c.id);reload()};return<div style={{marginTop:6,padding:'8px 12px',background:S.bg,borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:S.i3,marginBottom:2}}><span><b>{c.author}</b> · {c.week_start}</span><div style={{display:'flex',gap:6}}>{ce&&<button onClick={()=>setEs(!es)} style={{fontSize:11,color:S.bm,background:'none',border:'none',cursor:'pointer'}}>✏️</button>}{ce&&onDel&&<button onClick={onDel} style={{fontSize:11,color:'#ccc',background:'none',border:'none',cursor:'pointer'}}>🗑</button>}</div></div>{es?<div><textarea value={sv} onChange={e=>setSv(e.target.value)} rows={3} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:13,outline:'none',fontFamily:'inherit',resize:'vertical'}}/><button onClick={saveS} style={{fontSize:12,color:S.gd,background:'none',border:'none',cursor:'pointer'}}>💾</button></div>:<div style={{fontSize:13,color:S.i2,whiteSpace:'pre-wrap',lineHeight:1.5}}><Linkify>{c.full_text||c.summary}</Linkify></div>}</div>}
 
 // ═══ DYNAMICS ═══
-function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[ek,setEk]=useState(null);const[ec,setEc]=useState(null);const rep=reports[aIdx];const kP=projects.filter(p=>p.priority==='key');const cP=projects.filter(p=>p.priority==='current')
+function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[expanded,setExpanded]=useState(null);const[fSt,setFSt]=useState('all');const rep=reports[aIdx]
   const getSnap=(pid,ws)=>{const r=reports.find(r=>r.week_start===ws);return(r?.project_snapshots||[]).find(s=>s.id===pid)||null}
   const saveSnapshots=async()=>{if(!rep)return;const snaps=projects.map(p=>({id:p.id,name:p.name,status:p.status,owner:p.owner,priority:p.priority,date_start:p.date_start,date_test:p.date_test,date_results:p.date_results,date_done:p.date_done,constraints:p.constraints_text,last_update:p.last_update}));await supabase.from('weekly_reports').update({project_snapshots:snaps}).eq('id',rep.id);reload()}
-  const TL=({proj,isOpen,toggle})=>{const ps=PROJ_ST[proj.status]||PROJ_ST.wait;const pC=comments.filter(c=>c.project_id===proj.id);const weeks=[...reports].reverse().map(r=>{const snap=getSnap(proj.id,r.week_start);const snapSt=snap?PROJ_ST[snap.status]:null;return{...r,wc:pC.filter(c=>c.week_start===r.week_start),snap,snapSt}})
-    return<div style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:12,marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',cursor:'pointer'}} onClick={toggle}><div><span style={{fontWeight:500}}>{proj.name}</span><span style={{fontSize:12,color:S.i3,marginLeft:8}}>{proj.owner}</span></div><div style={{display:'flex',gap:8,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip><span style={{color:S.i3}}>{isOpen?'▲':'▼'}</span></div></div>
-      {isOpen&&<div style={{padding:'0 16px 16px',borderLeft:`3px solid ${S.gl}`,marginLeft:16}}>{weeks.map(w=><div key={w.id} style={{marginTop:12,paddingBottom:12,borderBottom:`0.5px solid ${S.ln}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{fontSize:12,fontWeight:600,color:S.gd}}>📅 {w.week_label}</div>{w.snapSt&&<Chip bg={w.snapSt.bg} tx={w.snapSt.tx}>{w.snapSt.l}</Chip>}</div>{w.snap&&<div style={{fontSize:11,color:S.i3,marginTop:2}}>{w.snap.constraints&&<span style={{color:'#791F1F'}}>⚠️ {w.snap.constraints} · </span>}{[w.snap.date_start&&`начало: ${w.snap.date_start}`,w.snap.date_done&&`завершён: ${w.snap.date_done}`].filter(Boolean).join(' · ')}</div>}{w.wc.length>0?w.wc.map(c=><div key={c.id} style={{marginTop:4}}><span style={{fontSize:11,color:S.i3}}>{c.author}:</span><Ed value={c.summary||c.full_text} canEdit={ce} multi onSave={async v=>{await supabase.from('project_comments').update({summary:v}).eq('id',c.id);reload()}} style={{fontSize:13,color:S.ink}}/></div>):<div style={{fontSize:12,color:S.i3,fontStyle:'italic',marginTop:4}}>Нет обновлений</div>}</div>)}</div>}</div>}
-  return<><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><Label>История проектов</Label>{ce&&<button onClick={saveSnapshots} style={{fontSize:12,color:S.gd,background:S.gp,border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontWeight:600}}>📸 Снимок · {rep?.week_label}</button>}</div><Label>🔴 Ключевые ({kP.length})</Label>{kP.map(p=><TL key={p.id} proj={p} isOpen={ek===p.id} toggle={()=>setEk(ek===p.id?null:p.id)}/>)}<div style={{marginTop:20}}><Label>🔵 Текущие ({cP.length})</Label></div>{cP.map(p=><TL key={p.id} proj={p} isOpen={ec===p.id} toggle={()=>setEc(ec===p.id?null:p.id)}/>)}</>}
+  const fmtD=d=>{if(!d)return null;const p=d.split('-');return`${p[2]}.${p[1]}`}
+  // Sort: risk→blocked→test→progress→wait→done
+  const stOrder={risk:0,blocked:1,test:2,progress:3,wait:4,done:5}
+  const sorted=[...projects].sort((a,b)=>(stOrder[a.status]??9)-(stOrder[b.status]??9)||(a.sort_order||0)-(b.sort_order||0))
+  const filtered=fSt==='all'?sorted:sorted.filter(p=>p.status===fSt)
+
+  const TL=({proj})=>{const isOpen=expanded===proj.id;const ps=PROJ_ST[proj.status]||PROJ_ST.wait;const pC=comments.filter(c=>c.project_id===proj.id);const weeks=[...reports].reverse().map(r=>{const snap=getSnap(proj.id,r.week_start);const snapSt=snap?PROJ_ST[snap.status]:null;return{...r,wc:pC.filter(c=>c.week_start===r.week_start),snap,snapSt}})
+    const hasBlock=proj.constraints_text&&proj.constraints_text.trim()
+    const dates=[proj.date_start&&`начало ${fmtD(proj.date_start)}`,proj.date_test&&`тест ${fmtD(proj.date_test)}`,proj.date_results&&`результаты ${fmtD(proj.date_results)}`,proj.date_done&&`завершён ${fmtD(proj.date_done)}`].filter(Boolean).join(' · ')
+    return<div style={{background:hasBlock?'#FFF0F0':S.sf,border:`0.5px solid ${hasBlock?'#E8AAAA':S.ln}`,borderRadius:12,marginBottom:8}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',padding:'12px 16px',cursor:'pointer'}} onClick={()=>setExpanded(isOpen?null:proj.id)}>
+        <div style={{flex:1}}>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>{hasBlock&&<span style={{fontSize:14}}>🛑</span>}<span style={{fontWeight:500}}>{proj.name}</span><span style={{fontSize:12,color:S.i3}}>{proj.owner}</span></div>
+          {dates&&<div style={{fontSize:11,color:S.i3,marginTop:2}}>📅 {dates}</div>}
+          {hasBlock&&<div style={{fontSize:11,color:'#791F1F',marginTop:2}}>⚠️ {proj.constraints_text}</div>}
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip><span style={{color:S.i3}}>{isOpen?'▲':'▼'}</span></div>
+      </div>
+      {isOpen&&<div style={{padding:'0 16px 16px',borderLeft:`3px solid ${S.gl}`,marginLeft:16}}>{weeks.map(w=><div key={w.id} style={{marginTop:12,paddingBottom:12,borderBottom:`0.5px solid ${S.ln}`}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{fontSize:12,fontWeight:600,color:S.gd}}>📅 {w.week_label}</div>{w.snapSt&&<Chip bg={w.snapSt.bg} tx={w.snapSt.tx}>{w.snapSt.l}</Chip>}</div>
+        {w.snap&&<div style={{fontSize:11,color:S.i3,marginTop:2}}>{w.snap.constraints&&<span style={{color:'#791F1F'}}>⚠️ {w.snap.constraints} · </span>}{[w.snap.date_start&&`начало: ${w.snap.date_start}`,w.snap.date_done&&`завершён: ${w.snap.date_done}`].filter(Boolean).join(' · ')}</div>}
+        {w.wc.length>0?w.wc.map(c=><div key={c.id} style={{marginTop:4}}><span style={{fontSize:11,color:S.i3}}>{c.author}:</span><div style={{fontSize:13,color:S.ink,whiteSpace:'pre-wrap',lineHeight:1.5}}><Linkify>{c.full_text||c.summary}</Linkify></div></div>):<div style={{fontSize:12,color:S.i3,fontStyle:'italic',marginTop:4}}>Нет обновлений</div>}
+      </div>)}</div>}
+    </div>}
+
+  return<><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,flexWrap:'wrap',gap:8}}>
+    <Label>История проектов ({filtered.length})</Label>
+    {ce&&<button onClick={saveSnapshots} style={{fontSize:12,color:S.gd,background:S.gp,border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontWeight:600}}>📸 Снимок · {rep?.week_label}</button>}
+  </div>
+  <div style={{display:'flex',gap:4,marginBottom:12,flexWrap:'wrap'}}>
+    {[{k:'all',l:'Все'},...Object.entries(PROJ_ST).map(([k,v])=>({k,l:v.l}))].map(f=><button key={f.k} onClick={()=>setFSt(f.k)} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,fontWeight:600,background:fSt===f.k?S.gd:'#F1EFE8',color:fSt===f.k?S.gp:S.i2}}>{f.l}</button>)}
+  </div>
+  {filtered.map(p=><TL key={p.id} proj={p}/>)}
+  </>}
 
 // ═══ TRENDS ═══
 function Trends({reports,mPlans}){const[mode,setMode]=useState('weekly');const[selCh,setSelCh]=useState({});const[cpoMode,setCpoMode]=useState('both');const allCh=new Set();reports.forEach(r=>(r.channels||[]).forEach(c=>{const n=c.name?.split(' (')[0]||c.name;if(n)allCh.add(n)}));const chNames=[...allCh];useEffect(()=>{if(Object.keys(selCh).length===0){const init={};chNames.forEach(n=>init[n]=true);setSelCh(init)}},[chNames.length]);const togCh=(n)=>setSelCh(p=>({...p,[n]:!p[n]}));const toggleAll=()=>{const anyOff=chNames.some(n=>!selCh[n]);const nv={};chNames.forEach(n=>nv[n]=anyOff);setSelCh(nv)}
