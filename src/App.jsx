@@ -74,8 +74,8 @@ function Main({profile}){
           {isA&&rep&&<button onClick={deleteWeek} style={{padding:'4px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:11,background:'rgba(224,75,74,0.3)',color:'#FFC1C1'}} title="Удалить текущий отчёт">🗑</button>}
         </div>
     </div>
-    <div style={{display:'flex',gap:2,marginBottom:16,background:S.sf,borderRadius:10,padding:3,border:`0.5px solid ${S.ln}`}} className="no-print">
-      {tabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:1,padding:'8px',border:'none',borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:600,background:view===t.id?S.gd:'transparent',color:view===t.id?S.gp:S.i2}}>{t.l}</button>)}
+    <div style={{display:'flex',gap:2,marginBottom:16,background:S.sf,borderRadius:10,padding:3,border:`0.5px solid ${S.ln}`,overflowX:'auto',WebkitOverflowScrolling:'touch'}} className="no-print">
+      {tabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:'0 0 auto',padding:'8px 14px',border:'none',borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:600,background:view===t.id?S.gd:'transparent',color:view===t.id?S.gp:S.i2,whiteSpace:'nowrap'}}>{t.l}</button>)}
     </div>
     {view==='overview'&&rep&&<Overview rep={rep} reports={reports} projects={projects} comments={comments} ce={ce} up={upRep} tTasks={tTasks} tProgress={tProgress} print={printOverview} refreshDaily={refreshFromDaily} mPlans={mPlans}/>}
     {view==='projects'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload}/>}
@@ -169,7 +169,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>})()}
 
     <Label>Ключевые метрики</Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10,marginBottom:16}}>
       {[
         {l:'Продажи',k:'totalSales',info:ch.filter(c=>(c.sales||0)>0).map(c=>`${c.name}: ${c.sales}`).join('\n')||'Продажи за неделю (BJ)'},
         {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'(Затраты ADS + Скидки + Сервисы + Awareness) / платные продажи'},
@@ -192,7 +192,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Брэкдаун по дням</Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:6,marginBottom:16}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(80px,1fr))',gap:6,marginBottom:16,overflowX:'auto'}}>
       {(daily.length>0?daily:Array(7).fill(null)).map((d,i)=>{const chTip=d?.ch?Object.entries(d.ch).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join('\n'):'';return<div key={i} title={chTip} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'8px 4px',textAlign:'center',cursor:chTip?'help':'default'}}>
         <Ed value={d?.day||''} canEdit={ce} onSave={v=>upDay(i,'day',v)} style={{fontSize:11,color:S.i3}}/>
         <div style={{margin:'4px 0'}}><EdNum value={d?.sales} canEdit={ce} onSave={v=>upDay(i,'sales',v)} style={{fontSize:18,fontWeight:500}}/></div>
@@ -224,7 +224,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Тактические задачи <span style={{fontWeight:400,color:S.i3}}>· до 01.01.2027</span></Label>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:8,marginBottom:16}}>
       {tTasks.filter(t=>!t.hidden).map(t=>{const tp=getTP(t.id);const ms=t.milestones||[];let pctVal=0,label='';if(t.target_type==='numeric'){pctVal=t.target_value?(Math.round(((tp?.current_value||0)/t.target_value)*100)):0;label=`${tp?.current_value||0} / ${t.target_value}`}else{const cur=tp?.milestone_status||0;pctVal=ms.length?Math.round(cur/ms.length*100):0;label=cur>0&&cur<=ms.length?ms[cur-1]?.name:'Не начато'}
         return<div key={t.id} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{fontSize:13,fontWeight:500,marginBottom:4}}>{t.name}</div>
@@ -236,16 +236,16 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Проекты на контроле</Label>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:8,marginBottom:16}}>
       {shown.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id)
         return<div key={p.id} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:4}}><span style={{fontSize:13,fontWeight:500}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
           <div style={{fontSize:12,color:S.i2,lineHeight:1.5}}>{p.last_update}</div>
-          {lc&&<div style={{fontSize:11,color:S.i3,marginTop:4,fontStyle:'italic'}}>💬 {lc.summary||lc.full_text?.slice(0,80)}</div>}
+          {lc&&<div style={{fontSize:12,color:S.i3,marginTop:4,fontStyle:'italic',whiteSpace:'pre-wrap',lineHeight:1.5}}>💬 <Linkify>{lc.full_text||lc.summary}</Linkify></div>}
         </div>})}
     </div>
 
-    <div style={{display:'flex',gap:12,marginBottom:12}}>
+    <div style={{display:'flex',gap:12,marginBottom:12,flexWrap:'wrap'}}>
       <div style={{flex:1,background:'#EAF3DE',borderRadius:12,padding:'14px 16px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           <div style={{fontSize:11,color:'#7C9F55',fontWeight:600}}>🤖 Анализ · Улучшилось</div>
@@ -259,7 +259,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       </div>
     </div>
     {m.aiInsights&&<div style={{background:'#F0EAFC',borderRadius:12,padding:'14px 16px',marginBottom:12}}><div style={{fontSize:11,color:'#7B5EA7',fontWeight:600,marginBottom:4}}>💡 Инсайты от Claude</div><Linkify style={{fontSize:13,color:'#4A3372',lineHeight:1.6}}>{m.aiInsights}</Linkify></div>}
-    <div style={{display:'flex',gap:12,marginBottom:16}}>
+    <div style={{display:'flex',gap:12,marginBottom:16,flexWrap:'wrap'}}>
       <div style={{flex:1,background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:12,padding:'14px 16px'}}><div style={{fontSize:13,fontWeight:600,color:'#3B6D11',marginBottom:6}}>✏️ Дополнения</div><EList items={rep.manual_improved} canEdit={ce} onSave={v=>up({manual_improved:v})} color="#27500A"/></div>
       <div style={{flex:1,background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:12,padding:'14px 16px'}}><div style={{fontSize:13,fontWeight:600,color:'#A32D2D',marginBottom:6}}>✏️ Дополнения</div><EList items={rep.manual_worsened} canEdit={ce} onSave={v=>up({manual_worsened:v})} color="#791F1F"/></div>
     </div>
@@ -348,7 +348,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
         <div style={{display:'flex',gap:6,alignItems:'center'}}>{ce?<select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:12,padding:'2px 6px',borderRadius:6,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}{ce&&<button onClick={e=>{e.stopPropagation();delProj(p.id,p.name)}} style={{fontSize:12,background:'none',border:'none',cursor:'pointer',color:'#ccc'}} title="Удалить">🗑</button>}<span style={{color:S.i3}}>{isO?'▲':'▼'}</span></div>
       </div>
       {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
-      {wcs.length===0&&prev&&<div style={{marginTop:6,padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:10,color:'#BA7517'}}>⏮ {prev.week_start} ({prev.author})</div><div style={{fontSize:13,color:S.i3,fontStyle:'italic'}}>{prev.summary||prev.full_text?.slice(0,120)}</div></div>}
+      {wcs.length===0&&prev&&<div style={{marginTop:6,padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:10,color:'#BA7517'}}>⏮ {prev.week_start} ({prev.author})</div><div style={{fontSize:13,color:S.i3,fontStyle:'italic',whiteSpace:'pre-wrap'}}><Linkify>{prev.full_text||prev.summary}</Linkify></div></div>}
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12,borderTop:`0.5px solid ${S.ln}`,paddingTop:12}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f} style={{fontSize:11}}><span style={{color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div>
         <div style={{marginBottom:10}}><span style={{fontSize:11,color:S.i3,display:'block',marginBottom:2}}>Ограничения</span><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={v=>setConstraints(p.id,v)} ph="Блокеры / ограничения..." style={{fontSize:12,color:hasBlock?'#791F1F':S.i2,display:'block',background:hasBlock?'#FFF5F5':'transparent',padding:hasBlock?'4px 8px':0,borderRadius:6}}/></div>
@@ -382,7 +382,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {archive.map(p=><ProjCard key={p.id} p={p}/>)}</div></>}
   </>
 }
-function CItem({c,ce,reload,onDel}){const[es,setEs]=useState(false);const[sv,setSv]=useState(c.summary);const isL=c.full_text?.length>150;const saveS=async()=>{setEs(false);await supabase.from('project_comments').update({summary:sv}).eq('id',c.id);reload()};return<div style={{marginTop:6,padding:'8px 12px',background:S.bg,borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:S.i3,marginBottom:2}}><span><b>{c.author}</b> · {c.week_start}</span><div style={{display:'flex',gap:6}}>{ce&&<button onClick={()=>setEs(!es)} style={{fontSize:11,color:S.bm,background:'none',border:'none',cursor:'pointer'}}>✏️</button>}{ce&&onDel&&<button onClick={onDel} style={{fontSize:11,color:'#ccc',background:'none',border:'none',cursor:'pointer'}}>🗑</button>}</div></div>{es?<div><textarea value={sv} onChange={e=>setSv(e.target.value)} rows={2} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:13,outline:'none',fontFamily:'inherit'}}/><button onClick={saveS} style={{fontSize:12,color:S.gd,background:'none',border:'none',cursor:'pointer'}}>💾</button></div>:<div style={{fontSize:13,color:S.i2}}>{c.summary||c.full_text?.slice(0,120)}</div>}{isL&&!es&&<details style={{marginTop:4}}><summary style={{fontSize:11,color:S.gm,cursor:'pointer'}}>Полная версия</summary><div style={{fontSize:12,color:S.ink,marginTop:4,whiteSpace:'pre-wrap'}}>{c.full_text}</div></details>}</div>}
+function CItem({c,ce,reload,onDel}){const[es,setEs]=useState(false);const[sv,setSv]=useState(c.full_text||c.summary);const saveS=async()=>{setEs(false);await supabase.from('project_comments').update({full_text:sv,summary:sv.length>120?sv.slice(0,117)+'…':sv}).eq('id',c.id);reload()};return<div style={{marginTop:6,padding:'8px 12px',background:S.bg,borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:S.i3,marginBottom:2}}><span><b>{c.author}</b> · {c.week_start}</span><div style={{display:'flex',gap:6}}>{ce&&<button onClick={()=>setEs(!es)} style={{fontSize:11,color:S.bm,background:'none',border:'none',cursor:'pointer'}}>✏️</button>}{ce&&onDel&&<button onClick={onDel} style={{fontSize:11,color:'#ccc',background:'none',border:'none',cursor:'pointer'}}>🗑</button>}</div></div>{es?<div><textarea value={sv} onChange={e=>setSv(e.target.value)} rows={3} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:`1px solid ${S.gl}`,fontSize:13,outline:'none',fontFamily:'inherit',resize:'vertical'}}/><button onClick={saveS} style={{fontSize:12,color:S.gd,background:'none',border:'none',cursor:'pointer'}}>💾</button></div>:<div style={{fontSize:13,color:S.i2,whiteSpace:'pre-wrap',lineHeight:1.5}}><Linkify>{c.full_text||c.summary}</Linkify></div>}</div>}
 
 // ═══ DYNAMICS ═══
 function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[ek,setEk]=useState(null);const[ec,setEc]=useState(null);const rep=reports[aIdx];const kP=projects.filter(p=>p.priority==='key');const cP=projects.filter(p=>p.priority==='current')
@@ -419,7 +419,7 @@ function Plan({plans,ce,reload}){
   </div>
 
   <CC title={<span>{plan.month_label||sel} · <EdNum value={plan.days_in_month||daysInMonth} canEdit={ce} onSave={v=>upP('days_in_month',v)} style={{fontSize:14,fontWeight:600}}/> дней</span>}>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12}}>
       {[{l:'Бюджет команда',k:'team_budget',pre:'$'},{l:'ADS бюджет',k:'ads_budget',pre:'$'},{l:'Бюджет сервисы',k:'services_budget',pre:'$'},{l:'Бюджет Awareness',k:'awareness_budget',pre:'$'},{l:'План продаж',k:'total_plan'}].map(x=>
         <div key={x.k} style={{background:S.bg,borderRadius:10,padding:'12px 14px'}}>
           <div style={{fontSize:11,color:S.i3}}>{x.l}</div>
