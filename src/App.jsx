@@ -108,12 +108,16 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const addCh=()=>{const name=prompt('Название канала:');if(!name||!name.trim())return;up({channels:[...ch,{name:name.trim(),sales:0,prevSales:null,cpo:null,prevCpo:null,planSales:null,planCpo:null}]})}
   const remCh=(idx)=>{if(!confirm(`Удалить "${ch[idx]?.name}"?`))return;const nc=[...ch];nc.splice(idx,1);up({channels:nc})}
   const upDay=(idx,f,v)=>{const nd=[...daily];nd[idx]={...nd[idx],[f]:f==='note'||f==='day'?v:(v===''?null:Number(v))};up({daily_data:nd})}
-  // CPO calcs: Ads = pure ad spend / paid sales. Total = BM (Total_Spent) / BJ (Total Sales)
+  // CPO formulas:
+  // Бюджет Ads = SUM(BM) за период
+  // CPO Total = Бюджет Ads / все продажи = BM / BJ
+  // CPO Ads = (затраты платных каналов + скидки BL) / продажи платных каналов
   const adSpend=ch.reduce((s,c)=>s+(c.spent||0),0)
   const paidSales=ch.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0)
   const totalSpentBM=m.totalSpentBM||0
-  const calcCpoAds=paidSales>0?Math.round(adSpend/paidSales):null
-  const awWeek=Math.round((mPlan?.awareness_budget||0)/dim*7);const calcCpoTotal=(m.totalSales||0)>0?Math.round((totalSpentBM+awWeek)/(m.totalSales||1)):null
+  const discBL=m.discBL||0
+  const calcCpoAds=paidSales>0?Math.round((adSpend+discBL)/paidSales):null
+  const calcCpoTotal=(m.totalSales||0)>0?Math.round(totalSpentBM/(m.totalSales||1)):null
   const cpoAds=m.cpoAdsOverride!=null?m.cpoAdsOverride:calcCpoAds
   const cpoTotal=m.cpoTotalOverride!=null?m.cpoTotalOverride:calcCpoTotal
   // Plan from monthly — manual override always wins
@@ -172,9 +176,9 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10,marginBottom:16}}>
       {[
         {l:'Продажи',k:'totalSales',info:ch.filter(c=>(c.sales||0)>0).map(c=>`${c.name}: ${c.sales}`).join('\n')||'Продажи за неделю (BJ)'},
-        {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'(Затраты ADS + Скидки + Сервисы + Awareness) / платные продажи'},
-        {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$',info:'(Затраты ADS + Скидки + Сервисы + Awareness + Команда) / все продажи'},
-        {l:'Бюджет Ads',k2:'budgetSpent',v2:m.budgetSpent!=null?m.budgetSpent:adSpend,calc:adSpend,pre:'$',info:'Затраты на рекламу, команду, сервисы и скидки'},
+        {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'(Затраты платных каналов + Скидки BL) / продажи платных каналов'},
+        {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$',info:'Бюджет Ads (BM) / все продажи (BJ)'},
+        {l:'Бюджет Ads',k2:'budgetSpent',v2:m.budgetSpent!=null?m.budgetSpent:totalSpentBM,calc:totalSpentBM,pre:'$',info:'Сумма BM (Total_Spent) за период'},
       ].map((x,i)=><div key={i} style={{background:S.sf,border:`0.5px solid ${S.ln}`,borderRadius:10,padding:'12px 14px'}}>
         <div style={{fontSize:12,color:S.i3,display:'flex',alignItems:'center'}}>{x.l}<Info text={x.info}/></div>
         <div style={{fontSize:22,fontWeight:500,margin:'2px 0'}}>
