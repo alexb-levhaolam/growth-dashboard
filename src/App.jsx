@@ -206,25 +206,25 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
 
     <Label>Каналы</Label>
     <div style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:14,overflow:'hidden',marginBottom:28}}>
-      <div style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'8px 12px',background:S.bg,fontSize:15,color:S.i3,fontWeight:600,textTransform:'uppercase'}}>
-        <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Прод</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO пл</span><span style={{textAlign:'right'}}>Δ cpo</span>
+      <div style={{display:'grid',gridTemplateColumns:'100px 120px 60px 55px 50px 50px 60px 60px 50px',gap:4,padding:'14px 16px',background:S.bg,fontSize:15,color:S.i3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em'}}>
+        <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Sales</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO пл</span><span style={{textAlign:'right'}}>Δ CPO</span>
       </div>
-      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales!=null?c.planSales:(mp.planSales||0);const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#1D9E75':(c.sales||0)>=ps*0.7?'#EF9F27':'#E24B4A'):((c.sales||0)>0?S.gl:'#E3E1D8');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
-        return<div key={i} style={{display:'grid',gridTemplateColumns:'110px 1fr 46px 46px 38px 38px 52px 52px 38px',gap:3,padding:'5px 12px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
-        <div style={{display:'flex',alignItems:'center',gap:3}}>
-          {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:15,padding:0,lineHeight:1}}>×</button>}
-          <Ed value={c.name} canEdit={ce} onSave={v=>upCh(ci,'name',v)} style={{fontWeight:500,fontSize:15}}/>
+      {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales!=null?c.planSales:(mp.planSales||0);const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#497B02':(c.sales||0)>=ps*0.7?'#F18B0E':'#DD2A02'):((c.sales||0)>0?S.gl:'#E4E6E9');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
+        return<div key={i} style={{display:'grid',gridTemplateColumns:'100px 120px 60px 55px 50px 50px 60px 60px 50px',gap:4,padding:'12px 16px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
+        <div style={{display:'flex',alignItems:'center',gap:4}}>
+          {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:S.ln,cursor:'pointer',fontSize:15,padding:0,lineHeight:1}}>×</button>}
+          <Ed value={c.name} canEdit={ce} onSave={v=>upCh(ci,'name',v)} style={{fontWeight:500,fontSize:17}}/>
         </div>
-        <div style={{height:7,background:S.bg,borderRadius:20,overflow:'hidden'}}><div style={{height:7,borderRadius:20,width:`${barPct}%`,background:barColor}}/></div>
-        <span style={{textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>upCh(ci,'sales',v)} style={{fontWeight:500,fontSize:17}}/></span>
+        <div style={{height:8,background:S.bg,borderRadius:999,overflow:'hidden'}}><div style={{height:8,borderRadius:999,width:`${barPct}%`,background:barColor}}/></div>
+        <span style={{textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>upCh(ci,'sales',v)} style={{fontWeight:600,fontSize:17}}/></span>
         <span style={{textAlign:'right'}}><EdNum value={c.planSales!=null?c.planSales:mp.planSales} canEdit={ce} onSave={v=>upCh(ci,'planSales',v)} style={{fontSize:15,color:S.i3}}/></span>
         <span style={{textAlign:'right'}}><PlanChip fact={c.sales} plan={c.planSales!=null?c.planSales:mp.planSales}/></span>
         <span style={{textAlign:'right'}}><DChip d={pct(c.sales,c.prevSales)}/></span>
-        <span style={{textAlign:'right'}}><EdNum value={chCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'cpo',v)} style={{fontSize:15,color:S.i2}}/></span>
+        <span style={{textAlign:'right'}}><EdNum value={chCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'cpo',v)} style={{fontSize:17,color:S.i2}}/></span>
         <span style={{textAlign:'right'}}><EdNum value={c.planCpo!=null?c.planCpo:mp.planCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'planCpo',v)} style={{fontSize:15,color:S.i3}}/></span>
         <span style={{textAlign:'right'}}><CpoCompare fact={chCpo} plan={c.planCpo!=null?c.planCpo:mp.planCpo}/></span>
       </div>})}
-      {ce&&<div style={{padding:'8px 12px'}}><button onClick={addCh} style={{fontSize:15,color:S.gd,background:'none',border:`1px dashed ${S.ln}`,borderRadius:8,padding:'6px 14px',cursor:'pointer',width:'100%'}}>+ Добавить канал</button></div>}
+      {ce&&<div style={{padding:'12px 16px'}}><button onClick={addCh} style={{fontSize:17,color:S.gd,background:'none',border:`1px dashed ${S.ln}`,borderRadius:8,padding:'10px 18px',cursor:'pointer',width:'100%',fontWeight:600}}>+ Добавить канал</button></div>}
     </div>
 
     <Label>Тактические задачи <span style={{fontWeight:400,color:S.i3}}>· до 01.01.2027</span></Label>
