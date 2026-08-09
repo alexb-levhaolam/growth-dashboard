@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Montserrat:wght@400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+--font-main:'Poppins','Montserrat',-apple-system,'Segoe UI',sans-serif;
+--font-mono:'DM Mono','JetBrains Mono','SF Mono',Consolas,monospace;
+--brand:#6E9B0E;--brand-dark:#497B02;--brand-light:#F7FBEA;
+--ink:#121416;--ink-2:#3E4349;--ink-muted:#737A82;--ink-faint:#C4C8CD;--ink-invert:#FAFAFA;
+--bg-page:#F7F8F9;--bg-card:#FFFFFF;--bg-soft:#F7F8F9;
+--border:#E4E6E9;
+--success:#497B02;--success-bg:#F7FBEA;
+--warning:#F18B0E;--warning-bg:#FDF7E3;
+--critical:#DD2A02;--critical-bg:#FFEEEA;
+--info:#1761CB;--info-bg:#EDF5FF;
+--chart-1:#6E9B0E;--chart-2:#1877F2;--chart-3:#FF6C1C;--chart-4:#F6360B;--chart-5:#585E65;--chart-6:#FFAC47;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--font-main);color:var(--ink);background:var(--bg-page);-webkit-font-smoothing:antialiased}
+input,select,textarea,button{font-family:var(--font-main)}
+@media print{body{background:#fff}.no-print{display:none!important}}
