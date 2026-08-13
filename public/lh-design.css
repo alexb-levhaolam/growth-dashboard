@@ -1,19 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
 :root{
-  --g-25:#F7FBEA;--g-50:#EDF6D1;--g-100:#DBEEA8;--g-200:#C1E274;--g-300:#AAD34F;
-  --g-400:#91B93D;--g-500:#6E9B0E;--g-600:#497B02;--g-700:#234003;--g-800:#131B0B;
-  --n-25:#F7F8F9;--n-50:#E4E6E9;--n-100:#C4C8CD;--n-200:#9AA0A6;--n-300:#737A82;
-  --n-400:#585E65;--n-500:#3E4349;--n-600:#2A2E33;--n-700:#1C1F22;--n-800:#121416;
-  --o-400:#FF6C1C;--o-500:#F05400;
-  --r-25:#FFEEEA;--r-400:#F6360B;--r-500:#DD2A02;--r-600:#A71F00;
-  --b-25:#EDF5FF;--b-400:#1877F2;--b-600:#144CA5;
-  --y-25:#FDF7E3;--y-500:#F18B0E;--y-600:#B76400;
-  --lh-font:'Poppins',system-ui,-apple-system,sans-serif;
-  --lh-font-ui:'Montserrat',system-ui,sans-serif;
-  --lh-font-mono:'IBM Plex Mono',ui-monospace,monospace;
-  --lh-sh-card:0 4px 20px rgba(18,20,22,.08);
+  --g-25:#F7FBEA;--g-300:#AAD34F;--g-500:#6E9B0E;--g-600:#497B02;--g-700:#234003;
+  --n-25:#F7F8F9;--n-50:#E4E6E9;--n-100:#C4C8CD;--n-200:#9AA0A6;--n-300:#737A82;--n-400:#585E65;--n-800:#121416;
+  --o-25:#FFF6E8;--o-400:#FF6C1C;
+  --r-25:#FFEEEA;--r-500:#DD2A02;--r-600:#A71F00;
+  --b-25:#EDF5FF;--b-500:#1761CB;
+  --y-500:#F18B0E;
+  --teal:#0F6E5E;--teal-dark:#0B5548;
+  --shadow-card:0 1px 2px rgba(18,20,22,.04);
+  --radius-card:14px;--radius-pill:999px;--radius-btn:8px;--radius-input:8px;
+  --lh-font:'Poppins','Montserrat',-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{font-family:var(--lh-font);color:#121416;background:#FCFDFD;-webkit-font-smoothing:antialiased}
+html,body{font-family:var(--lh-font);color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
+body{font-weight:500;font-size:17px;line-height:1.35}
 input,select,textarea,button{font-family:var(--lh-font)}
 @media print{body{background:#fff}.no-print{display:none!important}}
