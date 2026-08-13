@@ -56,26 +56,26 @@ function Main({profile}){
     <div style={{maxWidth:960,margin:'0 auto',padding:'20px 16px'}}>
     <div style={{background:'linear-gradient(135deg,#497B02,#234003)',borderRadius:16,padding:'18px 22px',marginBottom:28}} className="no-print">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <div style={{fontSize:15,letterSpacing:'.09em',textTransform:'uppercase',color:S.gs,fontWeight:600}}>Growth · еженедельный отчёт</div>
+        <div style={{fontSize:14,letterSpacing:'.09em',textTransform:'uppercase',color:'rgba(255,255,255,.7)',fontWeight:600}}>Growth · еженедельный отчёт</div>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <span style={{fontSize:15,color:S.gs}}>{profile.name}</span>
-          <button onClick={()=>supabase.auth.signOut()} style={{fontSize:15,color:S.gs,background:'rgba(255,255,255,0.15)',border:'none',borderRadius:10,padding:'4px 10px',cursor:'pointer'}}>Выйти</button>
+          <span style={{fontSize:15,color:'#fff'}}>{profile.name}</span>
+          <button onClick={()=>supabase.auth.signOut()} style={{fontSize:14,color:'#fff',background:'rgba(255,255,255,.15)',border:'none',borderRadius:10,padding:'4px 10px',cursor:'pointer'}}>Выйти</button>
         </div>
       </div>
-      {rep&&<><h1 style={{margin:'4px 0 0',fontSize:24,color:'#FAFAFA',fontWeight:400}}>Неделя <Ed value={rep.week_label} canEdit={ce} onSave={v=>upRep({week_label:v})} style={{fontSize:24,color:'#FAFAFA',fontWeight:400}}/></h1>
+      {rep&&<><h1 style={{margin:'4px 0 0',fontSize:28,color:'#fff',fontWeight:600}}>Неделя <Ed value={rep.week_label} canEdit={ce} onSave={v=>upRep({week_label:v})} style={{fontSize:28,color:'#fff',fontWeight:600}}/></h1>
         <div style={{marginTop:8,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
           {ce?<select value={rep.status} onChange={e=>upRep({status:e.target.value})} style={{fontSize:15,fontWeight:600,padding:'6px 16px',borderRadius:999,border:'none',background:STATUS_CFG[rep.status]?.bg,color:STATUS_CFG[rep.status]?.tx,cursor:'pointer',fontWeight:600}}>{Object.entries(STATUS_CFG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>:<Chip bg={STATUS_CFG[rep.status]?.bg} tx={STATUS_CFG[rep.status]?.tx}>{STATUS_CFG[rep.status]?.emoji} {STATUS_CFG[rep.status]?.label}</Chip>}
-          <Ed value={rep.status_note} canEdit={ce} onSave={v=>upRep({status_note:v})} ph="Описание статуса..." style={{fontSize:17,color:S.gs}}/>
+          <Ed value={rep.status_note} canEdit={ce} onSave={v=>upRep({status_note:v})} ph="Описание статуса..." style={{fontSize:16,color:'rgba(255,255,255,.8)'}}/>
         </div>
       </>}
         <div style={{marginTop:10,display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
-          {reports.map((r,i)=><button key={r.id} onClick={()=>setWeek(i)} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:i===aIdx?S.gp:'rgba(255,255,255,0.15)',color:i===aIdx?S.gd:S.gs}}>{r.week_label}</button>)}
-          {ce&&<button onClick={createWeek} style={{padding:'4px 12px',borderRadius:14,border:'1px dashed rgba(255,255,255,0.4)',cursor:'pointer',fontSize:15,fontWeight:600,background:'transparent',color:S.gs}}>+ новая неделя</button>}
-          {isA&&rep&&<button onClick={deleteWeek} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,background:'rgba(224,75,74,0.3)',color:'#FFC1C1'}} title="Удалить текущий отчёт"><i className="lucide lucide-trash-2" style={{fontSize:18}}/></button>}
+          {reports.map((r,i)=><button key={r.id} onClick={()=>setWeek(i)} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:i===aIdx?'#fff':'rgba(255,255,255,.12)',color:i===aIdx?'#234003':'rgba(255,255,255,.85)'}}>{r.week_label}</button>)}
+          {ce&&<button onClick={createWeek} style={{padding:'4px 12px',borderRadius:14,border:'1px dashed rgba(255,255,255,.4)',cursor:'pointer',fontSize:14,fontWeight:600,background:'transparent',color:'rgba(255,255,255,.7)'}}>+ новая неделя</button>}
+          {isA&&rep&&<button onClick={deleteWeek} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,background:'rgba(255,99,63,.25)',color:'#FF8A6F'}} title="Удалить текущий отчёт"><i className="lucide lucide-trash-2" style={{fontSize:18}}/></button>}
         </div>
     </div>
     <div style={{display:'flex',gap:2,marginBottom:16,background:S.sf,borderRadius:10,padding:3,border:`1px solid ${S.ln}`,overflowX:'auto',WebkitOverflowScrolling:'touch'}} className="no-print">
-      {tabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:'0 0 auto',padding:'8px 14px',border:'none',borderRadius:8,cursor:'pointer',fontSize:15,fontWeight:600,background:view===t.id?S.gd:'transparent',color:view===t.id?S.gp:S.i2,whiteSpace:'nowrap'}}>{t.l}</button>)}
+      {tabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:'0 0 auto',padding:'8px 14px',border:'none',borderRadius:8,cursor:'pointer',fontSize:15,fontWeight:600,background:view===t.id?S.cta:'transparent',color:view===t.id?'#fff':S.i2,whiteSpace:'nowrap'}}>{t.l}</button>)}
     </div>
     {view==='overview'&&rep&&<Overview rep={rep} reports={reports} projects={projects} comments={comments} ce={ce} up={upRep} tTasks={tTasks} tProgress={tProgress} print={printOverview} refreshDaily={refreshFromDaily} mPlans={mPlans}/>}
     {view==='projects'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload}/>}
