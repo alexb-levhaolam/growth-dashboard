@@ -54,7 +54,7 @@ function Main({profile}){
       <span style={{fontSize:15,color:S.gl}}> {profile.name||profile.email} <span style={{color:'#888'}}>({profile.role})</span></span>
     </div>
     <div style={{maxWidth:960,margin:'0 auto',padding:'20px 16px'}}>
-    <div style={{background:'linear-gradient(135deg,#AAD34F,#8AB72B)',borderRadius:16,padding:'18px 22px',marginBottom:28}} className="no-print">
+    <div style={{background:'linear-gradient(135deg,#497B02,#234003)',borderRadius:16,padding:'18px 22px',marginBottom:28}} className="no-print">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{fontSize:15,letterSpacing:'.09em',textTransform:'uppercase',color:S.gs,fontWeight:600}}>Growth · еженедельный отчёт</div>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -64,7 +64,7 @@ function Main({profile}){
       </div>
       {rep&&<><h1 style={{margin:'4px 0 0',fontSize:24,color:'#FAFAFA',fontWeight:400}}>Неделя <Ed value={rep.week_label} canEdit={ce} onSave={v=>upRep({week_label:v})} style={{fontSize:24,color:'#FAFAFA',fontWeight:400}}/></h1>
         <div style={{marginTop:8,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-          {ce?<select value={rep.status} onChange={e=>upRep({status:e.target.value})} style={{fontSize:17,padding:'3px 11px',borderRadius:20,border:'none',background:STATUS_CFG[rep.status]?.bg,color:STATUS_CFG[rep.status]?.tx,cursor:'pointer',fontWeight:600}}>{Object.entries(STATUS_CFG).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}</select>:<Chip bg={STATUS_CFG[rep.status]?.bg} tx={STATUS_CFG[rep.status]?.tx}>{STATUS_CFG[rep.status]?.emoji} {STATUS_CFG[rep.status]?.label}</Chip>}
+          {ce?<select value={rep.status} onChange={e=>upRep({status:e.target.value})} style={{fontSize:15,fontWeight:600,padding:'6px 16px',borderRadius:999,border:'none',background:STATUS_CFG[rep.status]?.bg,color:STATUS_CFG[rep.status]?.tx,cursor:'pointer',fontWeight:600}}>{Object.entries(STATUS_CFG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>:<Chip bg={STATUS_CFG[rep.status]?.bg} tx={STATUS_CFG[rep.status]?.tx}>{STATUS_CFG[rep.status]?.emoji} {STATUS_CFG[rep.status]?.label}</Chip>}
           <Ed value={rep.status_note} canEdit={ce} onSave={v=>upRep({status_note:v})} ph="Описание статуса..." style={{fontSize:17,color:S.gs}}/>
         </div>
       </>}
@@ -268,7 +268,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       <div style={{flex:1,background:S.sf,borderRadius:16,boxShadow:S.sh,padding:'22px 16px'}}><div style={{fontSize:17,fontWeight:600,color:'#A71F00',marginBottom:6}}> Дополнения</div><EList items={rep.manual_worsened} canEdit={ce} onSave={v=>up({manual_worsened:v})} color="#791F1F"/></div>
     </div>
     <div style={{background:'#D6E8FA',borderRadius:14,padding:'22px 16px',marginBottom:12}}><div style={{fontSize:17,fontWeight:600,color:'#0C447C',marginBottom:6}}>Фокус на следующую неделю</div><EList items={rep.focus} canEdit={ce} onSave={v=>up({focus:v})} color="#0C447C"/></div>
-    <div style={{background:'linear-gradient(135deg,#AAD34F,#8AB72B)',borderRadius:16,padding:'22px 16px'}}><div style={{fontSize:17,fontWeight:600,color:S.gs,marginBottom:6}}>Нужно от руководства</div><div style={{color:S.gp}}><EList items={rep.asks} canEdit={ce} onSave={v=>up({asks:v})}/></div></div>
+    <div style={{background:'linear-gradient(135deg,#497B02,#234003)',borderRadius:16,padding:'22px 16px'}}><div style={{fontSize:17,fontWeight:600,color:S.gs,marginBottom:6}}>Нужно от руководства</div><div style={{color:S.gp}}><EList items={rep.asks} canEdit={ce} onSave={v=>up({asks:v})}/></div></div>
   </></div>
 }
 
@@ -386,7 +386,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {archive.map(p=><ProjCard key={p.id} p={p}/>)}</div></>}
   </>
 }
-function CItem({c,ce,reload,onDel}){const[es,setEs]=useState(false);const[sv,setSv]=useState(c.full_text||c.summary);const saveS=async()=>{setEs(false);await supabase.from('project_comments').update({full_text:sv,summary:sv.length>120?sv.slice(0,117)+'…':sv}).eq('id',c.id);reload()};return<div style={{marginTop:6,padding:'8px 12px',background:S.bg,borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:15,color:S.i3,marginBottom:2}}><span><b>{c.author}</b> · {c.week_start}</span><div style={{display:'flex',gap:6}}>{ce&&<button onClick={()=>setEs(!es)} style={{fontSize:15,color:S.bm,background:'none',border:'none',cursor:'pointer'}}><i className="lucide lucide-pencil" style={{fontSize:17}}/></button>}{ce&&onDel&&<button onClick={onDel} style={{fontSize:15,color:'#ccc',background:'none',border:'none',cursor:'pointer'}}><i className="lucide lucide-trash-2" style={{fontSize:17}}/></button>}</div></div>{es?<div><textarea value={sv} onChange={e=>setSv(e.target.value)} rows={3} style={{width:'100%',padding:'6px 10px',borderRadius:20,border:`1px solid ${S.ln}`,fontSize:17,outline:'none',fontFamily:'inherit',resize:'vertical'}}/><button onClick={saveS} style={{fontSize:15,color:S.gd,background:'none',border:'none',cursor:'pointer'}}>Сохранить</button></div>:<div style={{fontSize:17,color:S.i2,whiteSpace:'pre-wrap',lineHeight:1.5}}><Linkify>{c.full_text||c.summary}</Linkify></div>}</div>}
+function CItem({c,ce,reload,onDel}){const[es,setEs]=useState(false);const[sv,setSv]=useState(c.full_text||c.summary);const saveS=async()=>{setEs(false);await supabase.from('project_comments').update({full_text:sv,summary:sv.length>120?sv.slice(0,117)+'…':sv}).eq('id',c.id);reload()};return<div style={{marginTop:6,padding:'8px 12px',background:S.bg,borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:15,color:S.i3,marginBottom:2}}><span><b>{c.author}</b> · {c.week_start}</span><div style={{display:'flex',gap:6}}>{ce&&<button onClick={()=>setEs(!es)} style={{fontSize:15,color:S.bm,background:'none',border:'none',cursor:'pointer'}}><i className="lucide lucide-pencil" style={{fontSize:17}}/></button>}{ce&&onDel&&<button onClick={onDel} style={{fontSize:15,color:'#ccc',background:'none',border:'none',cursor:'pointer'}}><i className="lucide lucide-trash-2" style={{fontSize:17}}/></button>}</div></div>{es?<div><textarea value={sv} onChange={e=>setSv(e.target.value)} rows={3} style={{width:'100%',padding:'6px 10px',borderRadius:20,border:`1px solid ${S.ln}`,fontSize:17,outline:'none',fontFamily:'inherit',resize:'vertical'}}/><button onClick={saveS} style={{fontSize:15,color:S.cta,background:'none',border:'none',cursor:'pointer',fontWeight:600}}>Сохранить</button></div>:<div style={{fontSize:17,color:S.i2,whiteSpace:'pre-wrap',lineHeight:1.5}}><Linkify>{c.full_text||c.summary}</Linkify></div>}</div>}
 
 // ═══ DYNAMICS ═══
 function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[expanded,setExpanded]=useState(null);const[fSt,setFSt]=useState('all');const rep=reports[aIdx]
@@ -453,7 +453,7 @@ function Plan({plans,ce,reload}){
   </div>
 
   <CC title={<span>{plan.month_label||sel} · <EdNum value={plan.days_in_month||daysInMonth} canEdit={ce} onSave={v=>upP('days_in_month',v)} style={{fontSize:17,fontWeight:600}}/> дней</span>}>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12}}>
       {[{l:'Бюджет команда',k:'team_budget',pre:'$'},{l:'ADS бюджет',k:'ads_budget',pre:'$'},{l:'Бюджет сервисы',k:'services_budget',pre:'$'},{l:'Бюджет Awareness',k:'awareness_budget',pre:'$'},{l:'План продаж',k:'total_plan'}].map(x=>
         <div key={x.k} style={{background:S.bg,borderRadius:10,padding:'22px 16px'}}>
           <div style={{fontSize:15,color:S.i3}}>{x.l}</div>
