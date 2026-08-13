@@ -71,7 +71,7 @@ function Main({profile}){
         <div style={{marginTop:10,display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
           {reports.map((r,i)=><button key={r.id} onClick={()=>setWeek(i)} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:i===aIdx?'#fff':'rgba(255,255,255,.12)',color:i===aIdx?'#234003':'rgba(255,255,255,.85)'}}>{r.week_label}</button>)}
           {ce&&<button onClick={createWeek} style={{padding:'4px 12px',borderRadius:14,border:'1px dashed rgba(255,255,255,.4)',cursor:'pointer',fontSize:14,fontWeight:600,background:'transparent',color:'rgba(255,255,255,.7)'}}>+ новая неделя</button>}
-          {isA&&rep&&<button onClick={deleteWeek} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,background:'rgba(255,99,63,.25)',color:'#FF8A6F'}} title="Удалить текущий отчёт"><i className="lucide lucide-trash-2" style={{fontSize:18}}/></button>}
+          {isA&&rep&&<button onClick={deleteWeek} style={{padding:'6px 14px',borderRadius:10,border:'none',cursor:'pointer',fontSize:14,fontWeight:600,background:'rgba(255,99,63,.25)',color:'#FF8A6F',display:'flex',alignItems:'center',gap:6}} title="Удалить текущий отчёт"><i className="lucide lucide-trash-2" style={{fontSize:15}}/>Удалить отчёт</button>}
         </div>
     </div>
     <div style={{display:'flex',gap:2,marginBottom:16,background:S.sf,borderRadius:10,padding:3,border:`1px solid ${S.ln}`,overflowX:'auto',WebkitOverflowScrolling:'touch'}} className="no-print">
