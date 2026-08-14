@@ -5,10 +5,9 @@
   --o-25:#FFF6E8;--o-400:#FF6C1C;
   --r-25:#FFEEEA;--r-500:#DD2A02;--r-600:#A71F00;
   --b-25:#EDF5FF;--b-500:#1761CB;
-  --y-500:#F18B0E;
+  --y-500:#F18B0E;--y-25:#FDF7E3;
   --teal:#0F6E5E;--teal-dark:#0B5548;
   --shadow-card:0 1px 2px rgba(18,20,22,.04);
-  --radius-card:14px;--radius-pill:999px;--radius-btn:8px;--radius-input:8px;
   --lh-font:'Poppins','Montserrat',-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -16,3 +15,51 @@ html,body{font-family:var(--lh-font);color:#121416;background:#F7F8F9;-webkit-fo
 body{font-weight:500;font-size:17px;line-height:1.35}
 input,select,textarea,button{font-family:var(--lh-font)}
 @media print{body{background:#fff}.no-print{display:none!important}}
+
+/* ═══ MOBILE ≤768px ═══ */
+@media(max-width:768px){
+  body{font-size:14px}
+  .lh-page{padding:0 12px!important}
+
+  /* Header */
+  .lh-plate{padding:20px 16px 16px!important;border-radius:12px!important}
+  .lh-plate h1{font-size:22px!important}
+  .lh-plate select{font-size:12px!important;padding:6px 10px!important}
+
+  /* Tabs — horizontal scroll */
+  .lh-tabs{overflow-x:auto!important;-webkit-overflow-scrolling:touch;gap:2px!important;padding:6px!important}
+  .lh-tabs button{font-size:13px!important;padding:8px 12px!important;flex:0 0 auto!important;white-space:nowrap!important}
+
+  /* Actions */
+  .lh-actions{gap:8px!important}
+  .lh-actions button{font-size:13px!important;padding:10px 14px!important}
+
+  /* Monthly block */
+  .lh-itogi{padding:16px!important;border-radius:12px!important}
+  .lh-itogi>div:last-child{grid-template-columns:1fr 1fr!important;gap:14px!important}
+
+  /* KPI grid → 2 cols */
+  .lh-kpi{grid-template-columns:1fr 1fr!important;gap:12px!important}
+
+  /* Day cards → 4 cols */
+  .lh-days{grid-template-columns:repeat(4,1fr)!important;gap:8px!important}
+
+  /* Channel table → scroll */
+  .lh-ch-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  .lh-ch-row{min-width:680px!important;font-size:14px!important}
+
+  /* Analysis → stack */
+  .lh-analysis{grid-template-columns:1fr!important;gap:12px!important}
+
+  /* Tasks/projects → 1 col */
+  .lh-page [style*="repeat(3,1fr)"]{grid-template-columns:1fr!important}
+  .lh-page [style*="repeat(auto-fit,minmax(280px"]{grid-template-columns:1fr!important}
+}
+
+/* ═══ SMALL MOBILE ≤480px ═══ */
+@media(max-width:480px){
+  .lh-plate h1{font-size:20px!important}
+  .lh-itogi>div:last-child{grid-template-columns:1fr 1fr!important}
+  .lh-days{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}
+  .lh-kpi{gap:8px!important}
+}

@@ -54,7 +54,7 @@ function Main({profile}){
       <span style={{fontSize:15,color:S.gl}}> {profile.name||profile.email} <span style={{color:'#888'}}>({profile.role})</span></span>
     </div>
     <div style={{maxWidth:1120,margin:'0 auto',padding:'20px 16px'}}>
-    <div style={{background:'linear-gradient(180deg,#6E9B0E,#497B02)',borderRadius:14,padding:'32px 32px 28px',marginBottom:32}} className="no-print">
+    <div className='lh-plate' style={{background:'linear-gradient(180deg,#6E9B0E,#497B02)',borderRadius:14,padding:'32px 32px 28px',marginBottom:32}} className="no-print">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{fontSize:15,letterSpacing:'.1em',textTransform:'uppercase',color:'#FAFAFA',fontWeight:600,fontWeight:600}}>Growth · еженедельный отчёт</div>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -162,7 +162,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     const mS=mPlan?.actual_sales!=null?mPlan.actual_sales:calcSalesM;const mCA=mPlan?.actual_cpo_ads!=null?mPlan.actual_cpo_ads:calcCpoAdsM;const mCT=mPlan?.actual_cpo_total!=null?mPlan.actual_cpo_total:calcCpoTotalM;const mB=mPlan?.actual_budget!=null?mPlan.actual_budget:calcBudgetM
     const pS=mPlan?.total_plan;const pCA=mPlan?.plan_cpo_ads!=null?mPlan.plan_cpo_ads:calcPCpoAds;const pCT=mPlan?.plan_cpo_total!=null?mPlan.plan_cpo_total:calcPCpoTotal;const pB=mPlan?.plan_budget!=null?mPlan.plan_budget:calcPBudget
     const pd=(f,p)=>p&&f?Math.round((f-p)/p*100):null
-    return<div style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'14px 20px',marginBottom:16,color:S.gp}}>
+    return<div className='lh-itogi' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'14px 20px',marginBottom:16,color:S.gp}}>
       <div style={{fontSize:15,fontWeight:600,letterSpacing:'.05em',textTransform:'uppercase',color:S.gs,marginBottom:12}}> Итоги месяца · {md.daysWithData} дней</div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
         <div><div style={{fontSize:15,color:S.gs}}>Продажи<Info text={md.channels?md.channels.filter(c=>c.sales>0).map(c=>`${c.name}: ${c.sales}`).join('\n'):'Продажи за месяц (BJ)'}/></div><div style={{fontSize:24,fontWeight:600}}><EdNum value={mS} canEdit={ce} onSave={v=>upMo('actual_sales',v===calcSalesM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:15,color:S.gs}}>план <EdNum value={pS} canEdit={ce} onSave={v=>upMo('total_plan',v)} style={{fontSize:15,color:S.gs}}/>{pS&&<span> · {Math.round((mS||0)/pS*100)}%</span>}</div></div>
@@ -205,12 +205,12 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Каналы</Label>
-    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,overflow:'hidden',marginBottom:28}}>
-      <div style={{display:'grid',gridTemplateColumns:'110px 1fr 70px 60px 55px 60px 70px 80px 60px',gap:4,padding:'14px 16px',background:S.bg,fontSize:13,fontWeight:600,color:S.i3,textTransform:'uppercase',letterSpacing:'.08em'}}>
+    <div className='lh-ch-wrap' style={{background:S.sf,borderRadius:14,boxShadow:S.sh,overflow:'hidden',marginBottom:40}}>
+      <div className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'110px 1fr 70px 60px 55px 60px 70px 80px 60px',gap:4,padding:'16px 20px',background:S.bg,fontSize:13,fontWeight:600,color:S.i3,textTransform:'uppercase',letterSpacing:'.08em'}}>
         <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Sales</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO план</span><span style={{textAlign:'right'}}>Δ CPO</span>
       </div>
       {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales!=null?c.planSales:(mp.planSales||0);const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#497B02':(c.sales||0)>=ps*0.7?'#F18B0E':'#DD2A02'):((c.sales||0)>0?S.gl:'#E4E6E9');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
-        return<div key={i} style={{display:'grid',gridTemplateColumns:'110px 1fr 70px 60px 55px 60px 70px 80px 60px',gap:4,padding:'12px 16px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
+        return<div key={i} className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'110px 1fr 70px 60px 55px 60px 70px 80px 60px',gap:4,padding:'18px 20px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:S.ln,cursor:'pointer',fontSize:15,padding:0,lineHeight:1}}>✕</button>}
           <Ed value={c.name} canEdit={ce} onSave={v=>upCh(ci,'name',v)} style={{fontWeight:500,fontSize:17}}/>
@@ -228,7 +228,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Тактические задачи <span style={{fontWeight:400,color:S.i3}}>· до 01.01.2027</span></Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:8,marginBottom:28}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
       {tTasks.filter(t=>!t.hidden).map(t=>{const tp=getTP(t.id);const ms=t.milestones||[];let pctVal=0,label='';if(t.target_type==='numeric'){pctVal=t.target_value?(Math.round(((tp?.current_value||0)/t.target_value)*100)):0;label=`${tp?.current_value||0} / ${t.target_value}`}else{const cur=tp?.milestone_status||0;pctVal=ms.length?Math.round(cur/ms.length*100):0;label=cur>0&&cur<=ms.length?ms[cur-1]?.name:'Не начато'}
         return<div key={t.id} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{fontSize:17,fontWeight:500,marginBottom:4}}>{t.name}</div>
@@ -240,7 +240,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Приоритетные проекты</Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:8,marginBottom:28}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
       {shown.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id)
         return<div key={p.id} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:4}}><span style={{fontSize:17,fontWeight:500}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
