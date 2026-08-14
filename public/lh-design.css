@@ -52,7 +52,7 @@ input,select,textarea,button{font-family:var(--lh-font)}
   .lh-analysis{grid-template-columns:1fr!important;gap:12px!important}
 
   /* Tasks/projects → 1 col */
-  .lh-page [style*="repeat(3,1fr)"]{grid-template-columns:1fr!important}
+  .lh-tasks{grid-template-columns:1fr!important}
   .lh-page [style*="repeat(auto-fit,minmax(280px"]{grid-template-columns:1fr!important}
 }
 

@@ -228,7 +228,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Тактические задачи <span style={{fontWeight:400,color:S.i3}}>· до 01.01.2027</span></Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
+    <div className='lh-tasks' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
       {tTasks.filter(t=>!t.hidden).map(t=>{const tp=getTP(t.id);const ms=t.milestones||[];let pctVal=0,label='';if(t.target_type==='numeric'){pctVal=t.target_value?(Math.round(((tp?.current_value||0)/t.target_value)*100)):0;label=`${tp?.current_value||0} / ${t.target_value}`}else{const cur=tp?.milestone_status||0;pctVal=ms.length?Math.round(cur/ms.length*100):0;label=cur>0&&cur<=ms.length?ms[cur-1]?.name:'Не начато'}
         return<div key={t.id} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{fontSize:17,fontWeight:500,marginBottom:4}}>{t.name}</div>
@@ -240,7 +240,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Приоритетные проекты</Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
+    <div className='lh-tasks' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
       {shown.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id)
         return<div key={p.id} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:4}}><span style={{fontSize:17,fontWeight:500}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
