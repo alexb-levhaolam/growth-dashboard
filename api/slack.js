@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       if (!owner || !supabase || !TOKEN) return res.status(200).end();
 
       try {
-        const { data: projects } = await supabase.from('projects').select('id,name,owner,status,priority').neq('status','done').order('sort_order');
+        const { data: projects } = await supabase.from('projects').select('id,name,owner,status,priority').neq('status','done').neq('status','wait').order('sort_order');
         const ownerNames = ALIASES[owner] || [owner];
         const ops = projects?.filter(p => ownerNames.includes(p.owner?.trim())) || [];
         if (!ops.length) return res.status(200).end();
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     const member = user ? TEAM[user] : null;
     if (!member) return res.json({ error: 'user not found', available: Object.keys(TEAM) });
 
-    const { data: projects } = await supabase.from('projects').select('id,name,owner,status').neq('status','done').order('sort_order');
+    const { data: projects } = await supabase.from('projects').select('id,name,owner,status').neq('status','done').neq('status','wait').order('sort_order');
     const ownerNames = ALIASES[user] || [user];
     const ops = projects?.filter(p => ownerNames.includes(p.owner?.trim())) || [];
 
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
       ws = rep?.week_start; wl = rep?.week_label || '';
     }
 
-    const { data: projects } = await supabase.from('projects').select('id,name,owner,status,priority').neq('status','done').order('sort_order');
+    const { data: projects } = await supabase.from('projects').select('id,name,owner,status,priority').neq('status','done').neq('status','wait').order('sort_order');
     const byOwner = {};
     for (const p of projects||[]) {
       const o = p.owner?.trim();
