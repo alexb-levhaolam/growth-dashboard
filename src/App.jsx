@@ -593,47 +593,69 @@ function MonthlyReport({reports,projects,comments,mPlans,ce,reload}){
       <Ed value={plan?.status_description||''} canEdit={ce} onSave={v=>saveText('status_description',v)} ph="Краткое описание статуса месяца..." style={{fontSize:15,color:'rgba(255,255,255,.8)'}}/>
     </div>
 
-    {/* METRICS TABLE WITH SPARKLINES */}
-    <div style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'24px 28px',color:'#fff',marginBottom:24}}>
-      <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:16}}>Метрики · факт vs план</div>
-      <div style={{display:'grid',gridTemplateColumns:'140px 100px 90px 60px 90px',gap:8,fontSize:12,fontWeight:600,color:'rgba(255,255,255,.35)',textTransform:'uppercase',letterSpacing:'.08em',paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,.15)'}}>
-        <span>Метрика</span><span style={{textAlign:'right'}}>Факт</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>Тренд</span>
+    {/* METRICS AS CARDS */}
+    <div style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:20}}>Метрики · факт vs план</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}} className="lh-kpi">
+        {[
+          {l:'Продажи',f:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false},
+          {l:'CPO Ads',f:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$'},
+          {l:'CPO Total',f:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$'},
+          {l:'Бюджет',f:sel.totalSpentBM||0,p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$'}
+        ].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);return<div key={i}>
+          <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:8}}>{x.l}</div>
+          <div style={{display:'flex',alignItems:'baseline',gap:10}}>
+            <span style={{fontSize:36,fontWeight:600}}>{x.pre||''}<EdNum value={x.f} canEdit={ce} onSave={v=>savePlan('actual_'+x.pk,v)} style={{fontSize:36,fontWeight:600,color:'#fff'}}/></span>
+            <Spark data={x.sp} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/>
+          </div>
+          <div style={{fontSize:14,color:'rgba(255,255,255,.45)',marginTop:8}}>план <EdNum value={x.p} canEdit={ce} onSave={v=>savePlan(x.pk,v)} style={{fontSize:14,color:'rgba(255,255,255,.45)'}}/>{d!=null&&<span style={{marginLeft:8,fontWeight:600,color:isGood?'#AAD34F':'#FF8A6F'}}>{d>0?'+':''}{d}%</span>}</div>
+        </div>})}
       </div>
-      <MetricRow label="Продажи" fact={sel.totalSales} planVal={plan?.total_plan} planKey="total_plan" sparkData={wSales} invertGood={false}/>
-      <MetricRow label="CPO Ads" fact={cpoAds} planVal={plan?.plan_cpo_ads} planKey="plan_cpo_ads" sparkData={wCpoAds} invertGood={true}/>
-      <MetricRow label="CPO Total" fact={cpoTotal} planVal={plan?.plan_cpo_total} planKey="plan_cpo_total" sparkData={wCpoTotal} invertGood={true}/>
-      <MetricRow label="Бюджет" fact={sel.totalSpentBM||0} planVal={plan?.ads_budget} planKey="ads_budget" sparkData={ws.map(w=>w.metrics?.totalSpentBM||0)} invertGood={true}/>
     </div>
 
-    {/* COMPARISON */}
+    {/* COMPARISON — with month picker */}
+    <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:16}}>
+      {!compare&&<button onClick={()=>selectCompare(year,month===0?11:month-1)} style={{fontSize:14,padding:'10px 18px',borderRadius:8,border:`1px solid ${S.ln}`,background:'#fff',cursor:'pointer',fontWeight:600,color:S.i2}}>Сравнить с другим месяцем</button>}
+      {compare&&<><select value={`${compare.year}-${compare.month}`} onChange={async e=>{const[cy,cm]=e.target.value.split('-').map(Number);await selectCompare(cy,cm)}} style={{padding:'10px 14px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,fontWeight:600}}>
+        {months.map((mn,mi)=><option key={mi} value={`${year}-${mi}`}>{mn} {year}</option>)}
+      </select><button onClick={()=>setCompare(null)} style={{fontSize:14,padding:'10px 14px',borderRadius:8,border:'none',background:'#FFEEEA',cursor:'pointer',fontWeight:600,color:'#A71F00'}}>Убрать сравнение</button></>}
+    </div>
     {compare&&cm&&<div style={{background:'#EDF5FF',borderRadius:14,padding:'22px',marginBottom:24}}>
-      <div style={{fontSize:15,fontWeight:600,color:'#1761CB',marginBottom:14}}>Сравнение: {months[month]} vs {months[compare.month]} {compare.year}</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
-        {[{l:'Продажи',a:sel.totalSales,b:cm.totalSales},{l:'CPO Ads',a:cpoAds,b:cm.paidSales>0?Math.round((cm.adSpend+(cm.discountsBL||0))/cm.paidSales):null,pre:'$'},{l:'CPO Total',a:cpoTotal,b:cm.totalSales>0?Math.round((cm.totalSpentBM||0)/cm.totalSales):null,pre:'$'},{l:'Бюджет',a:sel.totalSpentBM,b:cm.totalSpentBM,pre:'$'}].map((x,i)=>{
-          const d=x.b&&x.a?Math.round((x.a-x.b)/x.b*100):null
-          return<div key={i} style={{background:'#fff',borderRadius:8,padding:14}}>
+      <div style={{fontSize:15,fontWeight:600,color:'#1761CB',marginBottom:14}}>Сравнение: {months[month]} {year} vs {months[compare.month]} {compare.year}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}} className="lh-kpi">
+        {[
+          {l:'Продажи',a:sel.totalSales,b:cm.totalSales},
+          {l:'CPO Ads',a:cpoAds,b:cm.paidSales>0?Math.round((cm.adSpend+(cm.discountsBL||0))/cm.paidSales):null,pre:'$'},
+          {l:'CPO Total',a:cpoTotal,b:cm.totalSales>0?Math.round((cm.totalSpentBM||0)/cm.totalSales):null,pre:'$'},
+          {l:'Бюджет',a:sel.totalSpentBM,b:cm.totalSpentBM,pre:'$'}
+        ].map((x,i)=>{const d=x.b&&x.a?Math.round((x.a-x.b)/x.b*100):null;const isGood=x.l.includes('CPO')?(d&&d<0):(d&&d>0)
+          return<div key={i} style={{background:'#fff',borderRadius:14,padding:18,boxShadow:S.sh}}>
             <div style={{fontSize:13,color:'#737A82',marginBottom:6}}>{x.l}</div>
-            <div style={{fontSize:22,fontWeight:600}}>{x.pre||''}{x.a?.toLocaleString()||'—'}</div>
-            <div style={{fontSize:13,color:'#9AA0A6'}}>было {x.pre||''}{x.b?.toLocaleString()||'—'} {d!=null&&<span style={{fontWeight:600,color:d>0?(x.l.includes('CPO')?'#A71F00':'#497B02'):(x.l.includes('CPO')?'#497B02':'#A71F00')}}>{d>0?'+':''}{d}%</span>}</div>
+            <div style={{display:'flex',gap:16,alignItems:'baseline'}}>
+              <div><div style={{fontSize:28,fontWeight:600}}>{x.pre||''}{x.a?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>текущий</div></div>
+              <div style={{fontSize:20,color:'#9AA0A6'}}>vs</div>
+              <div><div style={{fontSize:28,fontWeight:600,color:'#585E65'}}>{x.pre||''}{x.b?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>сравнение</div></div>
+            </div>
+            {d!=null&&<div style={{marginTop:8}}><span style={{display:'inline-flex',alignItems:'center',fontSize:14,fontWeight:600,padding:'6px 14px',borderRadius:999,background:isGood?'#F7FBEA':'#FFEEEA',color:isGood?'#497B02':'#A71F00'}}>{d>0?'+':''}{d}%</span></div>}
           </div>})}
       </div>
     </div>}
 
-    {/* CHANNELS */}
+    {/* CHANNELS WITH PLAN */}
     <Label>Каналы за месяц</Label>
     <div style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'6px 12px',marginBottom:24}}>
       <table style={{width:'100%',borderCollapse:'collapse',fontSize:15}}><thead><tr style={{borderBottom:`1px solid ${S.ln}`}}>
-        <th style={{textAlign:'left',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>Канал</th>
-        <th style={{textAlign:'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>Sales</th>
-        <th style={{textAlign:'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>CPO</th>
-        <th style={{textAlign:'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>Spent</th>
+        {['Канал','Sales','План','%','CPO','Spent'].map(h=><th key={h} style={{textAlign:h==='Канал'?'left':'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>{h}</th>)}
       </tr></thead><tbody>
-        {(sel.channels||[]).filter(c=>c.sales>0||c.spent>0).map((c,i)=><tr key={i} style={{borderBottom:`1px solid #E4E6E9`}}>
-          <td style={{padding:12,fontWeight:600}}><Ed value={c.name} canEdit={false} style={{fontWeight:600}}/></td>
+        {(sel.channels||[]).filter(c=>c.sales>0||c.spent>0).map((c,i)=>{const cp2=(plan?.channel_plans||{})[c.name?.toLowerCase?.()]||{};const ps=cp2.planSales||null;const pct=ps&&c.sales?Math.round(c.sales/ps*100):null
+          return<tr key={i} style={{borderBottom:`1px solid #E4E6E9`}}>
+          <td style={{padding:12,fontWeight:600}}>{c.name}</td>
           <td style={{padding:12,textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],sales:v};saveText('channel_overrides',chs)}} style={{fontWeight:600,textAlign:'right'}}/></td>
-          <td style={{padding:12,textAlign:'right',color:S.i2}}>{c.spent&&c.sales?'$'+Math.round(c.spent/c.sales):'—'}</td>
+          <td style={{padding:12,textAlign:'right',color:S.i3}}>{ps||'—'}</td>
+          <td style={{padding:12,textAlign:'right'}}>{pct?<span style={{fontWeight:600,color:pct>=90?'#497B02':pct>=60?'#F18B0E':'#A71F00'}}>{pct}%</span>:'—'}</td>
+          <td style={{padding:12,textAlign:'right',color:S.i2}}>{c.spent&&c.sales?'$'+Math.round(c.spent/c.sales).toLocaleString():'—'}</td>
           <td style={{padding:12,textAlign:'right'}}><EdNum value={c.spent} canEdit={ce} prefix="$" onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],spent:v};saveText('channel_overrides',chs)}} style={{color:S.i3,textAlign:'right'}}/></td>
-        </tr>)}
+        </tr>})}
       </tbody></table>
     </div>
 
