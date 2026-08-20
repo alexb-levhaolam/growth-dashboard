@@ -544,7 +544,7 @@ function MonthlyReport({reports,projects,comments,mPlans,ce,reload}){
     <Label>Monthly Report</Label>
     <div style={{display:'flex',gap:8,marginBottom:24}}>{years.map(y=><button key={y} onClick={()=>setYear(y)} style={{padding:'10px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:year===y?S.gd:'#fff',color:year===y?'#fff':S.i2,boxShadow:S.sh}}>{y}</button>)}</div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-      {months.map((m,i)=>{const key=`${year}-${String(i+1).padStart(2,'0')}`;const now=new Date();const hasData=(y<now.getFullYear())||(y===now.getFullYear()&&i<now.getMonth())||(y===now.getFullYear()&&i===now.getMonth())
+      {months.map((m,i)=>{const key=`${year}-${String(i+1).padStart(2,'0')}`;const now=new Date();const hasData=(year<now.getFullYear())||(year===now.getFullYear()&&i<now.getMonth())||(year===now.getFullYear()&&i===now.getMonth())
         return<button key={i} onClick={()=>selectMonth(i)} style={{padding:'18px 16px',borderRadius:14,border:'none',cursor:hasData?'pointer':'default',background:hasData?'#fff':'#F7F8F9',boxShadow:hasData?S.sh:'none',fontSize:17,fontWeight:600,color:hasData?S.ink:'#C4C8CD',opacity:hasData?1:.5}}>{m} {year}</button>
       })}
     </div>
