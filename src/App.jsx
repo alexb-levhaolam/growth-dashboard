@@ -45,7 +45,7 @@ function Main({profile}){
   const refreshFromDaily=async()=>{if(!rep)return;const d=new Date(rep.week_start+'T12:00:00');while(d.getDay()!==1)d.setDate(d.getDate()-1);const monStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const n=await loadFromDaily(rep.id,monStr);if(n>0)alert(` Обновлено: ${n} дней`);else alert('Данные не найдены.')}
   const deleteWeek=async()=>{if(!rep)return;if(!confirm(`Удалить отчёт "${rep.week_label}"? Это действие необратимо.`))return;await supabase.from('weekly_reports').delete().eq('id',rep.id);const{data:fresh}=await supabase.from('weekly_reports').select('*').order('week_start');if(fresh){setReports(fresh);setWeek(Math.max(0,fresh.length-1))}}
 
-  const tabs=[{id:'overview',l:'Обзор'},{id:'projects',l:'Проекты'},{id:'tactical',l:'Тактические'},{id:'plan',l:'План'},{id:'dynamics',l:'История'},{id:'trends',l:'Тренды'}];if(isA)tabs.push({id:'admin',l:'Настройки'})
+  const tabs=[{id:'overview',l:'Обзор'},{id:'projects',l:'Проекты'},{id:'tactical',l:'Тактические'},{id:'plan',l:'План'},{id:'dynamics',l:'История'},{id:'trends',l:'Тренды'},{id:'monthly',l:'Monthly Report'}];if(isA)tabs.push({id:'admin',l:'Настройки'})
   const printOverview=()=>{const el=document.getElementById('overview-print');if(!el)return;const w=window.open('','','width=900,height=700');w.document.write('<html><head><title>Growth Report '+rep?.week_label+'</title><style>body{font-family:-apple-system,sans-serif;padding:20px;color:#2C2C2A}table{border-collapse:collapse;width:100%}td,th{padding:6px 10px;border:1px solid #E3E1D8;font-size:13px}</style></head><body>');w.document.write(el.innerHTML);w.document.write('</body></html>');w.document.close();w.print()}
 
   return<div style={{minHeight:'100vh',background:S.bg}}>
@@ -83,6 +83,7 @@ function Main({profile}){
     {view==='plan'&&<Plan plans={mPlans} ce={ce} reload={reload}/>}
     {view==='dynamics'&&<Dynamics projects={projects} comments={comments} reports={reports} aIdx={aIdx} ce={ce} reload={reload}/>}
     {view==='trends'&&<Trends reports={reports} mPlans={mPlans}/>}
+    {view==='monthly'&&<MonthlyReport reports={reports} projects={projects} comments={comments} mPlans={mPlans} ce={ce} reload={reload}/>}
     {view==='admin'&&isA&&<Admin profiles={allProfiles} projects={projects} reports={reports} aIdx={aIdx} reload={reload} rep={rep} upRep={upRep}/>}
   </div></div>
 }
@@ -387,6 +388,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   </>
 }
 function CItem({c,ce,reload,onDel}){const[es,setEs]=useState(false);const[sv,setSv]=useState(c.full_text||c.summary);const saveS=async()=>{setEs(false);await supabase.from('project_comments').update({full_text:sv,summary:sv.length>120?sv.slice(0,117)+'…':sv}).eq('id',c.id);reload()};return<div style={{marginTop:6,padding:'8px 12px',background:S.bg,borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:15,color:S.i3,marginBottom:2}}><span><b>{c.author}</b> · {c.week_start}</span><div style={{display:'flex',gap:6}}>{ce&&<button onClick={()=>setEs(!es)} style={{fontSize:15,color:S.bm,background:'none',border:'none',cursor:'pointer'}}>✎</button>}{ce&&onDel&&<button onClick={onDel} style={{fontSize:15,color:'#ccc',background:'none',border:'none',cursor:'pointer'}}>✕</button>}</div></div>{es?<div><textarea value={sv} onChange={e=>setSv(e.target.value)} rows={3} style={{width:'100%',padding:'6px 10px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:17,outline:'none',fontFamily:'inherit',resize:'vertical'}}/><button onClick={saveS} style={{fontSize:15,color:S.gd,background:'none',border:'none',cursor:'pointer',fontWeight:600}}>Сохранить</button></div>:<div style={{fontSize:17,color:S.i2,whiteSpace:'pre-wrap',lineHeight:1.5}}><Linkify>{c.full_text||c.summary}</Linkify></div>}</div>}
+function AddComment({projectId,weekStart,author,reload}){const[text,setText]=useState('');const add=async()=>{if(!text.trim())return;await supabase.from('project_comments').insert({project_id:projectId,author,full_text:text.trim(),summary:text.trim().length>120?text.trim().slice(0,117)+'…':text.trim(),week_start:weekStart});setText('');reload()};return<div style={{display:'flex',gap:8,alignItems:'center'}}><input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()} placeholder="Добавить комментарий..." style={{flex:1,padding:'8px 14px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:15,outline:'none'}}/><button onClick={add} style={{width:36,height:36,borderRadius:8,border:'none',background:S.gm,color:'#fff',cursor:'pointer',fontSize:18,fontWeight:600}}>+</button></div>}
 
 // ═══ DYNAMICS ═══
 function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[expanded,setExpanded]=useState(null);const[fSt,setFSt]=useState('all');const rep=reports[aIdx]
@@ -490,3 +492,199 @@ function Admin({profiles,projects,reports,aIdx,reload,rep,upRep}){const[pins,set
     <Box title={`Проекты на главной · ${rep?.week_label||''}`}><div style={{fontSize:15,color:S.i3,marginBottom:12}}>На каждой неделе свой набор.</div>{projects.map(p=><div key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'5px 0',borderBottom:`1px solid ${S.ln}`,fontSize:17}}><input type="checkbox" checked={pins.includes(p.id)} onChange={()=>togPin(p.id)} style={{cursor:'pointer'}}/><span style={{flex:1}}>{p.name}</span><Chip bg={p.priority==='key'?'#F7C1C1':'#B5D4F4'} tx={p.priority==='key'?'#791F1F':'#0C447C'}>{p.priority==='key'?'key':'current'}</Chip></div>)}</Box>
     <Box title="Приоритет проектов">{projects.map(p=><div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${S.ln}`,fontSize:17}}><span>{p.id} — {p.name}</span><div style={{display:'flex',gap:6}}><button onClick={()=>upPP(p.id,'key')} style={{padding:'3px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:15,background:p.priority==='key'?'#F7C1C1':'#F1EFE8',color:p.priority==='key'?'#791F1F':'#5F5E5A',fontWeight:600}}>ключ</button><button onClick={()=>upPP(p.id,'current')} style={{padding:'3px 10px',borderRadius:14,border:'none',cursor:'pointer',fontSize:15,background:p.priority==='current'?'#B5D4F4':'#F1EFE8',color:p.priority==='current'?'#0C447C':'#5F5E5A',fontWeight:600}}>тек</button></div></div>)}</Box>
     <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:17,fontWeight:600,marginBottom:12}}>Подключения и интеграции</div>{INTEG.map((ig,i)=>{const sc=stC[ig.st]||stC.planned;return<div key={i} style={{padding:'10px 0',borderBottom:`1px solid ${S.ln}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}><div style={{flex:1}}>{ig.url?<a href={ig.url} target="_blank" rel="noopener" style={{color:S.gd,fontWeight:500,fontSize:17}}>{ig.name}</a>:<span style={{fontWeight:500,fontSize:17}}>{ig.name}</span>}<div style={{fontSize:15,color:S.i2,marginTop:2,lineHeight:1.5}}>{ig.desc}</div></div><Chip bg={sc.bg} tx={sc.tx}>{sc.l}</Chip></div></div>})}</div></>}
+
+// ═══ MONTHLY REPORT ═══
+function MonthlyReport({reports,projects,comments,mPlans,ce,reload}){
+  const[year,setYear]=useState(2026);const[month,setMonth]=useState(null);const[compare,setCompare]=useState(null)
+  const[mData,setMData]=useState({});const[loading,setLoading]=useState(false)
+  const months=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
+  const years=[2025,2026]
+
+  // Load monthly data from API
+  const loadMonth=async(y,m)=>{
+    const key=`${y}-${String(m+1).padStart(2,'0')}`;if(mData[key])return mData[key]
+    setLoading(true);try{
+      const r=await fetch(`/api/monthly?month=${key}`);const d=await r.json()
+      // Get weekly reports for sparklines
+      const weeks=reports.filter(r=>{const ws=r.week_start;return ws&&ws.startsWith(key)}).sort((a,b)=>a.week_start.localeCompare(b.week_start))
+      const result={...d,weeks,key}
+      setMData(prev=>({...prev,[key]:result}));return result
+    }catch(e){console.error(e)}finally{setLoading(false)}
+  }
+
+  const selectMonth=async(m)=>{setMonth(m);await loadMonth(year,m)}
+  const selectCompare=async(y,m)=>{const d=await loadMonth(y,m);setCompare({year:y,month:m,data:d})}
+
+  // Monthly plan
+  const sel=month!=null?mData[`${year}-${String(month+1).padStart(2,'0')}`]:null
+  const plan=sel?mPlans.find(p=>p.id===sel.key):null
+
+  // Sparkline SVG generator
+  const Spark=({data,color,invert})=>{if(!data||data.length<2)return null
+    const mn=Math.min(...data),mx=Math.max(...data),rng=mx-mn||1
+    const pts=data.map((v,i)=>`${4+i*(72/(data.length-1))},${22-((v-mn)/rng)*18}`).join(' ')
+    return<svg width={80} height={26} viewBox="0 0 80 26" style={{verticalAlign:'middle'}}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/>
+      {data.map((v,i)=><circle key={i} cx={4+i*(72/(data.length-1))} cy={22-((v-mn)/rng)*18} r={2} fill={color}/>)}
+    </svg>
+  }
+
+  // Save override to monthly_plans
+  const savePlan=async(field,val)=>{if(!sel)return;const id=sel.key
+    await supabase.from('monthly_plans').upsert({id,[field]:val==null?null:Number(val),updated_at:new Date().toISOString()},{onConflict:'id'});reload()
+  }
+
+  // Editable text fields stored in monthly_plans
+  const saveText=async(field,val)=>{if(!sel)return;const id=sel.key
+    await supabase.from('monthly_plans').upsert({id,[field]:val,updated_at:new Date().toISOString()},{onConflict:'id'});reload()
+  }
+
+  // Month not selected — show year/month picker
+  if(month==null)return<>
+    <Label>Monthly Report</Label>
+    <div style={{display:'flex',gap:8,marginBottom:24}}>{years.map(y=><button key={y} onClick={()=>setYear(y)} style={{padding:'10px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:year===y?S.gd:'#fff',color:year===y?'#fff':S.i2,boxShadow:S.sh}}>{y}</button>)}</div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
+      {months.map((m,i)=>{const key=`${year}-${String(i+1).padStart(2,'0')}`;const hasData=reports.some(r=>r.week_start?.startsWith(key))
+        return<button key={i} onClick={()=>selectMonth(i)} style={{padding:'18px 16px',borderRadius:14,border:'none',cursor:hasData?'pointer':'default',background:hasData?'#fff':'#F7F8F9',boxShadow:hasData?S.sh:'none',fontSize:17,fontWeight:600,color:hasData?S.ink:'#C4C8CD',opacity:hasData?1:.5}}>{m} {year}</button>
+      })}
+    </div>
+  </>
+
+  // Month selected — show full report
+  if(!sel)return<div style={{padding:40,textAlign:'center',color:S.i3}}>{loading?'Загрузка...':'Нет данных'}</div>
+
+  const ws=sel.weeks||[];const wSales=ws.map(w=>(w.metrics?.totalSales||0));const wCpoAds=ws.map(w=>{const m2=w.metrics||{};const ch2=w.channels||[];const sp=ch2.reduce((s,c)=>s+(c.spent||0),0);const ps=ch2.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0);return ps>0?Math.round((sp+(m2.discBL||0))/ps):0});const wCpoTotal=ws.map(w=>{const m2=w.metrics||{};return(m2.totalSales||0)>0?Math.round((m2.totalSpentBM||0)/(m2.totalSales||1)):0})
+  const cpoAds=sel.paidSales>0?Math.round((sel.adSpend+(sel.discountsBL||0))/sel.paidSales):null
+  const cpoTotal=sel.totalSales>0?Math.round((sel.totalSpentBM||0)/sel.totalSales):null
+  const pctD=(f,p)=>p&&f?((f-p)/p*100).toFixed(0):null
+
+  // Comparison data
+  const cm=compare?.data
+
+  const MetricRow=({label,fact,planVal,planKey,sparkData,sparkColor,invertGood})=>{
+    const d=pctD(fact,planVal);const isGood=invertGood?(d&&d<0):(d&&d>0)
+    return<div style={{display:'grid',gridTemplateColumns:'140px 100px 90px 60px 90px',gap:8,alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,.12)'}}>
+      <div style={{fontSize:15,color:'rgba(255,255,255,.7)'}}>{label}</div>
+      <div style={{fontSize:28,fontWeight:600,textAlign:'right'}}><EdNum value={fact} canEdit={ce} onSave={v=>savePlan('actual_'+planKey,v)} style={{fontSize:28,fontWeight:600,color:'#fff'}}/></div>
+      <div style={{fontSize:14,textAlign:'right',color:'rgba(255,255,255,.45)'}}><EdNum value={planVal} canEdit={ce} onSave={v=>savePlan(planKey,v)} style={{fontSize:14,color:'rgba(255,255,255,.45)'}}/></div>
+      <div style={{fontSize:14,fontWeight:600,textAlign:'right',color:d==null?'rgba(255,255,255,.3)':isGood?'#AAD34F':'#FF8A6F'}}>{d!=null?(d>0?'+':'')+d+'%':'—'}</div>
+      <div style={{textAlign:'right'}}><Spark data={sparkData} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/></div>
+    </div>
+  }
+
+  // Improved/worsened from weekly reports
+  const allImproved=ws.flatMap(w=>w.improved||[]);const allWorsened=ws.flatMap(w=>w.worsened||[])
+  // Project comments for the month
+  const monthComments=comments.filter(c=>{const ws2=c.week_start;return ws2&&ws2.startsWith(sel.key)})
+  // Blockers
+  const blockers=projects.filter(p=>p.status==='blocked'||p.status==='risk')
+
+  return<>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <button onClick={()=>setMonth(null)} style={{fontSize:15,color:S.gd,background:'none',border:'none',cursor:'pointer',fontWeight:600}}>← Назад к месяцам</button>
+      {!compare&&<button onClick={()=>selectCompare(year,month===0?11:month-1)} style={{fontSize:14,padding:'8px 14px',borderRadius:8,border:`1px solid ${S.ln}`,background:'#fff',cursor:'pointer',fontWeight:600,color:S.i2}}>Сравнить с другим месяцем</button>}
+      {compare&&<button onClick={()=>setCompare(null)} style={{fontSize:14,padding:'8px 14px',borderRadius:8,border:'none',background:'#FFEEEA',cursor:'pointer',fontWeight:600,color:'#A71F00'}}>Убрать сравнение</button>}
+    </div>
+
+    {/* STATUS */}
+    <div style={{background:'linear-gradient(180deg,#6E9B0E,#497B02)',borderRadius:14,padding:'32px',color:'#fff',marginBottom:24}}>
+      <Chip bg="#F18B0E" tx="#fff">{plan?.status||'жёлтый'}</Chip>
+      <h2 style={{fontSize:28,fontWeight:700,margin:'12px 0 8px'}}>Growth Report · {months[month]} {year}</h2>
+      <Ed value={plan?.status_description||''} canEdit={ce} onSave={v=>saveText('status_description',v)} ph="Краткое описание статуса месяца..." style={{fontSize:15,color:'rgba(255,255,255,.8)'}}/>
+    </div>
+
+    {/* METRICS TABLE WITH SPARKLINES */}
+    <div style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'24px 28px',color:'#fff',marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:16}}>Метрики · факт vs план</div>
+      <div style={{display:'grid',gridTemplateColumns:'140px 100px 90px 60px 90px',gap:8,fontSize:12,fontWeight:600,color:'rgba(255,255,255,.35)',textTransform:'uppercase',letterSpacing:'.08em',paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,.15)'}}>
+        <span>Метрика</span><span style={{textAlign:'right'}}>Факт</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>Тренд</span>
+      </div>
+      <MetricRow label="Продажи" fact={sel.totalSales} planVal={plan?.total_plan} planKey="total_plan" sparkData={wSales} invertGood={false}/>
+      <MetricRow label="CPO Ads" fact={cpoAds} planVal={plan?.plan_cpo_ads} planKey="plan_cpo_ads" sparkData={wCpoAds} invertGood={true}/>
+      <MetricRow label="CPO Total" fact={cpoTotal} planVal={plan?.plan_cpo_total} planKey="plan_cpo_total" sparkData={wCpoTotal} invertGood={true}/>
+      <MetricRow label="Бюджет" fact={sel.totalSpentBM||0} planVal={plan?.ads_budget} planKey="ads_budget" sparkData={ws.map(w=>w.metrics?.totalSpentBM||0)} invertGood={true}/>
+    </div>
+
+    {/* COMPARISON */}
+    {compare&&cm&&<div style={{background:'#EDF5FF',borderRadius:14,padding:'22px',marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:'#1761CB',marginBottom:14}}>Сравнение: {months[month]} vs {months[compare.month]} {compare.year}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
+        {[{l:'Продажи',a:sel.totalSales,b:cm.totalSales},{l:'CPO Ads',a:cpoAds,b:cm.paidSales>0?Math.round((cm.adSpend+(cm.discountsBL||0))/cm.paidSales):null,pre:'$'},{l:'CPO Total',a:cpoTotal,b:cm.totalSales>0?Math.round((cm.totalSpentBM||0)/cm.totalSales):null,pre:'$'},{l:'Бюджет',a:sel.totalSpentBM,b:cm.totalSpentBM,pre:'$'}].map((x,i)=>{
+          const d=x.b&&x.a?Math.round((x.a-x.b)/x.b*100):null
+          return<div key={i} style={{background:'#fff',borderRadius:8,padding:14}}>
+            <div style={{fontSize:13,color:'#737A82',marginBottom:6}}>{x.l}</div>
+            <div style={{fontSize:22,fontWeight:600}}>{x.pre||''}{x.a?.toLocaleString()||'—'}</div>
+            <div style={{fontSize:13,color:'#9AA0A6'}}>было {x.pre||''}{x.b?.toLocaleString()||'—'} {d!=null&&<span style={{fontWeight:600,color:d>0?(x.l.includes('CPO')?'#A71F00':'#497B02'):(x.l.includes('CPO')?'#497B02':'#A71F00')}}>{d>0?'+':''}{d}%</span>}</div>
+          </div>})}
+      </div>
+    </div>}
+
+    {/* CHANNELS */}
+    <Label>Каналы за месяц</Label>
+    <div style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'6px 12px',marginBottom:24}}>
+      <table style={{width:'100%',borderCollapse:'collapse',fontSize:15}}><thead><tr style={{borderBottom:`1px solid ${S.ln}`}}>
+        <th style={{textAlign:'left',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>Канал</th>
+        <th style={{textAlign:'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>Sales</th>
+        <th style={{textAlign:'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>CPO</th>
+        <th style={{textAlign:'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>Spent</th>
+      </tr></thead><tbody>
+        {(sel.channels||[]).filter(c=>c.sales>0||c.spent>0).map((c,i)=><tr key={i} style={{borderBottom:`1px solid #E4E6E9`}}>
+          <td style={{padding:12,fontWeight:600}}><Ed value={c.name} canEdit={false} style={{fontWeight:600}}/></td>
+          <td style={{padding:12,textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],sales:v};saveText('channel_overrides',chs)}} style={{fontWeight:600,textAlign:'right'}}/></td>
+          <td style={{padding:12,textAlign:'right',color:S.i2}}>{c.spent&&c.sales?'$'+Math.round(c.spent/c.sales):'—'}</td>
+          <td style={{padding:12,textAlign:'right'}}><EdNum value={c.spent} canEdit={ce} prefix="$" onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],spent:v};saveText('channel_overrides',chs)}} style={{color:S.i3,textAlign:'right'}}/></td>
+        </tr>)}
+      </tbody></table>
+    </div>
+
+    {/* IMPROVED / WORSENED */}
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:24}} className="lh-analysis">
+      <div style={{background:'#F7FBEA',borderRadius:14,padding:22}}>
+        <div style={{fontSize:17,fontWeight:600,color:'#234003',marginBottom:14}}>Улучшилось</div>
+        <EList items={allImproved.length?allImproved:(plan?.improved||[])} canEdit={ce} onSave={v=>saveText('improved',v)} color="#234003"/>
+      </div>
+      <div style={{background:'#FFEEEA',borderRadius:14,padding:22}}>
+        <div style={{fontSize:17,fontWeight:600,color:'#A71F00',marginBottom:14}}>Ухудшилось</div>
+        <EList items={allWorsened.length?allWorsened:(plan?.worsened||[])} canEdit={ce} onSave={v=>saveText('worsened',v)} color="#A71F00"/>
+      </div>
+    </div>
+
+    {/* KEY PROJECTS */}
+    <Label>Прогресс по ключевым проектам</Label>
+    <div style={{marginBottom:24}}>{projects.filter(p=>p.priority==='key').map(p=>{
+      const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait
+      return<div key={p.id} style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:18,marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div style={{flex:1}}><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><div style={{fontSize:14,color:S.i3,marginTop:4}}>{p.owner}</div></div>
+          <Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>
+        </div>
+        {pc.length>0&&<div style={{marginTop:10}}>{pc.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={async()=>{const{error}=await supabase.from('project_comments').delete().eq('id',c.id);if(error)alert(error.message);else reload()}}/>)}</div>}
+        {ce&&<div style={{marginTop:8}}><AddComment projectId={p.id} weekStart={sel.key+'-01'} author="Monthly Report" reload={reload}/></div>}
+      </div>
+    })}</div>
+
+    {/* FOCUS NEXT MONTH */}
+    <Label>Фокус на следующий месяц</Label>
+    <div style={{background:'#EDF5FF',borderRadius:14,padding:22,marginBottom:24}}>
+      <div style={{fontSize:17,fontWeight:600,color:'#144CA5',marginBottom:14}}>План и приоритеты</div>
+      <EList items={plan?.next_focus||[]} canEdit={ce} onSave={v=>saveText('next_focus',v)} color="#144CA5"/>
+    </div>
+
+    {/* BLOCKERS */}
+    <Label>Блокеры</Label>
+    <div style={{background:'#FFEEEA',borderRadius:14,padding:22,marginBottom:24}}>
+      {blockers.length>0?blockers.map(p=><div key={p.id} style={{fontSize:15,padding:'10px 0',borderBottom:'1px solid rgba(0,0,0,.06)'}}>
+        <span style={{fontWeight:600}}>{p.name}</span>
+        <span style={{color:'#585E65',marginLeft:8}}>{p.owner}</span>
+        <div style={{marginTop:4}}><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={async v=>{await supabase.from('projects').update({constraints_text:v}).eq('id',p.id);reload()}} ph="Описание блокера..." style={{fontSize:15,color:'#A71F00'}}/></div>
+      </div>):<div style={{fontSize:15,color:'#A71F00',fontStyle:'italic'}}>Нет активных блокеров</div>}
+      {ce&&<EList items={plan?.extra_blockers||[]} canEdit={ce} onSave={v=>saveText('extra_blockers',v)} color="#A71F00"/>}
+    </div>
+
+    {/* ASKS FROM LEADERSHIP */}
+    <Label>Что нужно от руководства</Label>
+    <div style={{background:'linear-gradient(180deg,#234003,#131B0B)',borderRadius:14,padding:22,color:'#fff',marginBottom:24}}>
+      <EList items={plan?.asks||[]} canEdit={ce} onSave={v=>saveText('asks',v)} color="#AAD34F"/>
+    </div>
+  </>
+}
