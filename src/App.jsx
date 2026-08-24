@@ -91,7 +91,7 @@ function Main({profile}){
         <div onClick={()=>navTo('projects-all')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▤ Проекты</div><div style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done').length} активных</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length} блокеров</div></div>
       </div>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Статус проектов</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:32}} className="lh-kpi">
+      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:32}}>
         <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>Всего активных</div><div style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done').length}</div></div>
         <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>В работе</div><div style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status==='progress').length}</div></div>
         <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16,borderLeft:'3px solid #DD2A02',borderRadius:'0 14px 14px 0'}}><div style={{fontSize:13,color:'#DD2A02'}}>Блокеры</div><div style={{fontSize:28,fontWeight:600,color:'#DD2A02'}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length}</div></div>
@@ -151,7 +151,7 @@ function Main({profile}){
     {/* TEAM */}
     {page==='team'&&isA&&<>
       <h1 style={{fontSize:24,fontWeight:600,marginBottom:24}}>Команда</h1>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}} className="lh-kpi">
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}} className='lh-grid2'>
         {allProfiles.map(p=><div key={p.id} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:18,display:'flex',alignItems:'center',gap:14}}>
           <div style={{width:40,height:40,borderRadius:'50%',background:S.gm,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:600,color:'#fff'}}>{(p.name||p.email||'?')[0].toUpperCase()}</div>
           <div style={{flex:1}}><div style={{fontWeight:600}}>{p.name||p.email}</div><div style={{fontSize:13,color:S.i3}}>{p.role}</div></div>
@@ -303,7 +303,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Брэкдаун по дням</Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(80px,1fr))',gap:6,marginBottom:16,overflowX:'auto'}}>
+    <div className='lh-grid7' style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8,marginBottom:16}}>
       {(daily.length>0?daily:Array(7).fill(null)).map((d,i)=>{const chTip=d?.ch?Object.entries(d.ch).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join('\n'):'';return<div key={i} title={chTip} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'8px 4px',textAlign:'center',cursor:chTip?'help':'default'}}>
         <Ed value={d?.day||''} canEdit={ce} onSave={v=>upDay(i,'day',v)} style={{fontSize:15,color:S.i3}}/>
         <div style={{margin:'4px 0'}}><EdNum value={d?.sales} canEdit={ce} onSave={v=>upDay(i,'sales',v)} style={{fontSize:18,fontWeight:500}}/></div>
@@ -335,7 +335,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Тактические задачи <span style={{fontWeight:400,color:S.i3}}>· до 01.01.2027</span></Label>
-    <div className='lh-tasks' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
+    <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
       {tTasks.filter(t=>!t.hidden).map(t=>{const tp=getTP(t.id);const ms=t.milestones||[];let pctVal=0,label='';if(t.target_type==='numeric'){pctVal=t.target_value?(Math.round(((tp?.current_value||0)/t.target_value)*100)):0;label=`${tp?.current_value||0} / ${t.target_value}`}else{const cur=tp?.milestone_status||0;pctVal=ms.length?Math.round(cur/ms.length*100):0;label=cur>0&&cur<=ms.length?ms[cur-1]?.name:'Не начато'}
         return<div key={t.id} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{fontSize:17,fontWeight:500,marginBottom:4}}>{t.name}</div>
@@ -347,7 +347,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>
 
     <Label>Приоритетные проекты</Label>
-    <div className='lh-tasks' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
+    <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
       {shown.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id)
         return<div key={p.id} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:4}}><span style={{fontSize:17,fontWeight:500}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
@@ -663,7 +663,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {/* ═══ 2. METRICS CARDS ═══ */}
     <div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:24}}>
       <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:20}}>Метрики · факт vs план</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}} className="lh-kpi">
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}} className='lh-grid4'>
         {[{l:'Продажи',f:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false},{l:'CPO Ads',f:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$'},{l:'CPO Total',f:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$'},{l:'Бюджет',f:sel.totalSpentBM||0,p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$'}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);return<div key={i}>
           <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:8}}>{x.l}</div>
           <div style={{display:'flex',alignItems:'baseline',gap:10}}><span style={{fontSize:36,fontWeight:600}}>{x.pre||''}<EdNum value={x.f} canEdit={ce} onSave={v=>savePlan('actual_'+x.pk,v)} style={{fontSize:36,fontWeight:600,color:'#fff'}}/></span><Spark data={x.sp} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/></div>
@@ -675,7 +675,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {/* ═══ 2b. COMPARISON ═══ */}
     {compare&&cm&&<div style={{background:'#EDF5FF',borderRadius:14,padding:22,marginBottom:24}}>
       <div style={{fontSize:15,fontWeight:600,color:'#1761CB',marginBottom:14}}>Сравнение: {months[month]} vs {months[compare.month]} {compare.year}</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}} className="lh-kpi">
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}} className='lh-grid4'>
         {[{l:'Продажи',a:sel.totalSales,b:cm.totalSales},{l:'CPO Ads',a:cpoAds,b:cm.paidSales>0?Math.round((cm.adSpend+(cm.discountsBL||0))/cm.paidSales):null,pre:'$'},{l:'CPO Total',a:cpoTotal,b:cm.totalSales>0?Math.round((cm.totalSpentBM||0)/cm.totalSales):null,pre:'$'},{l:'Бюджет',a:sel.totalSpentBM,b:cm.totalSpentBM,pre:'$'}].map((x,i)=>{const d=x.b&&x.a?Math.round((x.a-x.b)/x.b*100):null;const isGood=x.l.includes('CPO')?(d&&d<0):(d&&d>0);return<div key={i} style={{background:'#fff',borderRadius:14,padding:18,boxShadow:S.sh}}>
           <div style={{fontSize:13,color:'#737A82',marginBottom:6}}>{x.l}</div>
           <div style={{display:'flex',gap:16,alignItems:'baseline'}}><div><div style={{fontSize:28,fontWeight:600}}>{x.pre||''}{x.a?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>текущий</div></div><div style={{fontSize:20,color:'#9AA0A6'}}>vs</div><div><div style={{fontSize:28,fontWeight:600,color:'#585E65'}}>{x.pre||''}{x.b?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>сравнение</div></div></div>
@@ -691,7 +691,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
           <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Churn rate · {months[month]} {year}</div>
           <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:13,color:'#9AA0A6'}}>vs:</span><select value={cc} onChange={e=>setChurnCmp(Number(e.target.value))} style={{font:'500 13px/1 Poppins,sans-serif',padding:'6px 10px',borderRadius:8,border:`1px solid ${S.ln}`,cursor:'pointer'}}>{months.map((mn,mi)=>{const k=`${year}-${String(mi+1).padStart(2,'0')}`;const has=mPlans.some(p=>p.id===k);return<option key={mi} value={mi}>{mn} {year}{has?'':' (нет данных)'}</option>})}</select></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}} className="lh-kpi">
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}} className='lh-grid4'>
           {churnFields.map(f=>{const val=plan?.[f.k];const prev=cmpPlan?.[f.k];const d=val!=null&&prev!=null&&prev!==0?(f.isBs?((val-prev)/prev*100):(val-prev)):null;const dStr=d!=null?(f.isBs?(d>0?'+':'')+d.toFixed(1)+'%':(d>0?'+':'')+d.toFixed(1)+'pp'):null;const isGood=f.isBs?(d&&d>0):(d&&d<0)
             return<div key={f.k} style={{background:'#F7F8F9',borderRadius:10,padding:'14px 12px'}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>{f.l}</div><div style={{fontSize:22,fontWeight:600}}><EdNum value={val} canEdit={ce} onSave={v=>savePlan(f.k,v)} style={{fontSize:22,fontWeight:600}}/></div><div style={{fontSize:12,color:'#9AA0A6',marginTop:4}}>{months[cc]?.slice(0,3)}: {prev!=null?(f.isBs?prev.toLocaleString():prev+'%'):'—'} {dStr&&<span style={{fontWeight:600,color:isGood?'#497B02':'#A71F00'}}>{dStr}</span>}</div></div>})}
         </div>

@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap');
 :root{
-  --g-25:#F7FBEA;--g-300:#AAD34F;--g-500:#6E9B0E;--g-600:#497B02;--g-700:#234003;
+  --g-25:#F7FBEA;--g-500:#6E9B0E;--g-600:#497B02;--g-700:#234003;
   --n-25:#F7F8F9;--n-50:#E4E6E9;--n-100:#C4C8CD;--n-200:#9AA0A6;--n-300:#737A82;--n-400:#585E65;--n-800:#121416;
   --r-25:#FFEEEA;--r-500:#DD2A02;--r-600:#A71F00;
   --b-25:#EDF5FF;--b-500:#1761CB;
@@ -16,110 +16,67 @@ input,select,textarea,button{font-family:var(--lh-font)}
 .lh-sidebar{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.1) transparent}
 @media print{body{background:#fff}.no-print{display:none!important}}
 
-/* ═══ MOBILE ≤768px ═══ */
 @media(max-width:768px){
-  body{font-size:14px}
-
-  /* Layout */
+  body{font-size:13px}
   .lh-app{grid-template-columns:1fr!important}
   .lh-sidebar{display:none!important;position:fixed!important;top:0!important;left:0!important;width:260px!important;height:100vh!important;z-index:1000;box-shadow:4px 0 20px rgba(0,0,0,.15)}
   .lh-sidebar.open{display:flex!important}
   .lh-burger{display:flex!important;align-items:center;justify-content:center}
-  .lh-main{padding:14px 12px 32px!important;padding-top:56px!important}
+  .lh-main{padding:12px!important;padding-top:56px!important}
+  .lh-main h1{font-size:18px!important;margin-bottom:12px!important}
 
-  /* Headers */
-  .lh-main h1{font-size:20px!important;margin-bottom:16px!important}
-  .lh-main h2{font-size:18px!important}
-
-  /* Home cards → 1 col */
+  /* Grids */
+  .lh-grid4{grid-template-columns:1fr 1fr!important;gap:10px!important}
+  .lh-grid3{grid-template-columns:1fr!important;gap:10px!important}
+  .lh-grid2{grid-template-columns:1fr!important;gap:10px!important}
+  .lh-grid7{grid-template-columns:repeat(4,1fr)!important;gap:6px!important}
   .lh-home-cards{grid-template-columns:1fr!important;gap:10px!important}
-  .lh-home-cards>div{padding:16px!important}
-  .lh-home-cards [style*="fontSize:28"]{font-size:22px!important}
 
-  /* All KPI grids → 2 cols */
-  .lh-kpi{grid-template-columns:1fr 1fr!important;gap:10px!important}
+  /* Green plate */
+  .lh-plate{padding:14px!important;border-radius:10px!important}
+  .lh-plate h1{font-size:18px!important}
 
-  /* Weekly green plate */
-  .lh-plate{padding:16px!important;border-radius:10px!important}
-  .lh-plate h1{font-size:20px!important}
-  .lh-plate [style*="fontSize:32"]{font-size:20px!important}
-  .lh-plate [style*="fontSize:15"]{font-size:12px!important}
-  .lh-plate button{padding:5px 10px!important;font-size:11px!important;border-radius:6px!important}
+  /* Monthly plate */
+  .lh-mplate{padding:16px!important;border-radius:10px!important}
+  .lh-mplate h2{font-size:18px!important}
 
-  /* Monthly green plate */
-  .lh-mplate{padding:18px!important;border-radius:10px!important}
-  .lh-mplate h2{font-size:20px!important}
-  .lh-mplate [style*="fontSize:28"]{font-size:20px!important}
-
-  /* Teal metrics blocks */
-  .lh-itogi,.lh-mteal{padding:16px!important;border-radius:10px!important}
-  .lh-itogi [style*="fontSize:36"],.lh-mteal [style*="fontSize:36"]{font-size:24px!important}
-  .lh-itogi [style*="repeat(4"],.lh-mteal [style*="repeat(4"]{grid-template-columns:1fr 1fr!important;gap:12px!important}
+  /* Teal blocks */
+  .lh-itogi,.lh-mteal{padding:14px!important;border-radius:10px!important}
 
   /* Tabs */
-  .lh-tabs{padding:4px!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;gap:0!important;flex-wrap:nowrap!important}
-  .lh-tabs button{font-size:12px!important;padding:7px 10px!important;flex:0 0 auto!important;white-space:nowrap!important}
+  .lh-tabs{padding:3px!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  .lh-tabs button{font-size:12px!important;padding:6px 10px!important;flex-shrink:0!important;white-space:nowrap!important}
 
-  /* Action buttons */
+  /* Actions */
   .lh-actions{gap:6px!important}
-  .lh-actions button{font-size:12px!important;padding:8px 12px!important}
+  .lh-actions button{font-size:12px!important;padding:8px 10px!important}
 
-  /* Status row */
+  /* Status row - hide */
   .lh-status-row{display:none!important}
 
-  /* Channel table → scroll */
+  /* Channel table scroll */
   .lh-ch-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
-  .lh-ch-row{min-width:700px!important;font-size:13px!important;padding:8px 12px!important}
+  .lh-ch-row{min-width:680px!important;font-size:12px!important;padding:8px 10px!important}
 
-  /* Days grid */
-  .lh-days{grid-template-columns:repeat(4,1fr)!important;gap:6px!important}
-  .lh-days [style*="fontSize:30"]{font-size:20px!important}
-  .lh-days [style*="padding:'16px 12px'"]{padding:10px 8px!important}
+  /* Days */
+  .lh-days>div{padding:8px 6px!important}
 
-  /* Analysis blocks → stack */
+  /* Analysis stack */
   .lh-analysis{grid-template-columns:1fr!important;gap:10px!important}
 
-  /* Tasks/projects grids → 1 col */
+  /* Tasks stack */
   .lh-tasks{grid-template-columns:1fr!important;gap:10px!important}
 
-  /* Project filters → tighter */
-  .lh-filters{gap:4px!important}
-  .lh-filters button,.lh-filters span{font-size:12px!important;padding:5px 10px!important}
+  /* Filters */
+  .lh-filters{gap:3px!important}
+  .lh-filters button,.lh-filters span{font-size:11px!important;padding:4px 8px!important}
 
-  /* Project cards */
-  .lh-proj-head{flex-direction:column!important;gap:6px!important}
-  .lh-proj-head b{font-size:15px!important}
-
-  /* Monthly churn cards */
-  [style*="repeat(4,1fr)"]{grid-template-columns:1fr 1fr!important}
-
-  /* Monthly project structured blocks */
-  [style*="gridTemplateColumns:'90px 1fr'"]{grid-template-columns:70px 1fr!important;font-size:13px!important}
-
-  /* Generic oversize numbers */
-  [style*="fontSize:36"]{font-size:24px!important}
-  [style*="fontSize:32"]{font-size:20px!important}
-  [style*="fontSize:28"]{font-size:18px!important}
-
-  /* Card padding reduce */
-  [style*="padding:'24px'"]{padding:14px!important}
-  [style*="padding:'22px 24px'"]{padding:14px!important}
-  [style*="padding:'28px 32px'"]{padding:16px!important}
-
-  /* Team grid */
-  [style*="gridTemplateColumns:'1fr 1fr'"]{grid-template-columns:1fr!important}
-
-  /* Comparison cards */
-  [style*="gap:16,alignItems:'baseline'"]{gap:8px!important}
-  [style*="fontSize:28,fontWeight:600"]{font-size:18px!important}
+  /* Project head */
+  .lh-proj-head{flex-direction:column!important;gap:4px!important}
 }
 
-/* ═══ SMALL ≤480px ═══ */
 @media(max-width:480px){
-  .lh-main h1{font-size:18px!important}
-  .lh-days{grid-template-columns:repeat(3,1fr)!important}
-  .lh-home-cards [style*="fontSize:22"]{font-size:18px!important}
-  [style*="fontSize:36"]{font-size:20px!important}
-  [style*="fontSize:24"]{font-size:18px!important}
-  .lh-plate button{font-size:10px!important;padding:4px 8px!important}
+  .lh-grid4{grid-template-columns:1fr 1fr!important}
+  .lh-grid7{grid-template-columns:repeat(3,1fr)!important}
+  .lh-main h1{font-size:16px!important}
 }
