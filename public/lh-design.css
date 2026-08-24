@@ -1,26 +1,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap');
-:root{--lh-font:'Poppins','Montserrat',-apple-system,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{font-family:var(--lh-font);color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
+html,body{font-family:'Poppins','Montserrat',-apple-system,sans-serif;color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
 body{font-weight:500;font-size:15px;line-height:1.45}
-input,select,textarea,button{font-family:var(--lh-font)}
+input,select,textarea,button{font-family:inherit}
 .lh-sidebar{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.1) transparent}
 @media print{body{background:#fff}.no-print{display:none!important}}
 
 @media(max-width:768px){
   body{font-size:13px}
-
-  /* Layout */
   .lh-app{grid-template-columns:1fr!important}
   .lh-sidebar{display:none!important;position:fixed!important;top:0;left:0;width:260px!important;height:100vh!important;z-index:1000;box-shadow:4px 0 20px rgba(0,0,0,.15)}
   .lh-sidebar.open{display:flex!important}
   .lh-burger{display:flex!important;align-items:center;justify-content:center}
-  .lh-main{padding:12px!important;padding-top:56px!important}
-  .lh-main h1{font-size:18px!important;margin-bottom:12px!important}
+  .lh-main{padding:10px!important;padding-top:52px!important}
+  .lh-main h1{font-size:17px!important;margin-bottom:10px!important}
 
-  /* ══ KEY OVERRIDES — class-based, 100% reliable ══ */
-  .lh-num{font-size:20px!important}
-  .lh-title{font-size:18px!important}
+  /* Numbers — all children too */
+  .lh-num,.lh-num *{font-size:20px!important}
+  .lh-title,.lh-title *{font-size:17px!important}
+
+  /* Green plate — everything inside smaller */
+  .lh-plate{padding:12px!important;border-radius:8px!important}
+  .lh-plate>div{font-size:11px!important}
+  .lh-plate h1,.lh-plate h1 *{font-size:17px!important}
+  .lh-plate select{font-size:12px!important;padding:5px 10px!important}
+  .lh-plate button{padding:4px 8px!important;font-size:10px!important;border-radius:4px!important}
+  .lh-plate span{font-size:12px!important}
+
+  /* Monthly plate */
+  .lh-mplate{padding:12px!important;border-radius:8px!important}
+  .lh-mplate h2,.lh-mplate h2 *{font-size:17px!important}
+  .lh-mplate span,.lh-mplate select{font-size:12px!important}
+
+  /* Teal blocks — everything inside */
+  .lh-itogi,.lh-mteal{padding:10px!important;border-radius:8px!important}
+  .lh-itogi>div:first-child,.lh-mteal>div:first-child{font-size:11px!important}
+  .lh-itogi span,.lh-mteal span{font-size:12px!important}
 
   /* Grids */
   .lh-grid4{grid-template-columns:1fr 1fr!important;gap:8px!important}
@@ -29,43 +44,43 @@ input,select,textarea,button{font-family:var(--lh-font)}
   .lh-grid7{grid-template-columns:repeat(4,1fr)!important;gap:4px!important}
   .lh-home-cards{grid-template-columns:1fr!important;gap:8px!important}
 
-  /* Containers */
-  .lh-plate{padding:14px!important;border-radius:10px!important}
-  .lh-mplate{padding:14px!important;border-radius:10px!important}
-  .lh-itogi,.lh-mteal{padding:12px!important;border-radius:10px!important}
-
   /* Tabs */
-  .lh-tabs{padding:3px!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
-  .lh-tabs button{font-size:12px!important;padding:6px 8px!important;flex-shrink:0!important;white-space:nowrap!important}
+  .lh-tabs{padding:2px!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  .lh-tabs button{font-size:11px!important;padding:5px 8px!important;flex-shrink:0!important;white-space:nowrap!important}
 
   /* Actions */
-  .lh-actions{gap:6px!important}
-  .lh-actions button{font-size:12px!important;padding:6px 10px!important}
+  .lh-actions{gap:4px!important}
+  .lh-actions button{font-size:11px!important;padding:6px 8px!important}
 
-  /* Status row */
+  /* Status row hide */
   .lh-status-row{display:none!important}
 
-  /* Channel table */
+  /* Channel table scroll */
   .lh-ch-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
   .lh-ch-row{min-width:680px!important;font-size:12px!important;padding:6px 8px!important}
 
   /* Days */
-  .lh-days>div{padding:8px 4px!important}
+  .lh-days>div{padding:6px 4px!important}
+  .lh-days span{font-size:11px!important}
 
   /* Analysis + tasks */
   .lh-analysis{grid-template-columns:1fr!important;gap:8px!important}
   .lh-tasks{grid-template-columns:1fr!important;gap:8px!important}
 
   /* Filters */
-  .lh-filters{gap:3px!important}
-  .lh-filters button,.lh-filters span{font-size:11px!important;padding:4px 8px!important}
+  .lh-filters{gap:2px!important}
+  .lh-filters button,.lh-filters span{font-size:10px!important;padding:3px 6px!important}
 
-  /* Project head */
+  /* Project head stack */
   .lh-proj-head{flex-direction:column!important;gap:4px!important}
+
+  /* All cards padding reduce */
+  .lh-main [style*="padding:22px"],.lh-main [style*="padding:24px"],.lh-main [style*="padding:'22px'"]{padding:12px!important}
 }
 
 @media(max-width:480px){
-  .lh-num{font-size:18px!important}
-  .lh-title{font-size:16px!important}
+  .lh-num,.lh-num *{font-size:17px!important}
+  .lh-title,.lh-title *{font-size:15px!important}
   .lh-grid7{grid-template-columns:repeat(3,1fr)!important}
+  .lh-plate h1,.lh-plate h1 *{font-size:15px!important}
 }
