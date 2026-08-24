@@ -85,7 +85,7 @@ function Main({profile}){
     {page==='home'&&<>
       <h1 style={{fontSize:24,fontWeight:600,marginBottom:24}}>Добро пожаловать{profile.name?', '+profile.name:''}</h1>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Быстрый доступ</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}} className="lh-kpi">
+      <div className='lh-home-cards' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
         <div onClick={()=>navTo('weekly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>☰ Текущая неделя</div><div style={{fontSize:28,fontWeight:600}}>{rep?.week_label||'—'}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{rep?.metrics?.totalSales||0} продаж</div></div>
         {isA&&<div onClick={()=>navTo('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▣ Ежемесячный</div><div style={{fontSize:28,fontWeight:600}}>{new Date().toLocaleString('ru',{month:'long'})} {new Date().getFullYear()}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Отчёт для CMO</div></div>}
         <div onClick={()=>navTo('projects-all')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▤ Проекты</div><div style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done').length} активных</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length} блокеров</div></div>
@@ -654,14 +654,14 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     </div>
 
     {/* ═══ 1. STATUS ═══ */}
-    <div style={{background:'linear-gradient(180deg,#6E9B0E,#497B02)',borderRadius:14,padding:32,color:'#fff',marginBottom:24}}>
+    <div className='lh-mplate' style={{background:'linear-gradient(180deg,#6E9B0E,#497B02)',borderRadius:14,padding:32,color:'#fff',marginBottom:24}}>
       {ce?<select value={plan?.status||'yellow'} onChange={e=>savePlan('status',e.target.value)} style={{fontSize:14,fontWeight:600,padding:'8px 16px',borderRadius:999,border:'none',cursor:'pointer',color:'#fff',background:plan?.status==='green'?'#6E9B0E':plan?.status==='red'?'#DD2A02':'#F18B0E'}}><option value='green'>зелёный</option><option value='yellow'>жёлтый</option><option value='red'>красный</option></select>:<Chip bg={plan?.status==='green'?'#6E9B0E':plan?.status==='red'?'#DD2A02':'#F18B0E'} tx='#fff'>{plan?.status==='green'?'зелёный':plan?.status==='red'?'красный':'жёлтый'}</Chip>}
       <h2 style={{fontSize:28,fontWeight:700,margin:'12px 0 8px'}}>Growth report · {months[month]} {year}</h2>
       <Ed value={plan?.status_description||''} canEdit={ce} onSave={v=>saveText('status_description',v)} ph="Краткое описание статуса месяца..." style={{fontSize:15,color:'rgba(255,255,255,.8)'}}/>
     </div>
 
     {/* ═══ 2. METRICS CARDS ═══ */}
-    <div style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:24}}>
+    <div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:24}}>
       <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:20}}>Метрики · факт vs план</div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}} className="lh-kpi">
         {[{l:'Продажи',f:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false},{l:'CPO Ads',f:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$'},{l:'CPO Total',f:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$'},{l:'Бюджет',f:sel.totalSpentBM||0,p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$'}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);return<div key={i}>
