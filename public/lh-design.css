@@ -16,9 +16,13 @@ body{font-weight:500;font-size:17px;line-height:1.35}
 input,select,textarea,button{font-family:var(--lh-font)}
 @media print{body{background:#fff}.no-print{display:none!important}}
 
+/* ═══ SIDEBAR ═══ */
+.lh-sidebar{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.1) transparent}
+
 /* ═══ MOBILE ≤768px ═══ */
 @media(max-width:768px){
   body{font-size:14px}
+  .lh-sidebar{display:none!important}
   .lh-page{padding:0 12px!important}
 
   /* Header */
@@ -62,4 +66,8 @@ input,select,textarea,button{font-family:var(--lh-font)}
   .lh-itogi>div:last-child{grid-template-columns:1fr 1fr!important}
   .lh-days{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}
   .lh-kpi{gap:8px!important}
+}
+
+@media(max-width:768px){
+  body>[style*="grid-template-columns:220px"]{grid-template-columns:1fr!important}
 }
