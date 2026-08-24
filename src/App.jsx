@@ -78,7 +78,7 @@ function Main({profile}){
     </div>
 
     {/* ═══ MAIN CONTENT ═══ */}
-    <div className='lh-main' style={{padding:'32px',maxWidth:1120,width:'100%'}}>
+    <div className='lh-main' style={{padding:'32px',maxWidth:1120,width:'100%',overflowX:'hidden'}}>
     <button className='lh-burger' onClick={()=>setMenuOpen(!menuOpen)} style={{display:'none',position:'fixed',top:12,left:12,zIndex:1001,width:40,height:40,borderRadius:8,border:'none',background:S.gd,color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>☰</button>
 
     {/* HOME */}
@@ -271,7 +271,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     const pd=(f,p)=>p&&f?Math.round((f-p)/p*100):null
     return<div className='lh-itogi' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'14px 20px',marginBottom:16,color:S.gp,overflow:'hidden'}}>
       <div style={{fontSize:15,fontWeight:600,letterSpacing:'.05em',textTransform:'uppercase',color:S.gs,marginBottom:12}}> Итоги месяца · {md.daysWithData} дней</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
+      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
         <div><div style={{fontSize:15,color:S.gs}}>Продажи<Info text={md.channels?md.channels.filter(c=>c.sales>0).map(c=>`${c.name}: ${c.sales}`).join('\n'):'Продажи за месяц (BJ)'}/></div><div style={{fontSize:24,fontWeight:600}}><EdNum value={mS} canEdit={ce} onSave={v=>upMo('actual_sales',v===calcSalesM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:15,color:S.gs}}>план <EdNum value={pS} canEdit={ce} onSave={v=>upMo('total_plan',v)} style={{fontSize:15,color:S.gs}}/>{pS&&<span> · {Math.round((mS||0)/pS*100)}%</span>}</div></div>
         <div><div style={{fontSize:15,color:S.gs}}>CPO Ads<Info text="(ADS+Скидки BS+Сервисы+Awareness)/платные"/></div><div style={{fontSize:24,fontWeight:600}}>$<EdNum value={mCA} canEdit={ce} onSave={v=>upMo('actual_cpo_ads',v===calcCpoAdsM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:15,color:S.gs}}>план $<EdNum value={pCA} canEdit={ce} onSave={v=>upMo('plan_cpo_ads',v===calcPCpoAds?null:v)} style={{fontSize:15,color:S.gs}}/>{pd(mCA,pCA)!=null&&<span style={{color:pd(mCA,pCA)<=0?'#9FE1CB':'#FFC1C1'}}> {pd(mCA,pCA)>0?'+':''}{pd(mCA,pCA)}%</span>}</div></div>
         <div><div style={{fontSize:15,color:S.gs}}>CPO Total<Info text="(ADS+Скидки BL+Сервисы+Awareness+Команда)/все"/></div><div style={{fontSize:24,fontWeight:600}}>$<EdNum value={mCT} canEdit={ce} onSave={v=>upMo('actual_cpo_total',v===calcCpoTotalM?null:v)} style={{fontSize:24,fontWeight:600,color:S.gp}}/></div><div style={{fontSize:15,color:S.gs}}>план $<EdNum value={pCT} canEdit={ce} onSave={v=>upMo('plan_cpo_total',v===calcPCpoTotal?null:v)} style={{fontSize:15,color:S.gs}}/>{pd(mCT,pCT)!=null&&<span style={{color:pd(mCT,pCT)<=0?'#9FE1CB':'#FFC1C1'}}> {pd(mCT,pCT)>0?'+':''}{pd(mCT,pCT)}%</span>}</div></div>
@@ -370,7 +370,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       </div>
     </div>
     {m.aiInsights&&<div style={{background:'var(--b-25,#EDF5FF)',borderRadius:14,padding:'22px 16px',marginBottom:12}}><div style={{fontSize:15,color:'#144CA5',fontWeight:600,marginBottom:4}}> Инсайты</div><Linkify style={{fontSize:17,color:'#4A3372',lineHeight:1.6}}>{m.aiInsights}</Linkify></div>}
-    <div style={{display:'flex',gap:12,marginBottom:16,flexWrap:'wrap'}}>
+    <div className='lh-analysis' style={{display:'flex',gap:12,marginBottom:16,flexWrap:'wrap'}}>
       <div style={{flex:1,background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'22px 16px'}}><div style={{fontSize:17,fontWeight:600,color:'#3B6D11',marginBottom:6}}> Дополнения</div><EList items={rep.manual_improved} canEdit={ce} onSave={v=>up({manual_improved:v})} color="#27500A"/></div>
       <div style={{flex:1,background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'22px 16px'}}><div style={{fontSize:17,fontWeight:600,color:'#A71F00',marginBottom:6}}> Дополнения</div><EList items={rep.manual_worsened} canEdit={ce} onSave={v=>up({manual_worsened:v})} color="#791F1F"/></div>
     </div>
@@ -461,7 +461,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
       {wcs.length===0&&prev&&<div style={{marginTop:6,padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:15,color:'#B76400'}}> {prev.week_start} ({prev.author})</div><div style={{fontSize:17,color:S.i3,fontStyle:'italic',whiteSpace:'pre-wrap'}}><Linkify>{prev.full_text||prev.summary}</Linkify></div></div>}
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12,borderTop:`1px solid ${S.ln}`,paddingTop:12}}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f} style={{fontSize:15}}><span style={{color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div>
+        <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f} style={{fontSize:15}}><span style={{color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div>
         <div style={{marginBottom:10}}><span style={{fontSize:15,color:S.i3,display:'block',marginBottom:2}}>Ограничения</span><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={v=>setConstraints(p.id,v)} ph="Блокеры / ограничения..." style={{fontSize:15,color:hasBlock?'#791F1F':S.i2,display:'block',background:hasBlock?'#FFF5F5':'transparent',padding:hasBlock?'4px 8px':0,borderRadius:6}}/></div>
         <Ed value={p.last_update} canEdit={ce} multi onSave={v=>upProj(p.id,'last_update',v)} ph="Общее описание..." style={{color:S.i2,fontSize:17,display:'block',marginBottom:12}}/>
         {ce&&<div style={{display:'flex',gap:8}}><textarea id={"nc-"+p.id} defaultValue="" onChange={e=>{ncRef.current=e.target.value}} placeholder={`Комментарий за ${rep?.week_label||''}...`} rows={2} style={{flex:1,padding:'8px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:17,resize:'vertical',outline:'none',fontFamily:'inherit',fontSize:17}}/><button onClick={()=>addC(p.id)} disabled={sav} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'#497B02',color:'#fff',fontSize:17,fontWeight:600,cursor:'pointer',alignSelf:'flex-end'}}>{sav?'...':'→'}</button></div>}
@@ -626,7 +626,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
   if(month==null)return<>
     <Label>Monthly Report</Label>
     <div style={{display:'flex',gap:8,marginBottom:24}}><button onClick={()=>setYear(2026)} style={{padding:'10px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:S.gd,color:'#fff',boxShadow:S.sh}}>2026</button></div>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}} className="lh-kpi">
+    <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}} className="lh-kpi">
       {months.map((m,i)=>{const now=new Date();const hasData=(year<now.getFullYear())||(year===now.getFullYear()&&i<=now.getMonth());return<button key={i} onClick={()=>hasData&&selectMonth(i)} style={{padding:'18px 16px',borderRadius:14,border:'none',cursor:hasData?'pointer':'default',background:hasData?'#fff':'#F7F8F9',boxShadow:hasData?S.sh:'none',fontSize:17,fontWeight:600,color:hasData?S.ink:'#C4C8CD',opacity:hasData?1:.5}}>{m}</button>})}
     </div>
   </>
@@ -663,7 +663,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {/* ═══ 2. METRICS CARDS ═══ */}
     <div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:24}}>
       <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:20}}>Метрики · факт vs план</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}} className='lh-grid4'>
+      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}} className='lh-grid4'>
         {[{l:'Продажи',f:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false},{l:'CPO Ads',f:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$'},{l:'CPO Total',f:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$'},{l:'Бюджет',f:sel.totalSpentBM||0,p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$'}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);return<div key={i}>
           <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:8}}>{x.l}</div>
           <div style={{display:'flex',alignItems:'baseline',gap:10}}><span className='lh-num' style={{fontSize:36,fontWeight:600}}>{x.pre||''}<EdNum value={x.f} canEdit={ce} onSave={v=>savePlan('actual_'+x.pk,v)} style={{fontSize:36,fontWeight:600,color:'#fff'}}/></span><Spark data={x.sp} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/></div>
@@ -675,7 +675,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {/* ═══ 2b. COMPARISON ═══ */}
     {compare&&cm&&<div style={{background:'#EDF5FF',borderRadius:14,padding:22,marginBottom:24}}>
       <div style={{fontSize:15,fontWeight:600,color:'#1761CB',marginBottom:14}}>Сравнение: {months[month]} vs {months[compare.month]} {compare.year}</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}} className='lh-grid4'>
+      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}} className='lh-grid4'>
         {[{l:'Продажи',a:sel.totalSales,b:cm.totalSales},{l:'CPO Ads',a:cpoAds,b:cm.paidSales>0?Math.round((cm.adSpend+(cm.discountsBL||0))/cm.paidSales):null,pre:'$'},{l:'CPO Total',a:cpoTotal,b:cm.totalSales>0?Math.round((cm.totalSpentBM||0)/cm.totalSales):null,pre:'$'},{l:'Бюджет',a:sel.totalSpentBM,b:cm.totalSpentBM,pre:'$'}].map((x,i)=>{const d=x.b&&x.a?Math.round((x.a-x.b)/x.b*100):null;const isGood=x.l.includes('CPO')?(d&&d<0):(d&&d>0);return<div key={i} style={{background:'#fff',borderRadius:14,padding:18,boxShadow:S.sh}}>
           <div style={{fontSize:13,color:'#737A82',marginBottom:6}}>{x.l}</div>
           <div style={{display:'flex',gap:16,alignItems:'baseline'}}><div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{x.pre||''}{x.a?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>текущий</div></div><div style={{fontSize:20,color:'#9AA0A6'}}>vs</div><div><div className='lh-num' style={{fontSize:28,fontWeight:600,color:'#585E65'}}>{x.pre||''}{x.b?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>сравнение</div></div></div>
@@ -691,7 +691,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
           <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Churn rate · {months[month]} {year}</div>
           <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:13,color:'#9AA0A6'}}>vs:</span><select value={cc} onChange={e=>setChurnCmp(Number(e.target.value))} style={{font:'500 13px/1 Poppins,sans-serif',padding:'6px 10px',borderRadius:8,border:`1px solid ${S.ln}`,cursor:'pointer'}}>{months.map((mn,mi)=>{const k=`${year}-${String(mi+1).padStart(2,'0')}`;const has=mPlans.some(p=>p.id===k);return<option key={mi} value={mi}>{mn} {year}{has?'':' (нет данных)'}</option>})}</select></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}} className='lh-grid4'>
+        <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}} className='lh-grid4'>
           {churnFields.map(f=>{const val=plan?.[f.k];const prev=cmpPlan?.[f.k];const d=val!=null&&prev!=null&&prev!==0?(f.isBs?((val-prev)/prev*100):(val-prev)):null;const dStr=d!=null?(f.isBs?(d>0?'+':'')+d.toFixed(1)+'%':(d>0?'+':'')+d.toFixed(1)+'pp'):null;const isGood=f.isBs?(d&&d>0):(d&&d<0)
             return<div key={f.k} style={{background:'#F7F8F9',borderRadius:10,padding:'14px 12px'}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>{f.l}</div><div className='lh-num' style={{fontSize:22,fontWeight:600}}><EdNum value={val} canEdit={ce} onSave={v=>savePlan(f.k,v)} style={{fontSize:22,fontWeight:600}}/></div><div style={{fontSize:12,color:'#9AA0A6',marginTop:4}}>{months[cc]?.slice(0,3)}: {prev!=null?(f.isBs?prev.toLocaleString():prev+'%'):'—'} {dStr&&<span style={{fontWeight:600,color:isGood?'#497B02':'#A71F00'}}>{dStr}</span>}</div></div>})}
         </div>

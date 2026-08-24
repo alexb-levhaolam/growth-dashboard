@@ -64,12 +64,15 @@ input,select,textarea,button{font-family:inherit}
   .lh-days span{font-size:11px!important}
 
   /* Analysis + tasks */
-  .lh-analysis{grid-template-columns:1fr!important;gap:8px!important}
+  .lh-analysis{grid-template-columns:1fr!important;gap:8px!important;flex-direction:column!important}
   .lh-tasks{grid-template-columns:1fr!important;gap:8px!important}
 
   /* Filters */
   .lh-filters{gap:2px!important}
   .lh-filters button,.lh-filters span{font-size:10px!important;padding:3px 6px!important}
+
+  /* Analysis children full width */
+  .lh-analysis>div{width:100%!important;min-width:0!important;flex:1 1 100%!important}
 
   /* Project head stack */
   .lh-proj-head{flex-direction:column!important;gap:4px!important}
