@@ -1,14 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap');
-:root{
-  --g-25:#F7FBEA;--g-500:#6E9B0E;--g-600:#497B02;--g-700:#234003;
-  --n-25:#F7F8F9;--n-50:#E4E6E9;--n-100:#C4C8CD;--n-200:#9AA0A6;--n-300:#737A82;--n-400:#585E65;--n-800:#121416;
-  --r-25:#FFEEEA;--r-500:#DD2A02;--r-600:#A71F00;
-  --b-25:#EDF5FF;--b-500:#1761CB;
-  --y-500:#F18B0E;
-  --teal:#0F6E5E;--teal-dark:#0B5548;
-  --shadow-card:0 1px 2px rgba(18,20,22,.04);
-  --lh-font:'Poppins','Montserrat',-apple-system,sans-serif;
-}
+:root{--lh-font:'Poppins','Montserrat',-apple-system,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:var(--lh-font);color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
 body{font-weight:500;font-size:15px;line-height:1.45}
@@ -18,54 +9,52 @@ input,select,textarea,button{font-family:var(--lh-font)}
 
 @media(max-width:768px){
   body{font-size:13px}
+
+  /* Layout */
   .lh-app{grid-template-columns:1fr!important}
-  .lh-sidebar{display:none!important;position:fixed!important;top:0!important;left:0!important;width:260px!important;height:100vh!important;z-index:1000;box-shadow:4px 0 20px rgba(0,0,0,.15)}
+  .lh-sidebar{display:none!important;position:fixed!important;top:0;left:0;width:260px!important;height:100vh!important;z-index:1000;box-shadow:4px 0 20px rgba(0,0,0,.15)}
   .lh-sidebar.open{display:flex!important}
   .lh-burger{display:flex!important;align-items:center;justify-content:center}
   .lh-main{padding:12px!important;padding-top:56px!important}
   .lh-main h1{font-size:18px!important;margin-bottom:12px!important}
 
+  /* ══ KEY OVERRIDES — class-based, 100% reliable ══ */
+  .lh-num{font-size:20px!important}
+  .lh-title{font-size:18px!important}
+
   /* Grids */
-  .lh-grid4{grid-template-columns:1fr 1fr!important;gap:10px!important}
-  .lh-grid3{grid-template-columns:1fr!important;gap:10px!important}
-  .lh-grid2{grid-template-columns:1fr!important;gap:10px!important}
-  .lh-grid7{grid-template-columns:repeat(4,1fr)!important;gap:6px!important}
-  .lh-home-cards{grid-template-columns:1fr!important;gap:10px!important}
+  .lh-grid4{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .lh-grid3{grid-template-columns:1fr!important;gap:8px!important}
+  .lh-grid2{grid-template-columns:1fr!important;gap:8px!important}
+  .lh-grid7{grid-template-columns:repeat(4,1fr)!important;gap:4px!important}
+  .lh-home-cards{grid-template-columns:1fr!important;gap:8px!important}
 
-  /* Green plate */
+  /* Containers */
   .lh-plate{padding:14px!important;border-radius:10px!important}
-  .lh-plate h1{font-size:18px!important}
-
-  /* Monthly plate */
-  .lh-mplate{padding:16px!important;border-radius:10px!important}
-  .lh-mplate h2{font-size:18px!important}
-
-  /* Teal blocks */
-  .lh-itogi,.lh-mteal{padding:14px!important;border-radius:10px!important}
+  .lh-mplate{padding:14px!important;border-radius:10px!important}
+  .lh-itogi,.lh-mteal{padding:12px!important;border-radius:10px!important}
 
   /* Tabs */
   .lh-tabs{padding:3px!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
-  .lh-tabs button{font-size:12px!important;padding:6px 10px!important;flex-shrink:0!important;white-space:nowrap!important}
+  .lh-tabs button{font-size:12px!important;padding:6px 8px!important;flex-shrink:0!important;white-space:nowrap!important}
 
   /* Actions */
   .lh-actions{gap:6px!important}
-  .lh-actions button{font-size:12px!important;padding:8px 10px!important}
+  .lh-actions button{font-size:12px!important;padding:6px 10px!important}
 
-  /* Status row - hide */
+  /* Status row */
   .lh-status-row{display:none!important}
 
-  /* Channel table scroll */
+  /* Channel table */
   .lh-ch-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
-  .lh-ch-row{min-width:680px!important;font-size:12px!important;padding:8px 10px!important}
+  .lh-ch-row{min-width:680px!important;font-size:12px!important;padding:6px 8px!important}
 
   /* Days */
-  .lh-days>div{padding:8px 6px!important}
+  .lh-days>div{padding:8px 4px!important}
 
-  /* Analysis stack */
-  .lh-analysis{grid-template-columns:1fr!important;gap:10px!important}
-
-  /* Tasks stack */
-  .lh-tasks{grid-template-columns:1fr!important;gap:10px!important}
+  /* Analysis + tasks */
+  .lh-analysis{grid-template-columns:1fr!important;gap:8px!important}
+  .lh-tasks{grid-template-columns:1fr!important;gap:8px!important}
 
   /* Filters */
   .lh-filters{gap:3px!important}
@@ -76,7 +65,7 @@ input,select,textarea,button{font-family:var(--lh-font)}
 }
 
 @media(max-width:480px){
-  .lh-grid4{grid-template-columns:1fr 1fr!important}
+  .lh-num{font-size:18px!important}
+  .lh-title{font-size:16px!important}
   .lh-grid7{grid-template-columns:repeat(3,1fr)!important}
-  .lh-main h1{font-size:16px!important}
 }
