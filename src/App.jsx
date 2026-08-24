@@ -45,7 +45,7 @@ function Main({profile}){
   const refreshFromDaily=async()=>{if(!rep)return;const d=new Date(rep.week_start+'T12:00:00');while(d.getDay()!==1)d.setDate(d.getDate()-1);const monStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const n=await loadFromDaily(rep.id,monStr);if(n>0){await load();alert(`Обновлено: ${n} дней`)}else alert('Данные не найдены.')}
   const deleteWeek=async()=>{if(!rep)return;if(!confirm(`Удалить отчёт "${rep.week_label}"? Это действие необратимо.`))return;await supabase.from('weekly_reports').delete().eq('id',rep.id);const{data:fresh}=await supabase.from('weekly_reports').select('*').order('week_start');if(fresh){setReports(fresh);setWeek(Math.max(0,fresh.length-1))}}
 
-  const[page,setPage]=useState('home')
+  const[page,setPage]=useState('home');const[menuOpen,setMenuOpen]=useState(false)
   const weeklyTabs=[{id:'overview',l:'Обзор'},{id:'projects',l:'Проекты'},{id:'tactical',l:'Тактические'},{id:'plan',l:'План'},{id:'dynamics',l:'История'},{id:'trends',l:'Тренды'}]
   const printOverview=()=>{const el=document.getElementById('overview-print');if(!el)return;const w=window.open('','','width=900,height=700');w.document.write('<html><head><title>Growth Report '+rep?.week_label+'</title><style>body{font-family:-apple-system,sans-serif;padding:20px;color:#2C2C2A}table{border-collapse:collapse;width:100%}td,th{padding:6px 10px;border:1px solid #E3E1D8;font-size:13px}</style></head><body>');w.document.write(el.innerHTML);w.document.write('</body></html>');w.document.close();w.print()}
 
@@ -63,11 +63,11 @@ function Main({profile}){
     ...(isA?[{id:'channels',l:'Каналы и планы',ic:'adjustments'},{id:'integrations',l:'Интеграции',ic:'plug'},{id:'bot',l:'Slack бот',ic:'robot'},{id:'admin',l:'Администрирование',ic:'settings'}]:[]),
   ]
 
-  return<div style={{display:'grid',gridTemplateColumns:'220px 1fr',minHeight:'100vh',background:S.bg}}>
+  const navTo=(p)=>{setPage(p);setMenuOpen(false)};return<div className='lh-app' style={{display:'grid',gridTemplateColumns:'220px 1fr',minHeight:'100vh',background:S.bg}}>
     {/* ═══ SIDEBAR ═══ */}
-    <div className="lh-sidebar" style={{background:S.sf,borderRight:`1px solid ${S.ln}`,padding:'20px 10px',display:'flex',flexDirection:'column',gap:1,position:'sticky',top:0,height:'100vh',overflowY:'auto'}}>
+    <div className={'lh-sidebar'+(menuOpen?' open':'')} style={{background:S.sf,borderRight:`1px solid ${S.ln}`,padding:'20px 10px',display:'flex',flexDirection:'column',gap:1,position:'sticky',top:0,height:'100vh',overflowY:'auto'}}>
       <div style={{font:'700 20px/1 Poppins,sans-serif',color:S.gd,padding:'8px 14px 24px',display:'flex',alignItems:'center',gap:8}}>Growth</div>
-      {NAV.map((n,i)=>n.sep?<div key={i} style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',padding:'18px 14px 6px'}}>{n.sep}</div>:<button key={n.id} onClick={()=>setPage(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:8,font:'500 14px/1.3 Poppins,sans-serif',color:page===n.id?S.gm:S.i2,cursor:'pointer',border:'none',background:page===n.id?S.gp:'transparent',width:'100%',textAlign:'left',fontWeight:page===n.id?600:500}}><span style={{fontSize:18,width:20,textAlign:'center'}}>{n.ic==='home'?'⌂':n.ic==='calendar'?'☰':n.ic==='chart-bar'?'▣':n.ic==='trending-up'?'↗':n.ic==='layout-kanban'?'▤':n.ic==='target'?'◎':n.ic==='users'?'⊛':n.ic==='adjustments'?'⚙':n.ic==='plug'?'⚡':n.ic==='robot'?'⊞':n.ic==='settings'?'⋮':'·'}</span>{n.l}</button>)}
+      {NAV.map((n,i)=>n.sep?<div key={i} style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',padding:'18px 14px 6px'}}>{n.sep}</div>:<button key={n.id} onClick={()=>navTo(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:8,font:'500 14px/1.3 Poppins,sans-serif',color:page===n.id?S.gm:S.i2,cursor:'pointer',border:'none',background:page===n.id?S.gp:'transparent',width:'100%',textAlign:'left',fontWeight:page===n.id?600:500}}><span style={{fontSize:18,width:20,textAlign:'center'}}>{n.ic==='home'?'⌂':n.ic==='calendar'?'☰':n.ic==='chart-bar'?'▣':n.ic==='trending-up'?'↗':n.ic==='layout-kanban'?'▤':n.ic==='target'?'◎':n.ic==='users'?'⊛':n.ic==='adjustments'?'⚙':n.ic==='plug'?'⚡':n.ic==='robot'?'⊞':n.ic==='settings'?'⋮':'·'}</span>{n.l}</button>)}
       <div style={{marginTop:'auto',padding:'14px 10px',borderTop:`1px solid ${S.ln}`}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <div style={{width:34,height:34,borderRadius:'50%',background:S.gm,display:'flex',alignItems:'center',justifyContent:'center',font:'600 13px/1 Poppins',color:'#fff'}}>{(profile.name||'?')[0]?.toUpperCase()}</div>
@@ -78,16 +78,17 @@ function Main({profile}){
     </div>
 
     {/* ═══ MAIN CONTENT ═══ */}
-    <div style={{padding:'32px',maxWidth:1120,width:'100%'}}>
+    <div className='lh-main' style={{padding:'32px',maxWidth:1120,width:'100%'}}>
+    <button className='lh-burger' onClick={()=>setMenuOpen(!menuOpen)} style={{display:'none',position:'fixed',top:12,left:12,zIndex:1001,width:40,height:40,borderRadius:8,border:'none',background:S.gd,color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>☰</button>
 
     {/* HOME */}
     {page==='home'&&<>
       <h1 style={{fontSize:24,fontWeight:600,marginBottom:24}}>Добро пожаловать{profile.name?', '+profile.name:''}</h1>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Быстрый доступ</div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}} className="lh-kpi">
-        <div onClick={()=>setPage('weekly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>☰ Текущая неделя</div><div style={{fontSize:28,fontWeight:600}}>{rep?.week_label||'—'}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{rep?.metrics?.totalSales||0} продаж</div></div>
-        {isA&&<div onClick={()=>setPage('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▣ Ежемесячный</div><div style={{fontSize:28,fontWeight:600}}>{new Date().toLocaleString('ru',{month:'long'})} {new Date().getFullYear()}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Отчёт для CMO</div></div>}
-        <div onClick={()=>setPage('projects-all')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▤ Проекты</div><div style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done').length} активных</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length} блокеров</div></div>
+        <div onClick={()=>navTo('weekly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>☰ Текущая неделя</div><div style={{fontSize:28,fontWeight:600}}>{rep?.week_label||'—'}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{rep?.metrics?.totalSales||0} продаж</div></div>
+        {isA&&<div onClick={()=>navTo('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▣ Ежемесячный</div><div style={{fontSize:28,fontWeight:600}}>{new Date().toLocaleString('ru',{month:'long'})} {new Date().getFullYear()}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Отчёт для CMO</div></div>}
+        <div onClick={()=>navTo('projects-all')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▤ Проекты</div><div style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done').length} активных</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length} блокеров</div></div>
       </div>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Статус проектов</div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:32}} className="lh-kpi">

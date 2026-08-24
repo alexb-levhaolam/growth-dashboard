@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap');
 :root{
   --g-25:#F7FBEA;--g-300:#AAD34F;--g-500:#6E9B0E;--g-600:#497B02;--g-700:#234003;
   --n-25:#F7F8F9;--n-50:#E4E6E9;--n-100:#C4C8CD;--n-200:#9AA0A6;--n-300:#737A82;--n-400:#585E65;--n-800:#121416;
@@ -12,62 +12,81 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:var(--lh-font);color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
-body{font-weight:500;font-size:17px;line-height:1.35}
+body{font-weight:500;font-size:15px;line-height:1.45}
 input,select,textarea,button{font-family:var(--lh-font)}
-@media print{body{background:#fff}.no-print{display:none!important}}
-
-/* ═══ SIDEBAR ═══ */
 .lh-sidebar{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.1) transparent}
+@media print{body{background:#fff}.no-print{display:none!important}}
 
 /* ═══ MOBILE ≤768px ═══ */
 @media(max-width:768px){
-  body{font-size:14px}
-  .lh-sidebar{display:none!important}
-  .lh-page{padding:0 12px!important}
+  /* App grid → single column */
+  .lh-app{grid-template-columns:1fr!important}
 
-  /* Header */
+  /* Sidebar → overlay */
+  .lh-sidebar{
+    display:none!important;
+    position:fixed!important;top:0!important;left:0!important;
+    width:260px!important;height:100vh!important;z-index:1000;
+    box-shadow:4px 0 20px rgba(0,0,0,.15);
+  }
+  .lh-sidebar.open{display:flex!important}
+
+  /* Burger visible */
+  .lh-burger{display:flex!important;align-items:center;justify-content:center}
+
+  /* Main content */
+  .lh-main{padding:16px 14px 32px!important;padding-top:60px!important}
+
+  /* Typography */
+  .lh-main h1{font-size:20px!important;margin-bottom:16px!important}
+
+  /* Home cards → 1 col */
+  .lh-main>[style*="repeat(3,1fr)"]{grid-template-columns:1fr!important}
+
+  /* KPI grids → 2 cols */
+  .lh-kpi{grid-template-columns:1fr 1fr!important;gap:10px!important}
+
+  /* Green plate */
   .lh-plate{padding:20px 16px 16px!important;border-radius:12px!important}
   .lh-plate h1{font-size:22px!important}
-  .lh-plate select{font-size:12px!important;padding:6px 10px!important}
 
-  /* Tabs — horizontal scroll */
-  .lh-tabs{overflow-x:auto!important;-webkit-overflow-scrolling:touch;gap:2px!important;padding:6px!important}
-  .lh-tabs button{font-size:13px!important;padding:8px 12px!important;flex:0 0 auto!important;white-space:nowrap!important}
-
-  /* Actions */
-  .lh-actions{gap:8px!important}
-  .lh-actions button{font-size:13px!important;padding:10px 14px!important}
-
-  /* Monthly block */
-  .lh-itogi{padding:16px!important;border-radius:12px!important}
-  .lh-itogi>div:last-child{grid-template-columns:1fr 1fr!important;gap:14px!important}
-
-  /* KPI grid → 2 cols */
-  .lh-kpi{grid-template-columns:1fr 1fr!important;gap:12px!important}
-
-  /* Day cards → 4 cols */
-  .lh-days{grid-template-columns:repeat(4,1fr)!important;gap:8px!important}
+  /* Tabs → scroll */
+  .lh-tabs{padding:4px!important;gap:0!important}
+  .lh-tabs button{font-size:13px!important;padding:7px 10px!important}
 
   /* Channel table → scroll */
   .lh-ch-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
-  .lh-ch-row{min-width:680px!important;font-size:14px!important}
+  .lh-ch-row{min-width:680px!important;font-size:13px!important}
+
+  /* Daily cards → 4 cols */
+  .lh-days{grid-template-columns:repeat(4,1fr)!important;gap:6px!important}
 
   /* Analysis → stack */
-  .lh-analysis{grid-template-columns:1fr!important;gap:12px!important}
+  .lh-analysis{grid-template-columns:1fr!important;gap:10px!important}
 
-  /* Tasks/projects → 1 col */
-  .lh-tasks{grid-template-columns:1fr!important}
-  .lh-page [style*="repeat(auto-fit,minmax(280px"]{grid-template-columns:1fr!important}
+  /* Tasks grids → 1 col */
+  .lh-tasks{grid-template-columns:1fr!important;gap:10px!important}
+
+  /* Week chips inside plate → tighter */
+  .lh-plate [style*="flexWrap:'wrap'"]{gap:4px!important}
+  .lh-plate button{padding:6px 10px!important;font-size:12px!important}
+
+  /* Action buttons */
+  .lh-actions button{font-size:13px!important;padding:8px 12px!important}
+
+  /* Smaller KPI values on mobile */
+  [style*="fontSize:36"]{font-size:26px!important}
+  [style*="fontSize:32"]{font-size:22px!important}
+  [style*="fontSize:28"]{font-size:20px!important}
+
+  /* Teal/plate inner grids */
+  [style*="repeat(4,1fr)"]{grid-template-columns:1fr 1fr!important}
 }
 
 /* ═══ SMALL MOBILE ≤480px ═══ */
 @media(max-width:480px){
-  .lh-plate h1{font-size:20px!important}
-  .lh-itogi>div:last-child{grid-template-columns:1fr 1fr!important}
-  .lh-days{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}
-  .lh-kpi{gap:8px!important}
-}
-
-@media(max-width:768px){
-  body>[style*="grid-template-columns:220px"]{grid-template-columns:1fr!important}
+  .lh-main h1{font-size:18px!important}
+  .lh-kpi{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .lh-days{grid-template-columns:repeat(3,1fr)!important}
+  [style*="fontSize:36"]{font-size:22px!important}
 }
