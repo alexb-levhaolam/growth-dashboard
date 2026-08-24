@@ -591,41 +591,78 @@ function MonthlyReport({reports,projects,comments,mPlans,ce,reload}){
         </div>
       </div>})()}
 
-    {/* ═══ 4. CHANNELS ═══ */}
+        {/* ═══ 4. CHANNELS — fully editable ═══ */}
     <Label>Каналы</Label>
     <div style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'6px 12px',marginBottom:24}}>
-      <table style={{width:'100%',borderCollapse:'collapse',fontSize:15}}><thead><tr style={{borderBottom:`1px solid ${S.ln}`}}>{['Канал','Sales','План','%','CPO','Spent'].map(h=><th key={h} style={{textAlign:h==='Канал'?'left':'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>{h}</th>)}</tr></thead>
-      <tbody>{(sel.channels||[]).filter(c=>c.sales>0||c.spent>0).map((c,i)=>{const cp2=(plan?.channel_plans||{})[c.name?.toLowerCase?.()]||{};const ps=cp2.planSales||null;const pct=ps&&c.sales?Math.round(c.sales/ps*100):null;return<tr key={i} style={{borderBottom:'1px solid #E4E6E9'}}>
+      <table style={{width:'100%',borderCollapse:'collapse',fontSize:15}}><thead><tr style={{borderBottom:`1px solid ${S.ln}`}}>{['Канал','Sales','План','%','CPO','CPO план','Spent'].map(h=><th key={h} style={{textAlign:h==='Канал'?'left':'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>{h}</th>)}</tr></thead>
+      <tbody>{(sel.channels||[]).filter(c=>c.sales>0||c.spent>0).map((c,i)=>{const cp2=(plan?.channel_plans||{})[c.name?.toLowerCase?.()]||{};const ps=cp2.planSales||null;const pct=ps&&c.sales?Math.round(c.sales/ps*100):null;const cpo=c.spent&&c.sales?Math.round(c.spent/c.sales):null;return<tr key={i} style={{borderBottom:'1px solid #E4E6E9'}}>
         <td style={{padding:12,fontWeight:600}}>{c.name}</td>
         <td style={{padding:12,textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],sales:v};saveText('channel_overrides',chs)}} style={{fontWeight:600}}/></td>
-        <td style={{padding:12,textAlign:'right',color:S.i3}}>{ps||'—'}</td>
+        <td style={{padding:12,textAlign:'right'}}><EdNum value={ps} canEdit={ce} onSave={v=>{const cp3={...(plan?.channel_plans||{})};const k=c.name?.toLowerCase?.();cp3[k]={...(cp3[k]||{}),planSales:v};savePlan('channel_plans',cp3)}} style={{color:S.i3}}/></td>
         <td style={{padding:12,textAlign:'right'}}>{pct?<span style={{fontWeight:600,color:pct>=90?'#497B02':pct>=60?'#F18B0E':'#A71F00'}}>{pct}%</span>:'—'}</td>
-        <td style={{padding:12,textAlign:'right',color:S.i2}}>{c.spent&&c.sales?'$'+Math.round(c.spent/c.sales).toLocaleString():'—'}</td>
+        <td style={{padding:12,textAlign:'right'}}><EdNum value={cpo} canEdit={ce} prefix="$" onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],cpo:v};saveText('channel_overrides',chs)}} style={{color:S.i2}}/></td>
+        <td style={{padding:12,textAlign:'right'}}><EdNum value={cp2.planCpo} canEdit={ce} prefix="$" onSave={v=>{const cp3={...(plan?.channel_plans||{})};const k=c.name?.toLowerCase?.();cp3[k]={...(cp3[k]||{}),planCpo:v};savePlan('channel_plans',cp3)}} style={{color:S.i3}}/></td>
         <td style={{padding:12,textAlign:'right'}}><EdNum value={c.spent} canEdit={ce} prefix="$" onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],spent:v};saveText('channel_overrides',chs)}} style={{color:S.i3}}/></td>
       </tr>})}</tbody></table>
     </div>
 
-    {/* ═══ 5. KEY PROJECTS — structured CMO format ═══ */}
-    <Label>Ключевые проекты · месячный итог</Label>
-    {keyProjects.map(p=>{const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait;const sm=summaries[p.id]||{};const showWeekly=expandedWeekly[p.id]||false;const toggleWeekly=()=>setExpandedWeekly(prev=>({...prev,[p.id]:!prev[p.id]}))
+    {/* ═══ 5. KEY PROJECTS — add/remove + structured ═══ */}
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <span style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Ключевые проекты · месячный итог</span>
+      {ce&&<select onChange={e=>{if(!e.target.value)return;supabase.from('projects').update({priority:'key'}).eq('id',e.target.value).then(()=>reload());e.target.value=''}} style={{padding:'6px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,cursor:'pointer'}}><option value="">+ добавить...</option>{projects.filter(p=>p.priority!=='key'&&p.status!=='done').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>}
+    </div>
+    {keyProjects.map(p=>{const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait;const sm=summaries[p.id]||{};const showW=expandedWeekly[p.id]||false
       return<div key={p.id} style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'22px 24px',marginBottom:16}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:14}}><div><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><div style={{fontSize:14,color:S.i3,marginTop:2}}>{p.owner}</div></div><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:14}}>
+          <div><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><div style={{fontSize:14,color:S.i3,marginTop:2}}>{p.owner}</div></div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>{ce&&<button onClick={async()=>{await supabase.from('projects').update({priority:'current'}).eq('id',p.id);reload()}} title="Убрать из ключевых" style={{fontSize:15,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}</div>
+        </div>
         <div style={{borderLeft:`3px solid ${p.status==='risk'||p.status==='blocked'?'#DD2A02':p.status==='done'?'#6E9B0E':'#F18B0E'}`,paddingLeft:16}}>
           {[{k:'promised',l:'Обещали'},{k:'fact',l:'Факт'},{k:'conclusion',l:'Вывод'}].map(f=><div key={f.k} style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15}}><span style={{color:S.i3,fontWeight:600}}>{f.l}:</span><Ed value={sm[f.k]||''} canEdit={ce} onSave={v=>saveSummary(p.id,f.k,v)} ph={`${f.l}...`} style={{color:S.ink}}/></div>)}
           <div style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15,alignItems:'center'}}><span style={{color:S.i3,fontWeight:600}}>Решение:</span>{ce?<select value={sm.decision||''} onChange={e=>saveSummary(p.id,'decision',e.target.value)} style={{padding:'6px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,fontWeight:600,cursor:'pointer'}}><option value="">выбрать...</option>{DECISIONS.map(d=><option key={d.v} value={d.v}>{d.l}</option>)}</select>:<span style={{fontSize:14,fontWeight:600}}>{DECISIONS.find(d=>d.v===sm.decision)?.l||sm.decision||'—'}</span>}</div>
           <div style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15}}><span style={{color:S.i3,fontWeight:600}}>Дальше:</span><Ed value={sm.next||''} canEdit={ce} onSave={v=>saveSummary(p.id,'next',v)} ph="Что дальше..." style={{color:S.ink}}/></div>
         </div>
-        {pc.length>0&&<><button onClick={toggleWeekly} style={{fontSize:13,color:'#1761CB',cursor:'pointer',border:'none',background:'none',fontWeight:600,marginTop:10,padding:0}}>{showWeekly?'▾ Скрыть':'▸ Показать'} недельные комментарии ({pc.length})</button>
-          {showWeekly&&<div style={{marginTop:8}}>{pc.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={async()=>{await supabase.from('project_comments').delete().eq('id',c.id);reload()}}/>)}</div>}</>}
+        {pc.length>0&&<button onClick={()=>setExpandedWeekly(prev=>({...prev,[p.id]:!showW}))} style={{fontSize:13,color:'#1761CB',cursor:'pointer',border:'none',background:'none',fontWeight:600,marginTop:10,padding:0}}>{showW?'▾ Скрыть':'▸ Показать'} недельные ({pc.length})</button>}
+        {showW&&<div style={{marginTop:8}}>{pc.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={async()=>{await supabase.from('project_comments').delete().eq('id',c.id);reload()}}/>)}</div>}
+        {ce&&<div style={{marginTop:8}}><AddComment projectId={p.id} weekStart={sel.key+'-01'} author="Monthly Report" reload={reload}/></div>}
       </div>})}
 
-    {/* ═══ 6. OTHER PROJECTS — one-liners ═══ */}
-    {otherProjects.length>0&&<><Label>Остальные проекты</Label>
-    <div style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'12px 18px',marginBottom:24}}>
-      {otherProjects.map((p,i)=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=monthComments.filter(c=>c.project_id===p.id).slice(-1)[0];return<div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:i<otherProjects.length-1?'1px solid #E4E6E9':'none',gap:12}}><div style={{flex:1}}><span style={{fontWeight:600}}>{p.name}</span>{lc&&<span style={{color:S.i3,marginLeft:8}}>— {lc.full_text?.slice(0,80)||lc.summary}</span>}</div><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>})}
+    {/* ═══ 6. OTHER PROJECTS — edit, hide/show, wait at bottom ═══ */}
+    {(()=>{const hidden=plan?.hidden_projects||[];const others=projects.filter(p=>p.priority!=='key'&&p.status!=='done'&&!hidden.includes(p.id));const sorted=[...others].sort((a,b)=>a.status==='wait'?1:b.status==='wait'?-1:0);const hiddenList=projects.filter(p=>hidden.includes(p.id))
+    return<>{sorted.length>0&&<><Label>Остальные проекты</Label>
+    <div style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'12px 18px',marginBottom:16}}>
+      {sorted.map((p,i)=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const pc=monthComments.filter(c=>c.project_id===p.id);const lc=pc.slice(-1)[0];const showW=expandedWeekly['o_'+p.id]
+        return<div key={p.id} style={{padding:'12px 0',borderBottom:i<sorted.length-1?'1px solid #E4E6E9':'none'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+            <div style={{flex:1}}><span style={{fontWeight:600}}>{p.name}</span><span style={{color:S.i3,marginLeft:8,fontSize:14}}>{p.owner}</span></div>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>{ce&&<button onClick={()=>saveText('hidden_projects',[...hidden,p.id])} title="Скрыть" style={{fontSize:14,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}</div>
+          </div>
+          {lc&&<div style={{fontSize:14,color:S.i3,marginTop:4}}>{lc.full_text?.slice(0,120)||lc.summary}</div>}
+          {ce&&<button onClick={()=>setExpandedWeekly(prev=>({...prev,['o_'+p.id]:!showW}))} style={{fontSize:12,color:'#1761CB',cursor:'pointer',border:'none',background:'none',fontWeight:600,marginTop:4,padding:0}}>{showW?'▾':'▸'} комменты ({pc.length})</button>}
+          {showW&&<div style={{marginTop:6}}>{pc.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={async()=>{await supabase.from('project_comments').delete().eq('id',c.id);reload()}}/>)}<AddComment projectId={p.id} weekStart={sel.key+'-01'} author="Monthly Report" reload={reload}/></div>}
+        </div>})}
     </div></>}
+    {ce&&hiddenList.length>0&&<div style={{marginBottom:24}}><span style={{fontSize:13,color:S.i3}}>Скрытые ({hiddenList.length}): </span>{hiddenList.map(p=><button key={p.id} onClick={()=>saveText('hidden_projects',hidden.filter(id=>id!==p.id))} style={{fontSize:13,padding:'4px 10px',borderRadius:8,border:`1px solid ${S.ln}`,background:'#F7F8F9',cursor:'pointer',marginRight:4}}>{p.name} ↩</button>)}</div>}
+    </>})()}
 
-    {/* ═══ 7. УЛУЧШИЛОСЬ / УХУДШИЛОСЬ — monthly summary ═══ */}
+    {/* ═══ 8. BLOCKERS — add/remove/edit ═══ */}
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <span style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Блокеры</span>
+      {ce&&<select onChange={e=>{if(!e.target.value)return;supabase.from('projects').update({status:'blocked'}).eq('id',e.target.value).then(()=>reload());e.target.value=''}} style={{padding:'6px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,cursor:'pointer'}}><option value="">+ добавить блокер...</option>{projects.filter(p=>p.status!=='blocked'&&p.status!=='done').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>}
+    </div>
+    <div style={{marginBottom:24}}>
+      {blockers.map(p=><div key={p.id} style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:18,marginBottom:12,borderLeft:'3px solid #DD2A02'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'start'}}>
+          <div><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><span style={{fontSize:14,color:S.i3}}>{p.owner}</span></div>
+          {ce&&<button onClick={async()=>{await supabase.from('projects').update({status:'progress'}).eq('id',p.id);reload()}} title="Убрать из блокеров" style={{fontSize:14,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}
+        </div>
+        <div style={{marginTop:8}}><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={async v=>{await supabase.from('projects').update({constraints_text:v}).eq('id',p.id);reload()}} ph="История блокера, переносы, импакт..." style={{fontSize:15,color:'#A71F00'}}/></div>
+      </div>)}
+      {blockers.length===0&&<div style={{background:'#F7FBEA',borderRadius:14,padding:18,color:'#497B02',fontSize:15}}>Нет активных блокеров</div>}
+      {ce&&<div style={{marginTop:12}}><EList items={plan?.extra_blockers||[]} canEdit={ce} onSave={v=>saveText('extra_blockers',v)} color="#A71F00"/></div>}
+    </div>
+
+{/* ═══ 7. УЛУЧШИЛОСЬ / УХУДШИЛОСЬ — monthly summary ═══ */}
     <Label>Результаты месяца</Label>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:24}} className="lh-analysis">
       <div style={{background:'#F7FBEA',borderRadius:14,padding:22}}><div style={{fontSize:17,fontWeight:600,color:'#234003',marginBottom:14}}>Улучшилось</div><EList items={plan?.improved||[]} canEdit={ce} onSave={v=>saveText('improved',v)} color="#234003"/></div>
