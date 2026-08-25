@@ -689,7 +689,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
         </div>
         <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}} className='lh-grid4'>
           {churnFields.map(f=>{const val=plan?.[f.k];const prev=cmpPlan?.[f.k];const d=val!=null&&prev!=null&&prev!==0?(f.isBs?((val-prev)/prev*100):(val-prev)):null;const dStr=d!=null?(f.isBs?(d>0?'+':'')+d.toFixed(1)+'%':(d>0?'+':'')+d.toFixed(1)+'pp'):null;const isGood=f.isBs?(d&&d>0):(d&&d<0)
-            return<div key={f.k} style={{background:'#F7F8F9',borderRadius:10,padding:'14px 12px'}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>{f.l}</div><div className='lh-num' style={{fontSize:22,fontWeight:600}}><EdNum value={val} canEdit={ce} onSave={v=>savePlan(f.k,v)} style={{fontSize:22,fontWeight:600}}/></div><div style={{fontSize:12,color:'#9AA0A6',marginTop:4}}>{months[cc]?.slice(0,3)}: {prev!=null?(f.isBs?prev.toLocaleString():prev+'%'):'—'} {dStr&&<span style={{fontWeight:600,color:isGood?'#497B02':'#A71F00'}}>{dStr}</span>}</div></div>})}
+            return<div key={f.k} style={{background:'#F7F8F9',borderRadius:10,padding:'14px 12px'}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>{f.l}</div><div className='lh-num' style={{fontSize:22,fontWeight:600}}><EdNum value={val} canEdit={ce} onSave={v=>savePlan(f.k,v)} style={{fontSize:22,fontWeight:600}}/>{!f.isBs&&val!=null&&<span style={{fontSize:16,fontWeight:500}}>%</span>}</div><div style={{fontSize:12,color:'#9AA0A6',marginTop:4}}>{months[cc]?.slice(0,3)}: {prev!=null?(f.isBs?prev.toLocaleString():prev+'%'):'—'} {dStr&&<span style={{fontWeight:600,color:isGood?'#497B02':'#A71F00'}}>{dStr}</span>}</div></div>})}
         </div>
       </div>})()}
 
@@ -716,7 +716,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {keyProjects.map(p=>{const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait;const sm=summaries[p.id]||{};const showW=expandedWeekly[p.id]||false
       return<div key={p.id} style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'22px 24px',marginBottom:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:14}}>
-          <div><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><div style={{fontSize:14,color:S.i3,marginTop:2}}>{p.owner}</div></div>
+          <div><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><div style={{fontSize:14,color:S.i3,marginTop:2}}>{p.owner}{p.start_date&&<span> · с {p.start_date}</span>}{p.test_date&&<span> · тест {p.test_date}</span>}{p.deadline&&<span> · дедлайн {p.deadline}</span>}</div></div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>{ce&&<button onClick={async()=>{await supabase.from('projects').update({priority:'current'}).eq('id',p.id);reload()}} title="Убрать из ключевых" style={{fontSize:15,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}</div>
         </div>
         <div style={{borderLeft:`3px solid ${p.status==='risk'||p.status==='blocked'?'#DD2A02':p.status==='done'?'#6E9B0E':'#F18B0E'}`,paddingLeft:16}}>

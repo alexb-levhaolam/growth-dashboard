@@ -2,7 +2,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:'Poppins','Montserrat',-apple-system,sans-serif;color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
 body{font-weight:500;font-size:15px;line-height:1.45}
-input,select,textarea,button{font-family:inherit}
+input,select,textarea,button{font-family:inherit;color:#121416}
 .lh-sidebar{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.1) transparent}
 @media print{body{background:#fff}.no-print{display:none!important}}
 
