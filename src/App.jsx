@@ -604,11 +604,11 @@ const DECISIONS=[{v:'continue_test',l:'продолжаем тест'},{v:'escal
 
 function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
   const[year,setYear]=useState(2026);const[month,setMonth]=useState(null);const[compare,setCompare]=useState(null)
-  const[mData,setMData]=useState({});const[loading,setLoading]=useState(false);const[churnCmp,setChurnCmp]=useState(null);const[expandedWeekly,setExpandedWeekly]=useState({})
+  const[mData,setMData]=useState({});const[loading,setLoading]=useState(false);const[churnCmp,setChurnCmp]=useState(null);const[expandedWeekly,setExpandedWeekly]=useState({});const[metricsCmp,setMetricsCmp]=useState(null);const[localStatus,setLocalStatus]=useState(null)
   const months=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
 
   const loadMonth=async(y,m)=>{const key=`${y}-${String(m+1).padStart(2,'0')}`;if(mData[key])return mData[key];setLoading(true);try{const r=await fetch(`/api/monthly?month=${key}`);const d=await r.json();const weeks=reports.filter(r=>r.week_start?.startsWith(key)).sort((a,b)=>a.week_start.localeCompare(b.week_start));const result={...d,weeks,key};setMData(prev=>({...prev,[key]:result}));return result}catch(e){console.error(e)}finally{setLoading(false)}}
-  const selectMonth=async(m)=>{setMonth(m);const key=`${year}-${String(m+1).padStart(2,'0')}`;if(!mData[key])await loadMonth(year,m)}
+  const selectMonth=async(m)=>{setMonth(m);setLocalStatus(null);const key=`${year}-${String(m+1).padStart(2,'0')}`;if(!mData[key])await loadMonth(year,m)}
   const selectCompare=async(y,m)=>{await loadMonth(y,m);setCompare({year:y,month:m})}
 
   const sel=month!=null?mData[`${year}-${String(month+1).padStart(2,'0')}`]:null
@@ -654,35 +654,31 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     </div>
 
     {/* ═══ 1. STATUS ═══ */}
-    <div className='lh-mplate' style={{background:plan?.status==='red'?'linear-gradient(180deg,#DD2A02,#A71F00)':plan?.status==='green'?'linear-gradient(180deg,#6E9B0E,#497B02)':'linear-gradient(180deg,#F18B0E,#B76400)',borderRadius:14,padding:32,color:'#fff',marginBottom:24}}>
-      {ce?<select value={plan?.status||'yellow'} onChange={e=>savePlan('status',e.target.value)} style={{fontSize:14,fontWeight:600,padding:'8px 16px',borderRadius:999,border:'none',cursor:'pointer',color:'#fff',background:plan?.status==='green'?'#6E9B0E':plan?.status==='red'?'#DD2A02':'#F18B0E'}}><option value='green'>зелёный</option><option value='yellow'>жёлтый</option><option value='red'>красный</option></select>:<Chip bg={plan?.status==='green'?'#6E9B0E':plan?.status==='red'?'#DD2A02':'#F18B0E'} tx='#fff'>{plan?.status==='green'?'зелёный':plan?.status==='red'?'красный':'жёлтый'}</Chip>}
+    <div className='lh-mplate' style={{background:(localStatus||plan?.status)==='red'?'linear-gradient(180deg,#DD2A02,#A71F00)':(localStatus||plan?.status)==='green'?'linear-gradient(180deg,#6E9B0E,#497B02)':'linear-gradient(180deg,#F18B0E,#B76400)',borderRadius:14,padding:32,color:'#fff',marginBottom:24}}>
+      {ce?<select value={localStatus||plan?.status||'yellow'} onChange={e=>{setLocalStatus(e.target.value);savePlan('status',e.target.value)}} style={{fontSize:14,fontWeight:600,padding:'8px 16px',borderRadius:999,border:'none',cursor:'pointer',color:'#fff',background:(localStatus||plan?.status)==='green'?'#6E9B0E':(localStatus||plan?.status)==='red'?'#DD2A02':'#F18B0E'}}><option value='green'>зелёный</option><option value='yellow'>жёлтый</option><option value='red'>красный</option></select>:<Chip bg={(localStatus||plan?.status)==='green'?'#6E9B0E':(localStatus||plan?.status)==='red'?'#DD2A02':'#F18B0E'} tx='#fff'>{(localStatus||plan?.status)==='green'?'зелёный':(localStatus||plan?.status)==='red'?'красный':'жёлтый'}</Chip>}
       <h2 className='lh-title' style={{fontSize:28,fontWeight:700,margin:'12px 0 8px'}}>Growth report · {months[month]} {year}</h2>
       <Ed value={plan?.status_description||''} canEdit={ce} onSave={v=>saveText('status_description',v)} ph="Краткое описание статуса месяца..." style={{fontSize:15,color:'rgba(255,255,255,.8)'}}/>
     </div>
 
-    {/* ═══ 2. METRICS CARDS ═══ */}
-    <div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:24}}>
-      <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:20}}>Метрики · факт vs план</div>
-      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}} className='lh-grid4'>
-        {[{l:'Продажи',f:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false},{l:'CPO Ads',f:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$'},{l:'CPO Total',f:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$'},{l:'Бюджет',f:sel.totalSpentBM||0,p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$'}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);return<div key={i}>
+    {/* ═══ 2. METRICS CARDS + COMPARISON ═══ */}
+    {(()=>{const mc=metricsCmp!=null?metricsCmp:null;const mcKey=mc!=null?`${year}-${String(mc+1).padStart(2,'0')}`:null;const mcData=mcKey?mData[mcKey]:null;const mcPlan=mcKey?mPlans.find(p=>p.id===mcKey):null;const mcCpoAds=mcData&&mcData.paidSales>0?Math.round((mcData.adSpend+(mcData.discountsBL||0))/mcData.paidSales):null;const mcCpoTotal=mcData&&mcData.totalSales>0?Math.round((mcData.totalSpentBM||0)/mcData.totalSales):null
+    return<div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:24}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+        <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase'}}>Метрики · факт vs план</div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:12,color:'rgba(255,255,255,.4)'}}>vs:</span><select value={mc!=null?mc:''} onChange={async e=>{const v=e.target.value;if(v===''){setMetricsCmp(null);return};const mi=Number(v);setMetricsCmp(mi);const k=`${year}-${String(mi+1).padStart(2,'0')}`;if(!mData[k])await loadMonth(year,mi)}} style={{font:'500 12px/1 Poppins,sans-serif',padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'rgba(255,255,255,.1)',color:'#fff',cursor:'pointer'}}><option value=''>без сравнения</option>{months.map((mn,mi)=>mi!==month&&<option key={mi} value={mi}>{mn}</option>)}</select></div>
+      </div>
+      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}}>
+        {[{l:'Продажи',f:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false,cf:mcData?.totalSales},{l:'CPO Ads',f:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$',cf:mcCpoAds},{l:'CPO Total',f:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$',cf:mcCpoTotal},{l:'Бюджет',f:sel.totalSpentBM||0,p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$',cf:mcData?.totalSpentBM}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);const cd=x.cf!=null&&x.f!=null&&x.cf!==0?Math.round((x.f-x.cf)/x.cf*100):null;const cGood=x.inv?(cd&&cd<0):(cd&&cd>0)
+          return<div key={i}>
           <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:8}}>{x.l}</div>
           <div style={{display:'flex',alignItems:'baseline',gap:10}}><span className='lh-num' style={{fontSize:36,fontWeight:600}}>{x.pre||''}<EdNum value={x.f} canEdit={ce} onSave={v=>savePlan('actual_'+x.pk,v)} style={{fontSize:36,fontWeight:600,color:'#fff'}}/></span><Spark data={x.sp} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/></div>
-          <div style={{fontSize:14,color:'rgba(255,255,255,.45)',marginTop:8}}>план <EdNum value={x.p} canEdit={ce} onSave={v=>savePlan(x.pk,v)} style={{fontSize:14,color:'rgba(255,255,255,.45)'}}/>{d!=null&&<span style={{marginLeft:8,fontWeight:600,color:isGood?'#AAD34F':'#FF8A6F'}}>{d>0?'+':''}{d}%</span>}</div>
+          <div style={{fontSize:13,color:'rgba(255,255,255,.45)',marginTop:6}}>план <EdNum value={x.p} canEdit={ce} onSave={v=>savePlan(x.pk,v)} style={{fontSize:13,color:'rgba(255,255,255,.45)'}}/>{d!=null&&<span style={{marginLeft:6,fontWeight:600,color:isGood?'#AAD34F':'#FF8A6F'}}>{d>0?'+':''}{d}%</span>}</div>
+          {mc!=null&&<div style={{fontSize:12,color:'rgba(255,255,255,.35)',marginTop:4}}>{months[mc]?.slice(0,3)}: {x.pre||''}{x.cf?.toLocaleString()||'—'}{cd!=null&&<span style={{marginLeft:6,fontWeight:600,color:cGood?'#AAD34F':'#FF8A6F'}}>{cd>0?'+':''}{cd}%</span>}</div>}
         </div>})}
       </div>
-    </div>
+    </div>})()}
 
-    {/* ═══ 2b. COMPARISON ═══ */}
-    {compare&&cm&&<div style={{background:'#EDF5FF',borderRadius:14,padding:22,marginBottom:24}}>
-      <div style={{fontSize:15,fontWeight:600,color:'#1761CB',marginBottom:14}}>Сравнение: {months[month]} vs {months[compare.month]} {compare.year}</div>
-      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}} className='lh-grid4'>
-        {[{l:'Продажи',a:sel.totalSales,b:cm.totalSales},{l:'CPO Ads',a:cpoAds,b:cm.paidSales>0?Math.round((cm.adSpend+(cm.discountsBL||0))/cm.paidSales):null,pre:'$'},{l:'CPO Total',a:cpoTotal,b:cm.totalSales>0?Math.round((cm.totalSpentBM||0)/cm.totalSales):null,pre:'$'},{l:'Бюджет',a:sel.totalSpentBM,b:cm.totalSpentBM,pre:'$'}].map((x,i)=>{const d=x.b&&x.a?Math.round((x.a-x.b)/x.b*100):null;const isGood=x.l.includes('CPO')?(d&&d<0):(d&&d>0);return<div key={i} style={{background:'#fff',borderRadius:14,padding:18,boxShadow:S.sh}}>
-          <div style={{fontSize:13,color:'#737A82',marginBottom:6}}>{x.l}</div>
-          <div style={{display:'flex',gap:16,alignItems:'baseline'}}><div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{x.pre||''}{x.a?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>текущий</div></div><div style={{fontSize:20,color:'#9AA0A6'}}>vs</div><div><div className='lh-num' style={{fontSize:28,fontWeight:600,color:'#585E65'}}>{x.pre||''}{x.b?.toLocaleString()||'—'}</div><div style={{fontSize:12,color:'#737A82'}}>сравнение</div></div></div>
-          {d!=null&&<div style={{marginTop:8}}><span style={{display:'inline-flex',alignItems:'center',fontSize:14,fontWeight:600,padding:'6px 14px',borderRadius:999,background:isGood?'#F7FBEA':'#FFEEEA',color:isGood?'#497B02':'#A71F00'}}>{d>0?'+':''}{d}%</span></div>}
-        </div>})}
-      </div>
-    </div>}
+
 
     {/* ═══ 3. CHURN RATE ═══ */}
     {(()=>{const churnFields=[{k:'churn_base',l:'Активная база',isBs:true},{k:'churn_total',l:'Общий отток'},{k:'churn_0_12',l:'Отток в шт.',isBs:true},{k:'churn_0_3',l:'Отток 0–3 мес'},{k:'churn_4_6',l:'Отток 4–6 мес'},{k:'churn_7_12',l:'Отток 7–12 мес'},{k:'churn_13_24',l:'Отток 13–24 мес'},{k:'churn_25p',l:'Отток 25+ мес'}];const cc=churnCmp!=null?churnCmp:(month>0?month-1:11);const cmpKey=`${year}-${String(cc+1).padStart(2,'0')}`;const cmpPlan=mPlans.find(p=>p.id===cmpKey)
@@ -724,7 +720,8 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
           <div style={{display:'flex',gap:8,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>{ce&&<button onClick={async()=>{await supabase.from('projects').update({priority:'current'}).eq('id',p.id);reload()}} title="Убрать из ключевых" style={{fontSize:15,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}</div>
         </div>
         <div style={{borderLeft:`3px solid ${p.status==='risk'||p.status==='blocked'?'#DD2A02':p.status==='done'?'#6E9B0E':'#F18B0E'}`,paddingLeft:16}}>
-          {[{k:'promised',l:'Обещали'},{k:'fact',l:'Факт'},{k:'conclusion',l:'Вывод'}].map(f=><div key={f.k} style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15}}><span style={{color:S.i3,fontWeight:600}}>{f.l}:</span><Ed value={sm[f.k]||''} canEdit={ce} onSave={v=>saveSummary(p.id,f.k,v)} ph={`${f.l}...`} style={{color:S.ink}}/></div>)}
+          <div style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15}}><span style={{color:S.i3,fontWeight:600}}>Обещали:</span><Ed value={p.promised||''} canEdit={ce} onSave={async v=>{await supabase.from('projects').update({promised:v}).eq('id',p.id);reload()}} ph='Обещали...' style={{color:S.ink}}/></div>
+          {[{k:'fact',l:'Факт'},{k:'conclusion',l:'Вывод'}].map(f=><div key={f.k} style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15}}><span style={{color:S.i3,fontWeight:600}}>{f.l}:</span><Ed value={sm[f.k]||''} canEdit={ce} onSave={v=>saveSummary(p.id,f.k,v)} ph={`${f.l}...`} style={{color:S.ink}}/></div>)}
           <div style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15,alignItems:'center'}}><span style={{color:S.i3,fontWeight:600}}>Решение:</span>{ce?<select value={sm.decision||''} onChange={e=>saveSummary(p.id,'decision',e.target.value)} style={{padding:'6px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,fontWeight:600,cursor:'pointer'}}><option value="">выбрать...</option>{DECISIONS.map(d=><option key={d.v} value={d.v}>{d.l}</option>)}</select>:<span style={{fontSize:14,fontWeight:600}}>{DECISIONS.find(d=>d.v===sm.decision)?.l||sm.decision||'—'}</span>}</div>
           <div style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15}}><span style={{color:S.i3,fontWeight:600}}>Дальше:</span><Ed value={sm.next||''} canEdit={ce} onSave={v=>saveSummary(p.id,'next',v)} ph="Что дальше..." style={{color:S.ink}}/></div>
         </div>
