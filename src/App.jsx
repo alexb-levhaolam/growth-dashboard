@@ -346,21 +346,31 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>})}
     </div>
 
+    {(()=>{const hiddenIds=rep.hidden_overview_projects||[];const[showPicker,setShowPicker]=useState(false);const[expandedComm,setExpandedComm]=useState({});const visibleProjects=shown.filter(p=>!hiddenIds.includes(p.id))
+    return<>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
       <Label style={{margin:0}}>Приоритетные проекты</Label>
-      {ce&&<button onClick={()=>{const h=rep.hidden_overview_projects||[];const all=projects.filter(p=>p.priority==='key').map(p=>p.id);const vis=all.filter(id=>!h.includes(id));const next=vis.length===all.length?[]:[];up({hidden_overview_projects:next})}} style={{fontSize:12,color:S.i3,background:'none',border:'none',cursor:'pointer'}}>настроить показ</button>}
+      {ce&&<button onClick={()=>setShowPicker(!showPicker)} style={{fontSize:13,color:S.gd,background:'none',border:'none',cursor:'pointer',fontWeight:600}}>{showPicker?'Готово':'Настроить показ'}</button>}
     </div>
+    {showPicker&&ce&&<div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16,marginBottom:16}}>
+      <div style={{fontSize:13,color:S.i3,marginBottom:8}}>Отметьте проекты для показа в обзоре:</div>
+      {shown.map(p=><label key={p.id} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',cursor:'pointer',fontSize:14}}>
+        <input type="checkbox" checked={!hiddenIds.includes(p.id)} onChange={()=>{const h=hiddenIds.includes(p.id)?hiddenIds.filter(id=>id!==p.id):[...hiddenIds,p.id];up({hidden_overview_projects:h})}}/>
+        <span style={{fontWeight:500}}>{p.name}</span><span style={{color:S.i3,fontSize:12}}>· {(PROJ_ST[p.status]||PROJ_ST.wait).l}</span>
+      </label>)}
+    </div>}
     <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
-      {shown.filter(p=>!(rep.hidden_overview_projects||[]).includes(p.id)).map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id);const isLong=lc&&(lc.full_text||lc.summary||'').length>150;const[showFull,setShowFull]=useState(false)
+      {visibleProjects.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id);const txt=lc?(lc.full_text||lc.summary||''):'';const isLong=txt.length>150;const isFull=expandedComm[p.id]
         return<div key={p.id} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'16px 18px',borderLeft:p.status==='risk'||p.status==='blocked'?'3px solid #DD2A02':'none',borderRadius:p.status==='risk'||p.status==='blocked'?'0 14px 14px 0':14}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:6}}><span style={{fontSize:16,fontWeight:600}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
-          {p.last_update&&<div style={{fontSize:14,color:S.i2,marginBottom:8,lineHeight:1.4}}>{p.last_update}</div>}
+          {p.last_update&&<div style={{fontSize:14,color:S.i2,marginBottom:8,lineHeight:1.4}}>{p.last_update.slice(0,100)}{p.last_update.length>100?'…':''}</div>}
           {lc&&<div style={{borderTop:`1px solid ${S.ln}`,paddingTop:8,marginTop:4}}>
             <div style={{fontSize:12,color:S.i3,marginBottom:4}}>{lc.author} · {lc.week_start}</div>
-            <div style={{fontSize:14,color:S.i2,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{showFull||!isLong?<Linkify>{lc.full_text||lc.summary}</Linkify>:<>{(lc.full_text||lc.summary).slice(0,150)}… <button onClick={()=>setShowFull(true)} style={{fontSize:12,color:'#1761CB',background:'none',border:'none',cursor:'pointer',fontWeight:600}}>ещё</button></>}</div>
+            <div style={{fontSize:14,color:S.i2,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{isFull||!isLong?<Linkify>{txt}</Linkify>:<>{txt.slice(0,150)}… <button onClick={()=>setExpandedComm(prev=>({...prev,[p.id]:true}))} style={{fontSize:12,color:'#1761CB',background:'none',border:'none',cursor:'pointer',fontWeight:600}}>ещё</button></>}</div>
           </div>}
         </div>})}
     </div>
+    </>})()}
 
     <div style={{display:'flex',gap:12,marginBottom:12,flexWrap:'wrap'}}>
       <div style={{flex:1,background:'var(--g-25,#F7FBEA)',borderRadius:14,padding:'22px 16px'}}>
