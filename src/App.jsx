@@ -137,10 +137,7 @@ function Main({profile}){
     {page==='monthly'&&isA&&<MonthlyReport reports={reports} projects={projects} comments={comments} mPlans={mPlans} setMPlans={setMPlans} ce={ce} reload={reload}/>}
 
     {/* YOY */}
-    {page==='yoy'&&<>
-      <h1 style={{fontSize:24,fontWeight:600,marginBottom:24}}>Годовой / YoY</h1>
-      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:40,textAlign:'center',color:S.i3}}>В разработке</div>
-    </>}
+    {page==='yoy'&&<YoYReport/>}
 
     {/* PROJECTS STANDALONE */}
     {page==='projects-all'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload} rep={rep} upRep={upRep}/>}
@@ -806,5 +803,130 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {/* ═══ 10. ASKS ═══ */}
     <Label>Что нужно от руководства</Label>
     <div style={{background:'linear-gradient(180deg,#234003,#131B0B)',borderRadius:14,padding:22,color:'#fff',marginBottom:24}}><EList items={plan?.asks||[]} canEdit={ce} onSave={v=>saveText('asks',v)} color="#AAD34F"/></div>
+  </>
+}
+
+
+// ═══ YOY REPORT ═══
+function YoYReport(){
+  const[data,setData]=useState([]);const[y1,setY1]=useState(2025);const[y2,setY2]=useState(2026)
+  const[loading,setLoading]=useState(true);const months=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек']
+
+  useEffect(()=>{(async()=>{setLoading(true);const{data:d}=await supabase.from('yearly_metrics').select('*').order('id');if(d)setData(d);setLoading(false)})()},[])
+
+  const d1=data.filter(d=>d.year===y1);const d2=data.filter(d=>d.year===y2)
+  const get=(arr,m,f)=>{const r=arr.find(x=>x.month===m);return r?r[f]:null}
+  const pct=(a,b)=>b&&a?Math.round((a-b)/b*100):null
+  const fmt=v=>v!=null?v.toLocaleString():'—'
+  const fmtD=v=>v!=null?(v>=0?'+':'')+v.toLocaleString():'—'
+
+  // SVG Line Chart
+  const LineChart=({data1,data2,label1,label2,height=160,prefix='',color1='#6E9B0E',color2='#1761CB'})=>{
+    const all=[...data1,...data2].filter(v=>v!=null);if(all.length<2)return null
+    const mn=Math.min(...all),mx=Math.max(...all),rng=mx-mn||1;const w=600;const h=height
+    const pts=(arr,c)=>{const valid=arr.map((v,i)=>[i,v]).filter(([_,v])=>v!=null);if(valid.length<2)return null
+      const path=valid.map(([i,v])=>`${40+i*(w-80)/(arr.length-1)},${h-30-((v-mn)/rng)*(h-50)}`).join(' ')
+      return<polyline points={path} fill="none" stroke={c} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/>}
+    return<svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:'auto',marginBottom:16}}>
+      {[0,.25,.5,.75,1].map(p=><g key={p}><line x1={40} x2={w-20} y1={h-30-p*(h-50)} y2={h-30-p*(h-50)} stroke="#E4E6E9" strokeWidth={0.5}/><text x={36} y={h-26-p*(h-50)} textAnchor="end" fill="#9AA0A6" fontSize={10}>{prefix}{Math.round(mn+p*rng).toLocaleString()}</text></g>)}
+      {months.map((m,i)=><text key={i} x={40+i*(w-80)/11} y={h-8} textAnchor="middle" fill="#9AA0A6" fontSize={10}>{m}</text>)}
+      {pts(data1,color1)}{pts(data2,color2)}
+      <text x={w-18} y={16} textAnchor="end" fill={color1} fontSize={11} fontWeight={600}>{label1}</text>
+      <text x={w-18} y={30} textAnchor="end" fill={color2} fontSize={11} fontWeight={600}>{label2}</text>
+    </svg>}
+
+  // Bar Chart for channels
+  const BarChart=({channels,field,prefix='',height=180})=>{
+    const chs=channels;const w=600;const h=height
+    const vals=chs.flatMap(c=>[get(d1,c.m,field),get(d2,c.m,field)]).filter(v=>v!=null)
+    if(vals.length===0)return null;const mx=Math.max(...vals)||1
+    const bw=20;const gap=8;const groupW=bw*2+gap
+    return<svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:'auto',marginBottom:16}}>
+      {chs.map((c,i)=>{const v1=get(d1,c.m,field)||0;const v2=get(d2,c.m,field)||0;const x=40+i*(w-60)/chs.length
+        return<g key={i}><rect x={x} y={h-30-(v1/mx)*(h-50)} width={bw} height={(v1/mx)*(h-50)} fill="#6E9B0E" rx={3} opacity={.8}/><rect x={x+bw+2} y={h-30-(v2/mx)*(h-50)} width={bw} height={(v2/mx)*(h-50)} fill="#1761CB" rx={3} opacity={.8}/><text x={x+bw} y={h-8} textAnchor="middle" fill="#9AA0A6" fontSize={10}>{c.l}</text></g>})}
+    </svg>}
+
+  if(loading)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Загрузка...</div>
+
+  // YTD calculations
+  const ytd1=d1.reduce((s,d)=>s+(d.sales||0),0);const ytd2=d2.reduce((s,d)=>s+(d.sales||0),0)
+  const spend1=d1.reduce((s,d)=>s+(d.spend_meta||0)+(d.spend_google||0),0);const spend2=d2.reduce((s,d)=>s+(d.spend_meta||0)+(d.spend_google||0),0)
+  const base1=d1[d1.length-1]?.subscriber_base;const base2=d2[d2.length-1]?.subscriber_base
+
+  return<>
+    <h1 style={{fontSize:24,fontWeight:600,marginBottom:24}}>Годовой / YoY</h1>
+    <div style={{display:'flex',gap:10,marginBottom:24,alignItems:'center'}}>
+      <select value={y1} onChange={e=>setY1(Number(e.target.value))} style={{padding:'8px 14px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:15,fontWeight:600}}><option value={2025}>2025</option><option value={2026}>2026</option></select>
+      <span style={{color:S.i3,fontWeight:600}}>vs</span>
+      <select value={y2} onChange={e=>setY2(Number(e.target.value))} style={{padding:'8px 14px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:15,fontWeight:600}}><option value={2025}>2025</option><option value={2026}>2026</option></select>
+    </div>
+
+    {/* KPI SUMMARY */}
+    <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:28}}>
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>Продажи YTD {y1}</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{fmt(ytd1)}</div></div>
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>Продажи YTD {y2}</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{fmt(ytd2)}</div><div style={{fontSize:12,color:pct(ytd2,ytd1)>0?'#497B02':'#A71F00',fontWeight:600,marginTop:4}}>{pct(ytd2,ytd1)!=null?(pct(ytd2,ytd1)>0?'+':'')+pct(ytd2,ytd1)+'%':''}</div></div>
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>База {y2}</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{fmt(base2)}</div><div style={{fontSize:12,color:S.i3,marginTop:4}}>{y1}: {fmt(base1)}</div></div>
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>Spend YTD {y2}</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>${(spend2/1000).toFixed(0)}K</div><div style={{fontSize:12,color:S.i3,marginTop:4}}>{y1}: ${(spend1/1000).toFixed(0)}K</div></div>
+    </div>
+
+    {/* SALES CHART */}
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>Продажи помесячно</div>
+      <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'sales'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'sales'))} label1={String(y1)} label2={String(y2)}/>
+      <table style={{width:'100%',borderCollapse:'collapse',fontSize:14}}><thead><tr style={{borderBottom:`1px solid ${S.ln}`}}><th style={{textAlign:'left',fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'8px 10px'}}>Мес</th>{months.map(m=><th key={m} style={{textAlign:'right',fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'8px 6px'}}>{m}</th>)}<th style={{textAlign:'right',fontSize:11,fontWeight:600,color:S.i3,padding:'8px 10px'}}>YTD</th></tr></thead>
+      <tbody>
+        <tr style={{borderBottom:`1px solid #E4E6E9`}}><td style={{padding:'8px 10px',fontWeight:600,color:'#6E9B0E'}}>{y1}</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'8px 6px'}}>{fmt(get(d1,i+1,'sales'))}</td>)}<td style={{textAlign:'right',padding:'8px 10px',fontWeight:600}}>{fmt(ytd1)}</td></tr>
+        <tr style={{borderBottom:`1px solid #E4E6E9`}}><td style={{padding:'8px 10px',fontWeight:600,color:'#1761CB'}}>{y2}</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'8px 6px'}}>{fmt(get(d2,i+1,'sales'))}</td>)}<td style={{textAlign:'right',padding:'8px 10px',fontWeight:600}}>{fmt(ytd2)}</td></tr>
+        <tr><td style={{padding:'8px 10px',fontWeight:600,color:S.i3}}>Δ%</td>{Array.from({length:12},(_,i)=>{const d=pct(get(d2,i+1,'sales'),get(d1,i+1,'sales'));return<td key={i} style={{textAlign:'right',padding:'8px 6px',fontWeight:600,color:d!=null?(d>=0?'#497B02':'#A71F00'):'#9AA0A6'}}>{d!=null?(d>=0?'+':'')+d+'%':'—'}</td>})}<td style={{textAlign:'right',padding:'8px 10px',fontWeight:600,color:pct(ytd2,ytd1)>=0?'#497B02':'#A71F00'}}>{pct(ytd2,ytd1)!=null?(pct(ytd2,ytd1)>=0?'+':'')+pct(ytd2,ytd1)+'%':'—'}</td></tr>
+      </tbody></table>
+    </div>
+
+    {/* CHANNELS CHART — Meta */}
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>Meta · продажи</div>
+      <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'ch_meta'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'ch_meta'))} label1={String(y1)} label2={String(y2)}/>
+    </div>
+
+    {/* CHANNELS CHART — Google */}
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>Google · продажи</div>
+      <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'ch_google'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'ch_google'))} label1={String(y1)} label2={String(y2)} color1="#FF6C1C" color2="#1761CB"/>
+    </div>
+
+    {/* CPO CHART */}
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>CPO · Meta</div>
+      <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'cpo_meta'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'cpo_meta'))} label1={String(y1)} label2={String(y2)} prefix="$"/>
+    </div>
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>CPO · Google</div>
+      <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'cpo_google'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'cpo_google'))} label1={String(y1)} label2={String(y2)} prefix="$" color1="#FF6C1C" color2="#1761CB"/>
+    </div>
+
+    {/* RETENTION */}
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>Активная база подписчиков</div>
+      <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'subscriber_base'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'subscriber_base'))} label1={String(y1)} label2={String(y2)}/>
+    </div>
+
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:24}} className="lh-analysis">
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22}}>
+        <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>Churn Rate %</div>
+        <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'churn_rate'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'churn_rate'))} label1={String(y1)} label2={String(y2)} prefix="" color1="#DD2A02" color2="#F18B0E" height={140}/>
+      </div>
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22}}>
+        <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>Net Growth</div>
+        <LineChart data1={Array.from({length:12},(_,i)=>get(d1,i+1,'net_growth'))} data2={Array.from({length:12},(_,i)=>get(d2,i+1,'net_growth'))} label1={String(y1)} label2={String(y2)} color1="#497B02" color2="#DD2A02" height={140}/>
+      </div>
+    </div>
+
+    {/* ANNOTATIONS */}
+    {data.filter(d=>d.annotation).length>0&&<div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:24}}>
+      <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:14}}>Аннотации</div>
+      {data.filter(d=>d.annotation).sort((a,b)=>a.id.localeCompare(b.id)).map(d=><div key={d.id} style={{display:'flex',gap:12,padding:'8px 0',borderBottom:'1px solid #E4E6E9',fontSize:14}}>
+        <span style={{fontWeight:600,color:d.year===y1?'#6E9B0E':'#1761CB',minWidth:70}}>{months[d.month-1]} {d.year}</span>
+        <span style={{color:S.i2}}>{d.annotation}</span>
+      </div>)}
+    </div>}
   </>
 }
