@@ -126,7 +126,7 @@ function Main({profile}){
         {weeklyTabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:'0 0 auto',padding:'8px 14px',border:'none',borderRadius:8,cursor:'pointer',fontSize:15,fontWeight:600,background:view===t.id?'#6E9B0E':'transparent',color:view===t.id?'#fff':'#585E65',whiteSpace:'nowrap'}}>{t.l}</button>)}
       </div>
       {view==='overview'&&rep&&<Overview rep={rep} reports={reports} projects={projects} comments={comments} ce={ce} up={upRep} tTasks={tTasks} tProgress={tProgress} print={printOverview} refreshDaily={refreshFromDaily} mPlans={mPlans}/>}
-      {view==='projects'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload}/>}
+      {view==='projects'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload} rep={rep} upRep={upRep}/>}
       {view==='tactical'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={reload} profile={profile}/>}
       {view==='plan'&&<Plan plans={mPlans} ce={ce} reload={reload}/>}
       {view==='dynamics'&&<Dynamics projects={projects} comments={comments} reports={reports} aIdx={aIdx} ce={ce} reload={reload}/>}
@@ -143,7 +143,7 @@ function Main({profile}){
     </>}
 
     {/* PROJECTS STANDALONE */}
-    {page==='projects-all'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload}/>}
+    {page==='projects-all'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload} rep={rep} upRep={upRep}/>}
 
     {/* TACTICAL STANDALONE */}
     {page==='tactical-all'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={reload} profile={profile}/>}
@@ -346,19 +346,9 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>})}
     </div>
 
-    {(()=>{const hiddenIds=rep.hidden_overview_projects||[];const[showPicker,setShowPicker]=useState(false);const[expandedComm,setExpandedComm]=useState({});const visibleProjects=shown.filter(p=>!hiddenIds.includes(p.id))
-    return<>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-      <Label style={{margin:0}}>Приоритетные проекты</Label>
-      {ce&&<button onClick={()=>setShowPicker(!showPicker)} style={{fontSize:13,color:S.gd,background:'none',border:'none',cursor:'pointer',fontWeight:600}}>{showPicker?'Готово':'Настроить показ'}</button>}
-    </div>
-    {showPicker&&ce&&<div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16,marginBottom:16}}>
-      <div style={{fontSize:13,color:S.i3,marginBottom:8}}>Отметьте проекты для показа в обзоре:</div>
-      {shown.map(p=><label key={p.id} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',cursor:'pointer',fontSize:14}}>
-        <input type="checkbox" checked={!hiddenIds.includes(p.id)} onChange={()=>{const h=hiddenIds.includes(p.id)?hiddenIds.filter(id=>id!==p.id):[...hiddenIds,p.id];up({hidden_overview_projects:h})}}/>
-        <span style={{fontWeight:500}}>{p.name}</span><span style={{color:S.i3,fontSize:12}}>· {(PROJ_ST[p.status]||PROJ_ST.wait).l}</span>
-      </label>)}
-    </div>}
+        {(()=>{const visIds=rep.visible_overview_projects||[];const[expandedComm,setExpandedComm]=useState({});const visibleProjects=projects.filter(p=>p.status!=='done'&&visIds.includes(p.id))
+    return visibleProjects.length>0&&<>
+    <Label>Приоритетные проекты</Label>
     <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
       {visibleProjects.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id);const txt=lc?(lc.full_text||lc.summary||''):'';const isLong=txt.length>150;const isFull=expandedComm[p.id]
         return<div key={p.id} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'16px 18px',borderLeft:p.status==='risk'||p.status==='blocked'?'3px solid #DD2A02':'none',borderRadius:p.status==='risk'||p.status==='blocked'?'0 14px 14px 0':14}}>
@@ -436,7 +426,7 @@ function Tactical({tasks,progress,reports,aIdx,ce,reload,profile}){
 }
 
 // ═══ PROJECTS ═══
-function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,profile,reload}){
+function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,profile,reload,rep:currentRep,upRep}){
   const[exp,setExp]=useState(null);const ncRef=useRef('');const[sav,setSav]=useState(false)
   const[fPri,setFPri]=useState('all');const[fSt,setFSt]=useState('all')
   const[showNewP,setShowNewP]=useState(false);const[np,setNp]=useState({id:'',name:'',owner:'',priority:'current'})
@@ -472,6 +462,8 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
           <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}><Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:600,fontSize:16}}/><span style={{fontSize:13,color:S.i3}}>{p.id}</span><span style={{fontSize:13,color:S.i3}}>·</span><span onClick={e=>e.stopPropagation()}><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:13,color:S.i3}} ph="Владелец"/></span></div>
         </div>
         <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>{ce?<select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:13,padding:'4px 8px',borderRadius:8,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}{ce&&<button onClick={e=>{e.stopPropagation();delProj(p.id,p.name)}} style={{fontSize:14,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}<span style={{color:S.i3,fontSize:12}}>{isO?'▲':'▼'}</span></div>
+      {/* Checkbox: показывать в обзоре */}
+      {ce&&currentRep&&<label onClick={e=>e.stopPropagation()} style={{display:'flex',alignItems:'center',gap:6,marginTop:6,cursor:'pointer',fontSize:13,color:S.i3}}><input type="checkbox" checked={(currentRep.visible_overview_projects||[]).includes(p.id)} onChange={()=>{const vis=currentRep.visible_overview_projects||[];const next=vis.includes(p.id)?vis.filter(id=>id!==p.id):[...vis,p.id];upRep({visible_overview_projects:next})}}/> показывать в обзоре</label>}
       </div>
 
       {/* 2. Описание задачи (always visible) */}
