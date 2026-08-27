@@ -346,13 +346,19 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>})}
     </div>
 
-    <Label>Приоритетные проекты</Label>
-    <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,marginBottom:40}}>
-      {shown.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id)
-        return<div key={p.id} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'10px 14px'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:4}}><span style={{fontSize:17,fontWeight:500}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
-          <div style={{fontSize:15,color:S.i2,lineHeight:1.5}}>{p.last_update}</div>
-          {lc&&<div style={{fontSize:15,color:S.i3,marginTop:4,fontStyle:'italic',whiteSpace:'pre-wrap',lineHeight:1.5}}> <Linkify>{lc.full_text||lc.summary}</Linkify></div>}
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <Label style={{margin:0}}>Приоритетные проекты</Label>
+      {ce&&<button onClick={()=>{const h=rep.hidden_overview_projects||[];const all=projects.filter(p=>p.priority==='key').map(p=>p.id);const vis=all.filter(id=>!h.includes(id));const next=vis.length===all.length?[]:[];up({hidden_overview_projects:next})}} style={{fontSize:12,color:S.i3,background:'none',border:'none',cursor:'pointer'}}>настроить показ</button>}
+    </div>
+    <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
+      {shown.filter(p=>!(rep.hidden_overview_projects||[]).includes(p.id)).map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id);const isLong=lc&&(lc.full_text||lc.summary||'').length>150;const[showFull,setShowFull]=useState(false)
+        return<div key={p.id} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'16px 18px',borderLeft:p.status==='risk'||p.status==='blocked'?'3px solid #DD2A02':'none',borderRadius:p.status==='risk'||p.status==='blocked'?'0 14px 14px 0':14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:6}}><span style={{fontSize:16,fontWeight:600}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
+          {p.last_update&&<div style={{fontSize:14,color:S.i2,marginBottom:8,lineHeight:1.4}}>{p.last_update}</div>}
+          {lc&&<div style={{borderTop:`1px solid ${S.ln}`,paddingTop:8,marginTop:4}}>
+            <div style={{fontSize:12,color:S.i3,marginBottom:4}}>{lc.author} · {lc.week_start}</div>
+            <div style={{fontSize:14,color:S.i2,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{showFull||!isLong?<Linkify>{lc.full_text||lc.summary}</Linkify>:<>{(lc.full_text||lc.summary).slice(0,150)}… <button onClick={()=>setShowFull(true)} style={{fontSize:12,color:'#1761CB',background:'none',border:'none',cursor:'pointer',fontWeight:600}}>ещё</button></>}</div>
+          </div>}
         </div>})}
     </div>
 
@@ -448,23 +454,42 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   const keyP=sortP(filtered.filter(p=>p.priority==='key'));const curP=sortP(filtered.filter(p=>p.priority==='current'))
   const secs=fPri==='all'?[{t:' Ключевые',items:keyP},{t:' Текущие',items:curP}]:fPri==='key'?[{t:' Ключевые',items:keyP}]:[{t:' Текущие',items:curP}]
 
-  const ProjCard=({p})=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const wcs=getWC(p.id);const prev=getPrev(p.id);const isO=exp===p.id;const isBlocked=p.status==='blocked';const hasBlock=p.constraints_text&&p.constraints_text.trim();const ds=dates(p)
-    return<div style={{background:isBlocked?'#FFF0F0':S.sf,border:`1px solid ${isO?S.gl:isBlocked?'#E8AAAA':S.ln}`,borderRadius:14,padding:'12px 16px'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,cursor:'pointer'}} onClick={()=>setExp(isO?null:p.id)}>
+  const ProjCard=({p})=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const wcs=getWC(p.id);const prev=getPrev(p.id);const isO=exp===p.id;const isBlocked=p.status==='blocked';const hasBlock=p.constraints_text&&p.constraints_text.trim();const ds=dates(p);const lastC=wcs[0]||prev
+    return<div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'16px 20px',marginBottom:12,borderLeft:isBlocked?'3px solid #DD2A02':'none',borderRadius:isBlocked?'0 14px 14px 0':14}}>
+      {/* 1. Название / код / исполнитель / статус */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,cursor:'pointer'}} onClick={()=>setExp(isO?null:p.id)}>
         <div style={{flex:1}}>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>{isBlocked&&<span style={{fontSize:16}} title="Блокер"></span>}<Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:500}}/><span style={{fontSize:15,color:S.i3}}>{p.id} · </span><span onClick={e=>e.stopPropagation()}><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:15,color:S.i3}} ph="Владелец"/></span></div>
-          {ds&&<div style={{fontSize:15,color:S.i3,marginTop:2}}> {ds}</div>}
-          {hasBlock&&!isO&&<div style={{fontSize:15,color:'#791F1F',marginTop:2}}> {p.constraints_text.slice(0,60)}{p.constraints_text.length>60?'…':''}</div>}
+          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}><Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:600,fontSize:16}}/><span style={{fontSize:13,color:S.i3}}>{p.id}</span><span style={{fontSize:13,color:S.i3}}>·</span><span onClick={e=>e.stopPropagation()}><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:13,color:S.i3}} ph="Владелец"/></span></div>
         </div>
-        <div style={{display:'flex',gap:6,alignItems:'center'}}>{ce?<select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:15,padding:'2px 6px',borderRadius:8,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}{ce&&<button onClick={e=>{e.stopPropagation();delProj(p.id,p.name)}} style={{fontSize:15,background:'none',border:'none',cursor:'pointer',color:'#ccc'}} title="Удалить">✕</button>}<span style={{color:S.i3}}>{isO?'▲':'▼'}</span></div>
+        <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>{ce?<select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:13,padding:'4px 8px',borderRadius:8,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}{ce&&<button onClick={e=>{e.stopPropagation();delProj(p.id,p.name)}} style={{fontSize:14,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}<span style={{color:S.i3,fontSize:12}}>{isO?'▲':'▼'}</span></div>
       </div>
-      {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
-      {wcs.length===0&&prev&&<div style={{marginTop:6,padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:15,color:'#B76400'}}> {prev.week_start} ({prev.author})</div><div style={{fontSize:17,color:S.i3,fontStyle:'italic',whiteSpace:'pre-wrap'}}><Linkify>{prev.full_text||prev.summary}</Linkify></div></div>}
-      {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12,borderTop:`1px solid ${S.ln}`,paddingTop:12}}>
-        <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f} style={{fontSize:15}}><span style={{color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div>
-        <div style={{marginBottom:10}}><span style={{fontSize:15,color:S.i3,display:'block',marginBottom:2}}>Ограничения</span><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={v=>setConstraints(p.id,v)} ph="Блокеры / ограничения..." style={{fontSize:15,color:hasBlock?'#791F1F':S.i2,display:'block',background:hasBlock?'#FFF5F5':'transparent',padding:hasBlock?'4px 8px':0,borderRadius:6}}/></div>
-        <Ed value={p.last_update} canEdit={ce} multi onSave={v=>upProj(p.id,'last_update',v)} ph="Общее описание..." style={{color:S.i2,fontSize:17,display:'block',marginBottom:12}}/>
-        {ce&&<div style={{display:'flex',gap:8}}><textarea id={"nc-"+p.id} defaultValue="" onChange={e=>{ncRef.current=e.target.value}} placeholder={`Комментарий за ${rep?.week_label||''}...`} rows={2} style={{flex:1,padding:'8px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:17,resize:'vertical',outline:'none',fontFamily:'inherit',fontSize:17,color:'#121416',background:'#fff'}}/><button onClick={()=>addC(p.id)} disabled={sav} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'#497B02',color:'#fff',fontSize:17,fontWeight:600,cursor:'pointer',alignSelf:'flex-end'}}>{sav?'...':'→'}</button></div>}
+
+      {/* 2. Описание задачи (always visible) */}
+      {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:10}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>Описание</div><Ed value={p.last_update||''} canEdit={ce} multi onSave={v=>upProj(p.id,'last_update',v)} ph="Что делаем и для чего..." style={{fontSize:15,color:S.i2,lineHeight:1.5}}/></div>}
+      {!isO&&p.last_update&&<div style={{fontSize:14,color:S.i2,marginTop:6}}>{p.last_update.slice(0,80)}{p.last_update.length>80?'…':''}</div>}
+
+      {/* 3. Ключевые даты (expanded) */}
+      {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}><div style={{fontSize:13,color:S.i3,marginBottom:6}}>Ключевые даты</div><div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f}><span style={{fontSize:12,color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div></div>}
+      {!isO&&ds&&<div style={{fontSize:13,color:S.i3,marginTop:4}}>{ds}</div>}
+
+      {/* 4. Последний комментарий (collapsed: 3 lines, expanded: full) */}
+      {!isO&&lastC&&<div style={{borderTop:`1px solid ${S.ln}`,marginTop:8,paddingTop:8}}>
+        <div style={{fontSize:12,color:S.i3,marginBottom:2}}>{lastC.author} · {lastC.week_start}</div>
+        <div style={{fontSize:14,color:S.i2,lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{lastC.full_text||lastC.summary}</div>
+      </div>}
+      {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}>
+        <div style={{fontSize:13,color:S.i3,marginBottom:6}}>Комментарии</div>
+        {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
+        {wcs.length===0&&prev&&<div style={{padding:'8px 12px',background:'#FFF9E6',borderRadius:8,border:'1px dashed #EAD89B'}}><div style={{fontSize:13,color:'#B76400'}}>{prev.week_start} ({prev.author})</div><div style={{fontSize:14,color:S.i3,whiteSpace:'pre-wrap'}}><Linkify>{prev.full_text||prev.summary}</Linkify></div></div>}
+      </div>}
+
+      {/* 5. Ограничения (expanded) */}
+      {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:10}}><div style={{fontSize:13,color:hasBlock?'#A71F00':S.i3,marginBottom:4}}>Ограничения {hasBlock?'✓':'—'}</div><Ed value={p.constraints_text||''} canEdit={ce} multi onSave={v=>setConstraints(p.id,v)} ph="Нет ограничений" style={{fontSize:14,color:hasBlock?'#A71F00':S.i3,background:hasBlock?'#FFEEEA':'transparent',padding:hasBlock?'6px 10px':0,borderRadius:8}}/></div>}
+      {!isO&&hasBlock&&<div style={{fontSize:13,color:'#A71F00',marginTop:4}}>{p.constraints_text.slice(0,60)}{p.constraints_text.length>60?'…':''}</div>}
+
+      {/* 6. Новый комментарий (expanded) */}
+      {isO&&ce&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12,borderTop:`1px solid ${S.ln}`,paddingTop:10}}>
+        <div style={{display:'flex',gap:8}}><textarea id={"nc-"+p.id} defaultValue="" onChange={e=>{ncRef.current=e.target.value}} placeholder={`Комментарий за ${rep?.week_label||''}...`} rows={2} style={{flex:1,padding:'8px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,resize:'vertical',outline:'none',fontFamily:'inherit',color:'#121416',background:'#fff'}}/><button onClick={()=>addC(p.id)} disabled={sav} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'#497B02',color:'#fff',fontSize:16,fontWeight:600,cursor:'pointer',alignSelf:'flex-end'}}>{sav?'...':'→'}</button></div>
       </div>}
     </div>}
 
