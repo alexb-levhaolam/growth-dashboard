@@ -847,15 +847,17 @@ function YoYReport(){
     </svg>}
 
   // Editable table row
-  const Row=({label,field,yr,prefix,isMoney})=><tr style={{borderBottom:`1px solid ${S.ln}`}}>
+  const Row=({label,field,yr,prefix,isMoney,isAvg})=>{const vals=data.filter(d=>d.year===yr&&d[field]!=null);const ytd=isAvg?(vals.length?Math.round(vals.reduce((s,d)=>s+(d[field]||0),0)/vals.length):null):vals.reduce((s,d)=>s+(d[field]||0),0);return<tr style={{borderBottom:`1px solid ${S.ln}`}}>
     <td style={{padding:'8px 10px',fontWeight:600}}>{label}</td>
     {Array.from({length:12},(_,i)=>{const id=getId(yr,i+1);const v=get(yr,i+1,field);return<td key={i} style={{textAlign:'right',padding:'6px 4px'}}><EdNum value={v} canEdit={true} prefix={isMoney?'$':''} onSave={v2=>saveCell(id,field,v2)} style={{fontSize:13,textAlign:'right'}}/></td>})}
-    <td style={{textAlign:'right',padding:'8px 10px',fontWeight:600}}>{prefix||''}{data.filter(d=>d.year===yr).reduce((s,d)=>s+(d[field]||0),0).toLocaleString()}</td>
-  </tr>
+    <td style={{textAlign:'right',padding:'8px 10px',fontWeight:600}}>{prefix||''}{ytd!=null?ytd.toLocaleString():'—'}</td>
+  </tr>}
 
   // Compare row
-  const CmpRow=({label,field,prefix,isMoney,invertGood})=>{
-    const ytd1=d25.reduce((s,d)=>s+(d[field]||0),0);const ytd2=d26.reduce((s,d)=>s+(d[field]||0),0)
+  const CmpRow=({label,field,prefix,isMoney,invertGood,isAvg})=>{
+    const v25=d25.filter(d=>d[field]!=null);const v26=d26.filter(d=>d[field]!=null)
+    const ytd1=isAvg?(v25.length?Math.round(v25.reduce((s,d)=>s+(d[field]||0),0)/v25.length):0):d25.reduce((s,d)=>s+(d[field]||0),0)
+    const ytd2=isAvg?(v26.length?Math.round(v26.reduce((s,d)=>s+(d[field]||0),0)/v26.length):0):d26.reduce((s,d)=>s+(d[field]||0),0)
     return<><tr style={{borderBottom:`1px solid #E4E6E9`}}>
       <td style={{padding:'6px 10px',fontWeight:600}} rowSpan={3}>{label}</td>
       <td style={{padding:'4px 10px',fontSize:12,color:'#6E9B0E',fontWeight:600}}>2025</td>
@@ -878,13 +880,13 @@ function YoYReport(){
     <tr style={{borderBottom:`1px solid ${S.ln}`,cursor:'pointer',background:isOpen?'#F7F8F9':'transparent'}} onClick={()=>setExpanded(prev=>({...prev,[field]:!prev[field]}))}>
       <td style={{padding:'8px 10px',fontWeight:600}}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
       {yr2?<><td style={{padding:'4px 10px',fontSize:12,color:'#6E9B0E'}}>2025</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'4px',fontSize:13}}>{fmt(get(yr1,i+1,field))}</td>)}<td style={{textAlign:'right',padding:'4px 10px',fontWeight:600,fontSize:13}}>{fmt(d25.reduce((s,d)=>s+(d[field]||0),0))}</td></>
-      :<><td></td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'4px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'4px 10px',fontWeight:600}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td></>}
+      :<>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'4px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'4px 10px',fontWeight:600}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td></>}
     </tr>
     {yr2&&isOpen&&<tr style={{borderBottom:`1px solid #E4E6E9`}}><td></td><td style={{padding:'4px 10px',fontSize:12,color:'#1761CB'}}>2026</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'4px',fontSize:13}}>{fmt(get(yr2,i+1,field))}</td>)}<td style={{textAlign:'right',padding:'4px 10px',fontWeight:600,fontSize:13}}>{fmt(d26.reduce((s,d)=>s+(d[field]||0),0))}</td></tr>}
     {isOpen&&<tr><td colSpan={15} style={{padding:'8px 16px'}}><Chart field={field} yr1={yr1} yr2={yr2} color1={color1||'#6E9B0E'} color2={color2||'#1761CB'}/></td></tr>}
   </>}
 
-  const TH=()=><tr style={{borderBottom:`1px solid ${S.ln}`}}><th style={{textAlign:'left',fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 10px'}}>Метрика</th>{mode==='compare'&&<th style={{fontSize:11,color:S.i3,padding:'8px 4px'}}>Год</th>}{mode!=='compare'&&<th></th>}{ML.map(m=><th key={m} style={{textAlign:'right',fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 4px'}}>{m}</th>)}<th style={{textAlign:'right',fontSize:11,fontWeight:600,color:S.i3,padding:'8px 10px'}}>YTD</th></tr>
+  const TH=()=><tr style={{borderBottom:`1px solid ${S.ln}`}}><th style={{textAlign:'left',fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 10px'}}>Метрика</th>{mode==='compare'&&<th style={{fontSize:11,color:S.i3,padding:'8px 4px'}}>Год</th>}{ML.map(m=><th key={m} style={{textAlign:'right',fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 4px'}}>{m}</th>)}<th style={{textAlign:'right',fontSize:11,fontWeight:600,color:S.i3,padding:'8px 10px'}}>YTD</th></tr>
 
   if(loading)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Загрузка...</div>
 
@@ -923,10 +925,10 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>CPO и Spend · {yr}</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <ChRow label="CPO Meta" field="cpo_meta" yr1={yr} color1="#FF6C1C"/>
-          <ChRow label="CPO Google" field="cpo_google" yr1={yr} color1="#1761CB"/>
-          <ChRow label="Spend Meta" field="spend_meta" yr1={yr} color1="#FF6C1C"/>
-          <ChRow label="Spend Google" field="spend_google" yr1={yr} color1="#1761CB"/>
+          <Row label="CPO Meta" field="cpo_meta" yr={yr} prefix="$" isMoney={true} isAvg={true}/>
+          <Row label="CPO Google" field="cpo_google" yr={yr} prefix="$" isMoney={true} isAvg={true}/>
+          <Row label="Spend Meta" field="spend_meta" yr={yr} prefix="$" isMoney={true}/>
+          <Row label="Spend Google" field="spend_google" yr={yr} prefix="$" isMoney={true}/>
         </tbody></table>
       </div>
 
@@ -934,10 +936,10 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Retention · {yr}</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <ChRow label="База" field="subscriber_base" yr1={yr}/>
-          <ChRow label="Churn %" field="churn_rate" yr1={yr} color1="#DD2A02"/>
-          <ChRow label="Отток шт" field="churn_units" yr1={yr} color1="#DD2A02"/>
-          <ChRow label="Net Growth" field="net_growth" yr1={yr} color1="#497B02"/>
+          <Row label="База" field="subscriber_base" yr={yr}/>
+          <Row label="Churn %" field="churn_rate" yr={yr} isAvg={true}/>
+          <Row label="Отток шт" field="churn_units" yr={yr}/>
+          <Row label="Net Growth" field="net_growth" yr={yr}/>
         </tbody></table>
       </div>
     </>}
@@ -965,8 +967,8 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>CPO · 2025 vs 2026</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <CmpRow label="CPO Meta" field="cpo_meta" prefix="$" invertGood={true}/>
-          <CmpRow label="CPO Google" field="cpo_google" prefix="$" invertGood={true}/>
+          <CmpRow label="CPO Meta" field="cpo_meta" prefix="$" invertGood={true} isAvg={true}/>
+          <CmpRow label="CPO Google" field="cpo_google" prefix="$" invertGood={true} isAvg={true}/>
         </tbody></table>
         <div style={{padding:'8px 16px'}}><Chart field="cpo_meta" yr1={2025} yr2={2026} prefix="$" color1="#FF6C1C" color2="#F6360B"/></div>
         <div style={{padding:'8px 16px'}}><Chart field="cpo_google" yr1={2025} yr2={2026} prefix="$"/></div>
@@ -986,7 +988,7 @@ function YoYReport(){
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Retention · 2025 vs 2026</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
           <CmpRow label="База" field="subscriber_base"/>
-          <CmpRow label="Churn %" field="churn_rate" invertGood={true}/>
+          <CmpRow label="Churn %" field="churn_rate" invertGood={true} isAvg={true}/>
           <CmpRow label="Отток шт" field="churn_units" invertGood={true}/>
           <CmpRow label="Net Growth" field="net_growth"/>
         </tbody></table>
