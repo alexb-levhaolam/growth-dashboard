@@ -147,18 +147,8 @@ function Main({profile}){
     {page==='tactical-all'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={reload} profile={profile} mPlans={mPlans}/>}
 
     {/* TEAM */}
-    {page==='team'&&isA&&<>
-      <h1 style={{fontSize:24,fontWeight:600,marginBottom:22}}>Команда</h1>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}} className='lh-grid2'>
-        {allProfiles.map(p=><div key={p.id} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:18,display:'flex',alignItems:'center',gap:14}}>
-          <div style={{width:40,height:40,borderRadius:'50%',background:S.gm,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:600,color:'#fff'}}>{(p.name||p.email||'?')[0].toUpperCase()}</div>
-          <div style={{flex:1}}><div style={{fontWeight:600}}>{p.name||p.email}</div><div style={{fontSize:13,color:S.i3}}>{p.role}</div></div>
-          {ce&&<select value={p.role} onChange={e=>{supabase.from('profiles').update({role:e.target.value}).eq('id',p.id).then(()=>reload())}} style={{padding:'4px 8px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:13}}><option value="admin">admin</option><option value="editor">editor</option><option value="viewer">viewer</option></select>}
-        </div>)}
-      </div>
-    </>}
+    {page==='team'&&isA&&<TeamPage allProfiles={allProfiles} ce={ce} reload={reload}/>}
 
-    {/* CHANNELS */}
     {page==='channels'&&isA&&<Plan plans={mPlans} ce={ce} reload={reload}/>}
 
     {/* INTEGRATIONS */}
