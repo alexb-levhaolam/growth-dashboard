@@ -903,42 +903,47 @@ function YoYReport(){
     </svg>}
 
   // Editable table row
-  const Row=({label,field,yr,prefix,isMoney,isAvg})=>{const vals=data.filter(d=>d.year===yr&&d[field]!=null);const ytd=isAvg?(vals.length?Math.round(vals.reduce((s,d)=>s+(d[field]||0),0)/vals.length):null):vals.reduce((s,d)=>s+(d[field]||0),0);return<tr style={{borderBottom:`1px solid ${S.ln}`}}>
-    <td style={{padding:'8px 10px',fontWeight:600}}>{label}</td>
+  const Row=({label,field,yr,prefix,isMoney,isAvg,hideYtd,color})=>{const vals=data.filter(d=>d.year===yr&&d[field]!=null);const ytd=isAvg?(vals.length?Math.round(vals.reduce((s,d)=>s+(d[field]||0),0)/vals.length):null):vals.reduce((s,d)=>s+(d[field]||0),0);const isOpen=expanded['row_'+field];return<>
+    <tr style={{borderBottom:`1px solid ${S.ln}`,background:isOpen?'#F7F8F9':'transparent'}}>
+    <td style={{padding:'8px 10px',fontWeight:600,cursor:'pointer'}} onClick={()=>setExpanded(prev=>({...prev,['row_'+field]:!prev['row_'+field]}))}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
     {Array.from({length:12},(_,i)=>{const id=getId(yr,i+1);const v=get(yr,i+1,field);return<td key={i} style={{textAlign:'right',padding:'7px 6px'}}><EdNum value={v} canEdit={true} prefix={isMoney?'$':''} onSave={v2=>saveCell(id,field,v2)} style={{fontSize:13,textAlign:'right'}}/></td>})}
-    <td style={{textAlign:'right',padding:'8px 10px',fontWeight:600}}>{prefix||''}{ytd!=null?ytd.toLocaleString():'—'}</td>
-  </tr>}
+    {!hideYtd&&<td style={{textAlign:'right',padding:'8px 10px',fontWeight:600}}>{prefix||''}{ytd!=null?ytd.toLocaleString():'—'}</td>}
+    {hideYtd&&<td></td>}
+  </tr>
+  {isOpen&&<tr><td colSpan={15} style={{padding:'8px 16px'}}><Chart field={field} yr1={yr} color1={color||'#6E9B0E'}/></td></tr>}
+  </>}
 
   // Compare row
-  const CmpRow=({label,field,prefix,isMoney,invertGood,isAvg})=>{
+  const CmpRow=({label,field,prefix,isMoney,invertGood,isAvg,hideYtd,color1,color2})=>{
     const v25=d25.filter(d=>d[field]!=null);const v26=d26.filter(d=>d[field]!=null)
     const ytd1=isAvg?(v25.length?Math.round(v25.reduce((s,d)=>s+(d[field]||0),0)/v25.length):0):d25.reduce((s,d)=>s+(d[field]||0),0)
     const ytd2=isAvg?(v26.length?Math.round(v26.reduce((s,d)=>s+(d[field]||0),0)/v26.length):0):d26.reduce((s,d)=>s+(d[field]||0),0)
+    const isOpen=expanded['cmp_'+field]
     return<><tr style={{borderBottom:`1px solid #E4E6E9`}}>
-      <td style={{padding:'6px 10px',fontWeight:600}} rowSpan={3}>{label}</td>
+      <td style={{padding:'6px 10px',fontWeight:600,cursor:'pointer'}} rowSpan={3} onClick={()=>setExpanded(prev=>({...prev,['cmp_'+field]:!prev['cmp_'+field]}))}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
       <td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E',fontWeight:600}}>2025</td>
       {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(2025,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(2025,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}
-      <td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{prefix||''}{fmt(ytd1)}</td>
+      {!hideYtd&&<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{prefix||''}{fmt(ytd1)}</td>}{hideYtd&&<td></td>}
     </tr>
     <tr style={{borderBottom:`1px solid #E4E6E9`}}>
       <td style={{padding:'7px 10px',fontSize:12,color:'#1761CB',fontWeight:600}}>2026</td>
       {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(2026,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(2026,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}
-      <td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{prefix||''}{fmt(ytd2)}</td>
+      {!hideYtd&&<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{prefix||''}{fmt(ytd2)}</td>}{hideYtd&&<td></td>}
     </tr>
     <tr style={{borderBottom:`1px solid ${S.ln}`}}>
       <td style={{padding:'7px 10px',fontSize:12,color:S.i3,fontWeight:600}}>Δ%</td>
       {Array.from({length:12},(_,i)=>{const d=pct(get(2026,i+1,field),get(2025,i+1,field));const good=invertGood?(d&&d<0):(d&&d>0);return<td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:12,fontWeight:600,color:d!=null?(good?'#497B02':'#A71F00'):'#C4C8CD'}}>{d!=null?(d>=0?'+':'')+d+'%':'—'}</td>})}
       <td style={{textAlign:'right',padding:'7px 10px',fontSize:12,fontWeight:600,color:pct(ytd2,ytd1)!=null?(((invertGood?pct(ytd2,ytd1)<0:pct(ytd2,ytd1)>0))?'#497B02':'#A71F00'):'#C4C8CD'}}>{pct(ytd2,ytd1)!=null?(pct(ytd2,ytd1)>=0?'+':'')+pct(ytd2,ytd1)+'%':'—'}</td>
-    </tr></>}
+    </tr>{isOpen&&<tr><td colSpan={15} style={{padding:'8px 16px'}}><Chart field={field} yr1={2025} yr2={2026} color1={color1||'#6E9B0E'} color2={color2||'#1761CB'}/></td></tr>}</>}
 
   // Expandable channel row
-  const ChRow=({label,field,yr1,yr2,color1,color2})=>{const isOpen=expanded[field];return<>
-    <tr style={{borderBottom:`1px solid ${S.ln}`,cursor:'pointer',background:isOpen?'#F7F8F9':'transparent'}} onClick={()=>setExpanded(prev=>({...prev,[field]:!prev[field]}))}>
-      <td style={{padding:'8px 10px',fontWeight:600}}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
-      {yr2?<><td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E'}}>2025</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td></>
-      :<>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td></>}
+  const ChRow=({label,field,yr1,yr2,color1,color2,hideYtd})=>{const isOpen=expanded[field];return<>
+    <tr style={{borderBottom:`1px solid ${S.ln}`,background:isOpen?'#F7F8F9':'transparent'}}>
+      <td style={{padding:'8px 10px',fontWeight:600,cursor:'pointer'}} onClick={()=>setExpanded(prev=>({...prev,[field]:!prev[field]}))}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
+      {yr2?<><td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E'}}>2025</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</>
+      :<>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</>}
     </tr>
-    {yr2&&isOpen&&<tr style={{borderBottom:`1px solid #E4E6E9`}}><td></td><td style={{padding:'7px 10px',fontSize:12,color:'#1761CB'}}>2026</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr2,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr2,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(data.filter(d=>d.year===yr2).reduce((s,d)=>s+(d[field]||0),0))}</td></tr>}
+    {yr2&&isOpen&&<tr style={{borderBottom:`1px solid #E4E6E9`}}><td></td><td style={{padding:'7px 10px',fontSize:12,color:'#1761CB'}}>2026</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr2,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr2,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(data.filter(d=>d.year===yr2).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</tr>}
     {isOpen&&<tr><td colSpan={15} style={{padding:'8px 16px'}}><Chart field={field} yr1={yr1} yr2={yr2} color1={color1||'#6E9B0E'} color2={color2||'#1761CB'}/></td></tr>}
   </>}
 
@@ -966,7 +971,6 @@ function YoYReport(){
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
           <Row label="Всего" field="sales" yr={yr}/>
         </tbody></table>
-        <div style={{padding:'8px 16px'}}><Chart field="sales" yr1={yr} color1={yr===2025?'#6E9B0E':'#1761CB'}/></div>
       </div>
 
       {/* Channels */}
@@ -992,10 +996,10 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Retention · {yr}</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <ChRow label="База" field="subscriber_base" yr1={yr}/>
-          <ChRow label="Churn %" field="churn_rate" yr1={yr} color1="#DD2A02"/>
-          <ChRow label="Отток шт" field="churn_units" yr1={yr} color1="#DD2A02"/>
-          <ChRow label="Net Growth" field="net_growth" yr1={yr} color1="#497B02"/>
+          <ChRow label="База" field="subscriber_base" yr1={yr} hideYtd/>
+          <ChRow label="Churn %" field="churn_rate" yr1={yr} color1="#DD2A02" hideYtd/>
+          <ChRow label="Отток шт" field="churn_units" yr1={yr} color1="#DD2A02" hideYtd/>
+          <ChRow label="Net Growth" field="net_growth" yr1={yr} color1="#497B02" hideYtd/>
         </tbody></table>
       </div>
     </>}
@@ -1022,7 +1026,6 @@ function YoYReport(){
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
           <CmpRow label="Продажи" field="sales"/>
         </tbody></table>
-        <div style={{padding:'8px 16px'}}><Chart field="sales" yr1={2025} yr2={2026}/></div>
       </div>
 
       {/* Channels comparison */}
@@ -1055,10 +1058,10 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Retention · 2025 vs 2026</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <ChRow label="База" field="subscriber_base" yr1={2025} yr2={2026}/>
-          <ChRow label="Churn %" field="churn_rate" yr1={2025} yr2={2026} color1="#DD2A02" color2="#F18B0E"/>
-          <ChRow label="Отток шт" field="churn_units" yr1={2025} yr2={2026} color1="#DD2A02" color2="#F18B0E"/>
-          <ChRow label="Net Growth" field="net_growth" yr1={2025} yr2={2026} color1="#497B02" color2="#DD2A02"/>
+          <ChRow label="База" field="subscriber_base" yr1={2025} yr2={2026} hideYtd/>
+          <ChRow label="Churn %" field="churn_rate" yr1={2025} yr2={2026} color1="#DD2A02" color2="#F18B0E" hideYtd/>
+          <ChRow label="Отток шт" field="churn_units" yr1={2025} yr2={2026} color1="#DD2A02" color2="#F18B0E" hideYtd/>
+          <ChRow label="Net Growth" field="net_growth" yr1={2025} yr2={2026} color1="#497B02" color2="#DD2A02" hideYtd/>
         </tbody></table>
       </div>
 
