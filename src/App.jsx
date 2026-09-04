@@ -172,15 +172,30 @@ function Main({profile}){
     {/* SLACK BOT */}
     {page==='bot'&&isA&&<>
       <h1 style={{fontSize:24,fontWeight:600,marginBottom:22}}>Slack бот</h1>
-      <div style={{display:'flex',gap:10,marginBottom:22}}><button onClick={async()=>{const r=await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'manual_trigger',week_start:rep?.week_start})});const d=await r.json();alert(d.message||'Отправлено')}} style={{padding:'10px 18px',borderRadius:8,border:'none',background:S.gm,color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer'}}>Запустить опрос</button></div>
+      {(()=>{const[preMsg,setPreMsg]=useState('Ребята, через 5 минут вам напишет бот с просьбой обновить статусы по проектам. Пожалуйста, ответьте ему.');const[sending,setSending]=useState(false)
+      const sendWithDelay=async()=>{if(!confirm('Отправить предупреждение в чат, потом через 5 мин запустить бот?'))return;setSending(true);try{await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'pre_message',text:preMsg})});setTimeout(async()=>{const r=await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'manual_trigger',week_start:rep?.week_start})});const d=await r.json();alert(d.message||'Бот запущен!');setSending(false)},5*60*1000);alert('Предупреждение отправлено. Бот запустится через 5 минут.')}catch(e){alert('Ошибка: '+e.message);setSending(false)}}
+      return<>
+      <div style={{display:'flex',gap:10,marginBottom:22,flexWrap:'wrap'}}>
+        <button onClick={sendWithDelay} disabled={sending} style={{padding:'10px 18px',borderRadius:8,border:'none',background:S.gm,color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',opacity:sending?.5:1}}>{sending?'Ожидание...':'Предупредить + Запустить (5 мин)'}</button>
+        <button onClick={async()=>{const r=await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'manual_trigger',week_start:rep?.week_start})});const d=await r.json();alert(d.message||'Отправлено')}} style={{padding:'10px 18px',borderRadius:8,border:`1px solid ${S.ln}`,background:S.sf,color:S.ink,fontSize:14,fontWeight:600,cursor:'pointer'}}>Запустить сразу</button>
+      </div>
+
+      <Label>Предупреждение команде</Label>
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16,marginBottom:22}}>
+        <textarea value={preMsg} onChange={e=>setPreMsg(e.target.value)} rows={3} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,resize:'vertical',fontFamily:'inherit',color:'#121416'}}/>
+        <div style={{fontSize:12,color:S.i3,marginTop:6}}>Это сообщение отправится в канал маркетинга перед запуском бота</div>
+      </div>
+
       <Label>Настройки</Label>
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22}}>
-        <div style={{display:'grid',gridTemplateColumns:'140px 1fr',gap:10,fontSize:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'160px 1fr',gap:10,fontSize:14}}>
           <span style={{color:S.i3,fontWeight:600}}>Пропуск статусов:</span><span>готово, ожидание</span>
           <span style={{color:S.i3,fontWeight:600}}>Язык бота:</span><span>English</span>
           <span style={{color:S.i3,fontWeight:600}}>Ответы команды:</span><span>любой язык</span>
+          <span style={{color:S.i3,fontWeight:600}}>Задержка:</span><span>5 минут после предупреждения</span>
         </div>
       </div>
+      </>})()}
     </>}
 
     {/* ADMIN */}
@@ -565,7 +580,7 @@ function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[expanded,set
 
 // ═══ TRENDS ═══
 function Trends({reports,mPlans}){const[mode,setMode]=useState('weekly');const[selCh,setSelCh]=useState({});const[cpoMode,setCpoMode]=useState('both');const allCh=new Set();reports.forEach(r=>(r.channels||[]).forEach(c=>{const n=c.name?.split(' (')[0]||c.name;if(n)allCh.add(n)}));const chNames=[...allCh];useEffect(()=>{if(Object.keys(selCh).length===0){const init={};chNames.forEach(n=>init[n]=true);setSelCh(init)}},[chNames.length]);const togCh=(n)=>setSelCh(p=>({...p,[n]:!p[n]}));const toggleAll=()=>{const anyOff=chNames.some(n=>!selCh[n]);const nv={};chNames.forEach(n=>nv[n]=anyOff);setSelCh(nv)}
-  const weeklyData=reports.map(r=>{const m=r.metrics||{};const ch=r.channels||[];const adSpend=ch.reduce((s,c)=>s+(c.spent||0),0);const paidSales=ch.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0);const teamWeek=Math.round(TEAM_MONTHLY/30*7);const wm=r.week_start?.slice(0,7);const mp=(mPlans||[]).find(p=>p.id===wm);const dim=wm?new Date(parseInt(wm.slice(0,4)),parseInt(wm.slice(5,7)),0).getDate():30;const weekPlan=mp?.total_plan?Math.round(mp.total_plan/dim*7):m.planSales;const o={week:r.week_label,sales:m.totalSales,planSales:weekPlan,cpoAds:m.cpoAdsOverride!=null?m.cpoAdsOverride:(paidSales>0?Math.round(adSpend/paidSales):null),cpoTotal:m.cpoTotalOverride!=null?m.cpoTotalOverride:((m.totalSales||0)>0?Math.round((adSpend+teamWeek)/(m.totalSales||1)):null)};ch.forEach(c=>{o[c.name?.split(' (')[0]||c.name]=c.sales});return o})
+  const weeklyData=reports.map(r=>{const m=r.metrics||{};const ch=r.channels||[];const adSpend=ch.reduce((s,c)=>s+(c.spent||0),0);const paidSales=ch.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0);const teamWeek=Math.round(TEAM_MONTHLY/30*7);const wm=r.week_start?.slice(0,7);const mp=(mPlans||[]).find(p=>p.id===wm);const dim=wm?new Date(parseInt(wm.slice(0,4)),parseInt(wm.slice(5,7)),0).getDate():30;const weekPlan=mp?.total_plan?Math.round(mp.total_plan/dim*7):m.planSales;const planCpoAds=mp?.channel_plans?.meta?.planCpo||mp?.channel_plans?.google?.planCpo||null;const planCpoTotal=mp?.plan_cpo_total||null;const o={week:r.week_label,sales:m.totalSales,planSales:weekPlan,cpoAds:m.cpoAdsOverride!=null?m.cpoAdsOverride:(paidSales>0?Math.round((adSpend+(m.discBL||0))/paidSales):null),cpoTotal:m.cpoTotalOverride!=null?m.cpoTotalOverride:((m.totalSales||0)>0?Math.round((m.totalSpentBM||0)/(m.totalSales||1)):null),planCpoAds,planCpoTotal};ch.forEach(c=>{o[c.name?.split(' (')[0]||c.name]=c.sales});return o})
   const dailyData=[];reports.forEach(r=>{(r.daily_data||[]).forEach(d=>{if(d?.sales!=null)dailyData.push({day:d.day,sales:d.sales})})});const data=mode==='weekly'?weeklyData:dailyData;const xKey=mode==='weekly'?'week':'day'
   return<><div style={{display:'flex',gap:8,marginBottom:16,alignItems:'center',flexWrap:'wrap'}}><div style={{display:'flex',gap:2,background:S.sf,borderRadius:8,padding:2,border:`1px solid ${S.ln}`}}><button onClick={()=>setMode('weekly')} style={{padding:'6px 14px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:mode==='weekly'?S.gd:'transparent',color:mode==='weekly'?S.gp:S.i2}}>По неделям</button><button onClick={()=>setMode('daily')} style={{padding:'6px 14px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:mode==='daily'?S.gd:'transparent',color:mode==='daily'?S.gp:S.i2}}>По дням</button></div>{mode==='weekly'&&<div style={{display:'flex',gap:2,background:S.sf,borderRadius:8,padding:2,border:`1px solid ${S.ln}`}}>{[{k:'both',l:'CPO оба'},{k:'ads',l:'CPO Ads'},{k:'total',l:'CPO Total'}].map(o=><button key={o.k} onClick={()=>setCpoMode(o.k)} style={{padding:'6px 10px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:cpoMode===o.k?S.am:'transparent',color:cpoMode===o.k?'#fff':S.i2}}>{o.l}</button>)}</div>}</div>
     <CC title="Продажи (факт vs план)"><ResponsiveContainer width="100%" height={220}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" stroke={S.ln}/><XAxis dataKey={xKey} tick={{fontSize:15,fill:S.i3}} interval={mode==='daily'?2:0}/><YAxis tick={{fontSize:15,fill:S.i3}}/><Tooltip contentStyle={{background:S.sf,borderRadius:8,boxShadow:S.sh,fontSize:15}}/><Bar dataKey="sales" fill={S.gm} radius={[4,4,0,0]} name="Факт"/>{mode==='weekly'&&<Bar dataKey="planSales" fill={S.gs} radius={[4,4,0,0]} name="План"/>}</BarChart></ResponsiveContainer></CC>
@@ -692,11 +707,12 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {(()=>{const mc=metricsCmp!=null?metricsCmp:null;const mcKey=mc!=null?`${year}-${String(mc+1).padStart(2,'0')}`:null;const mcData=mcKey?mData[mcKey]:null;const mcPlan=mcKey?mPlans.find(p=>p.id===mcKey):null;const mcCpoAds=mcData&&mcData.paidSales>0?Math.round((mcData.adSpend+(mcData.discountsBL||0))/mcData.paidSales):null;const mcCpoTotal=mcData&&mcData.totalSales>0?Math.round((mcData.totalSpentBM||0)/mcData.totalSales):null
     return<div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:22}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-        <div style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase'}}>Метрики · факт vs план</div>
-        <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:12,color:'rgba(255,255,255,.4)'}}>vs:</span><select value={mc!=null?mc:''} onChange={async e=>{const v=e.target.value;if(v===''){setMetricsCmp(null);return};const mi=Number(v);setMetricsCmp(mi);const k=`${year}-${String(mi+1).padStart(2,'0')}`;if(!mData[k])await loadMonth(year,mi)}} style={{font:'500 12px/1 Poppins,sans-serif',padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'rgba(255,255,255,.15)',cursor:'pointer'}}><option value=''>без сравнения</option>{months.map((mn,mi)=>mi!==month&&<option key={mi} value={mi}>{mn}</option>)}</select></div>
+        <div style={{display:'flex',alignItems:'center',gap:12}}><span style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase'}}>Метрики · факт vs план</span>{plan?.is_closed&&<span style={{fontSize:11,padding:'3px 10px',borderRadius:999,background:'rgba(255,255,255,.2)',color:'#fff'}}>закрыт</span>}</div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>{ce&&!plan?.is_closed&&<button onClick={async()=>{if(!confirm('Закрыть месяц? Метрики будут зафиксированы.'))return;await savePlan('is_closed',true);await savePlan('closed_sales',sel.totalSales);await savePlan('closed_cpo_ads',cpoAds);await savePlan('closed_cpo_total',cpoTotal);await savePlan('closed_budget',sel.totalSpentBM)}} style={{fontSize:11,padding:'4px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'transparent',color:'#fff',cursor:'pointer'}}>Закрыть месяц</button>}{ce&&plan?.is_closed&&<button onClick={()=>savePlan('is_closed',false)} style={{fontSize:11,padding:'4px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'transparent',color:'#fff',cursor:'pointer'}}>Открыть</button>}
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:12,color:'rgba(255,255,255,.4)'}}>vs:</span><select value={mc!=null?mc:''} onChange={async e=>{const v=e.target.value;if(v===''){setMetricsCmp(null);return};const mi=Number(v);setMetricsCmp(mi);const k=`${year}-${String(mi+1).padStart(2,'0')}`;if(!mData[k])await loadMonth(year,mi)}} style={{font:'500 12px/1 Poppins,sans-serif',padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'rgba(255,255,255,.15)',cursor:'pointer'}}><option value=''>без сравнения</option>{months.map((mn,mi)=>mi!==month&&<option key={mi} value={mi}>{mn}</option>)}</select></div></div>
       </div>
       <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}}>
-        {[{l:'Продажи',f:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false,cf:mcData?.totalSales},{l:'CPO Ads',f:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$',cf:mcCpoAds},{l:'CPO Total',f:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$',cf:mcCpoTotal},{l:'Бюджет',f:sel.totalSpentBM||0,p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$',cf:mcData?.totalSpentBM}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);const cd=x.cf!=null&&x.f!=null&&x.cf!==0?Math.round((x.f-x.cf)/x.cf*100):null;const cGood=x.inv?(cd&&cd<0):(cd&&cd>0)
+        {[{l:'Продажи',f:plan?.is_closed?plan.closed_sales:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false,cf:mcData?.totalSales},{l:'CPO Ads',f:plan?.is_closed?plan.closed_cpo_ads:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$',cf:mcCpoAds},{l:'CPO Total',f:plan?.is_closed?plan.closed_cpo_total:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$',cf:mcCpoTotal},{l:'Бюджет',f:plan?.is_closed?plan.closed_budget:(sel.totalSpentBM||0),p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$',cf:mcData?.totalSpentBM}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);const cd=x.cf!=null&&x.f!=null&&x.cf!==0?Math.round((x.f-x.cf)/x.cf*100):null;const cGood=x.inv?(cd&&cd<0):(cd&&cd>0)
           return<div key={i}>
           <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:8}}>{x.l}</div>
           <div style={{display:'flex',alignItems:'baseline',gap:10}}><span className='lh-num' style={{fontSize:36,fontWeight:600}}>{x.pre||''}<EdNum value={x.f} canEdit={ce} onSave={v=>savePlan('actual_'+x.pk,v)} style={{fontSize:36,fontWeight:600,color:'#fff'}}/></span><Spark data={x.sp} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/></div>
@@ -811,9 +827,31 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {/* ═══ 10. ASKS ═══ */}
     <Label>Что нужно от руководства</Label>
     <div style={{background:'linear-gradient(180deg,#234003,#131B0B)',borderRadius:14,padding:22,color:'#fff',marginBottom:22}}><EList items={plan?.asks||[]} canEdit={ce} onSave={v=>saveText('asks',v)} color="#AAD34F"/></div>
+
+    {/* IMAGES */}
+    <Label>Изображения</Label>
+    <ImageUpload bucket="report-images" folder={`monthly/${sel?.key}`} images={plan?.images||[]} onSave={v=>saveText('images',v)} canEdit={ce}/>
   </>
 }
 
+
+
+// ═══ IMAGE UPLOAD ═══
+function ImageUpload({bucket,folder,images,onSave,canEdit}){
+  const[uploading,setUploading]=useState(false);const[lightbox,setLightbox]=useState(null)
+  const upload=async e=>{const file=e.target.files[0];if(!file)return;setUploading(true);const ext=file.name.split('.').pop();const path=`${folder}/${Date.now()}.${ext}`;const{error}=await supabase.storage.from(bucket).upload(path,file);if(error){alert('Ошибка: '+error.message);setUploading(false);return};const{data:{publicUrl}}=supabase.storage.from(bucket).getPublicUrl(path);onSave([...(images||[]),{url:publicUrl,name:file.name,path}]);setUploading(false)}
+  const remove=(idx)=>{const img=images[idx];if(!confirm('Удалить?'))return;supabase.storage.from(bucket).remove([img.path]);onSave(images.filter((_,i)=>i!==idx))}
+  return<div>
+    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+      {(images||[]).map((img,i)=><div key={i} style={{position:'relative',width:120,height:90,borderRadius:8,overflow:'hidden',cursor:'pointer',boxShadow:S.sh}} onClick={()=>setLightbox(img.url)}>
+        <img src={img.url} alt={img.name||''} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+        {canEdit&&<button onClick={e=>{e.stopPropagation();remove(i)}} style={{position:'absolute',top:2,right:2,width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.6)',color:'#fff',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>}
+      </div>)}
+      {canEdit&&<label style={{width:120,height:90,borderRadius:8,border:`2px dashed ${S.ln}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13,color:S.i3,background:S.bg}}>{uploading?'...':'+ Фото'}<input type="file" accept="image/*" onChange={upload} style={{display:'none'}}/></label>}
+    </div>
+    {lightbox&&<div onClick={()=>setLightbox(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><img src={lightbox} style={{maxWidth:'90vw',maxHeight:'90vh',borderRadius:12}}/></div>}
+  </div>
+}
 
 // ═══ YOY REPORT ═══
 function YoYReport(){
