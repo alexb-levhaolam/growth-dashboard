@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const SHEET_ID = '1-H5ogBGHhJsYorfYIZ_yIywoGHTXxk_yEepIq6etij8';
 
 function getSupabase() {
-  return createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  return createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY);
 }
 
 async function getSheets() {
