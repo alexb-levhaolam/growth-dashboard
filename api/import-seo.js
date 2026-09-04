@@ -47,6 +47,7 @@ export default async function handler(req, res) {
     const sheets = await getSheets();
 
     if (type === 'weekly' || !type) {
+      await sb.from('seo_weekly').delete().neq('id','_');
       // Read weekly sheet (second sheet)
       const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Недельный отчет'!A1:Z50" });
       const rows = r.data.values || [];
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
     }
 
     if (type === 'monthly' || !type) {
+      await sb.from('seo_monthly').delete().neq('id','_');
       // Read monthly sheet (third sheet)
       const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Месячный отчет'!A1:Z50" });
       const rows = r.data.values || [];
