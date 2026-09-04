@@ -87,7 +87,7 @@ function Main({profile}){
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Быстрый доступ</div>
       <div className='lh-home-cards' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
         <div onClick={()=>navTo('weekly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>☰ Текущая неделя</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{rep?.week_label||'—'}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{rep?.metrics?.totalSales||0} продаж</div></div>
-        {isA&&<div onClick={()=>navTo('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▣ Ежемесячный</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{new Date().toLocaleString('ru',{month:'long'})} {new Date().getFullYear()}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Отчёт для CMO</div></div>}
+        {isA&&<div onClick={()=>navTo('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▣ Ежемесячный</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{new Date().toLocaleString('ru',{month:'long',year:'numeric'})}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Предыдущий месяц</div></div>}
         <div onClick={()=>navTo('projects-all')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▤ Проекты</div><div className='lh-num' className='lh-num' style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done'&&p.status!=='wait').length} в работе</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length} блокер(ов)</div></div>
       </div>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Статус проектов</div>
@@ -99,7 +99,7 @@ function Main({profile}){
       </div>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Последние комментарии</div>
       <div style={{display:'flex',flexDirection:'column',gap:6}}>
-        {comments.slice(0,6).map(c=><div key={c.id} style={{background:S.sf,borderRadius:10,boxShadow:S.sh,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><b style={{fontSize:14}}>{c.author}</b><span style={{fontSize:13,color:S.i2,marginLeft:8}}>{(c.full_text||c.summary||'').slice(0,60)}</span></div><small style={{fontSize:12,color:'#9AA0A6',whiteSpace:'nowrap'}}>{c.week_start}</small></div>)}
+        {[...comments].sort((a,b)=>(b.created_at||b.id).localeCompare(a.created_at||a.id)).slice(0,8).map(c=><div key={c.id} style={{background:S.sf,borderRadius:10,boxShadow:S.sh,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><b style={{fontSize:14}}>{c.author}</b><span style={{fontSize:13,color:S.i2,marginLeft:8}}>{(c.full_text||c.summary||'').slice(0,60)}</span></div><small style={{fontSize:12,color:'#9AA0A6',whiteSpace:'nowrap'}}>{c.week_start}</small></div>)}
       </div>
     </>}
 
@@ -127,7 +127,7 @@ function Main({profile}){
       </div>
       {view==='overview'&&rep&&<Overview rep={rep} reports={reports} projects={projects} comments={comments} ce={ce} up={upRep} tTasks={tTasks} tProgress={tProgress} print={printOverview} refreshDaily={refreshFromDaily} mPlans={mPlans}/>}
       {view==='projects'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload} rep={rep} upRep={upRep}/>}
-      {view==='tactical'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={reload} profile={profile}/>}
+      {view==='tactical'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={reload} profile={profile} mPlans={mPlans}/>}
       {view==='plan'&&<Plan plans={mPlans} ce={ce} reload={reload}/>}
       {view==='dynamics'&&<Dynamics projects={projects} comments={comments} reports={reports} aIdx={aIdx} ce={ce} reload={reload}/>}
       {view==='trends'&&<Trends reports={reports} mPlans={mPlans}/>}
@@ -143,7 +143,7 @@ function Main({profile}){
     {page==='projects-all'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload} rep={rep} upRep={upRep}/>}
 
     {/* TACTICAL STANDALONE */}
-    {page==='tactical-all'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={reload} profile={profile}/>}
+    {page==='tactical-all'&&<Tactical tasks={tTasks} progress={tProgress} reports={reports} aIdx={aIdx} ce={ce} reload={reload} profile={profile} mPlans={mPlans}/>}
 
     {/* TEAM */}
     {page==='team'&&isA&&<>
@@ -193,7 +193,7 @@ function Main({profile}){
 
 // ═══ OVERVIEW ═══
 function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily,mPlans}){
-  const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
+  const prevRep=aIdx>0?reports[aIdx-1]:null;const pm=prevRep?.metrics||{};const pch=prevRep?.channels||[];const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
   const pins=rep.pinned_projects||[];const shown=pins.length>0?projects.filter(p=>pins.includes(p.id)):projects.filter(p=>p.priority==='key').slice(0,8)
   const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const visCh=rep.visible_channels||(ch.map(c=>c.name).filter(n=>!DEFAULT_HIDDEN.includes(n)))
@@ -224,6 +224,8 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const calcCpoTotal=(m.totalSales||0)>0?Math.round(totalSpentBM/(m.totalSales||1)):null
   const cpoAds=m.cpoAdsOverride!=null?m.cpoAdsOverride:calcCpoAds
   const cpoTotal=m.cpoTotalOverride!=null?m.cpoTotalOverride:calcCpoTotal
+  const wow=(cur,prev)=>{if(cur==null||prev==null||prev===0)return null;return Math.round((cur-prev)/prev*100)}
+  const WoW=({cur,prev,invert})=>{const d=wow(cur,prev);if(d==null)return null;const good=invert?(d<0):(d>0);return<span style={{fontSize:12,fontWeight:600,color:good?'#497B02':'#A71F00',marginLeft:6}}>{d>0?'+':''}{d}% vs пр.нед</span>}
   // Plan from monthly — manual override always wins
   const planCpoAds=m.planCpoAds!=null?m.planCpoAds:null
   const planCpoTotal=m.planCpoTotal!=null?m.planCpoTotal:null
@@ -277,23 +279,23 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     </div>})()}
 
     <Label>Ключевые метрики</Label>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:28,marginBottom:32}}>
+    <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:28}}>
       {[
         {l:'Продажи',k:'totalSales',info:ch.filter(c=>(c.sales||0)>0).map(c=>`${c.name}: ${c.sales}`).join('\n')||'Продажи за неделю (BJ)'},
         {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'(Затраты платных каналов + Скидки BL) / продажи платных каналов'},
         {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$',info:'Бюджет Ads (BM) / все продажи (BJ)'},
         {l:'Бюджет Ads',k2:'budgetSpent',v2:m.budgetSpent!=null?m.budgetSpent:totalSpentBM,calc:totalSpentBM,pre:'$',info:'Сумма BM (Total_Spent) за период'},
-      ].map((x,i)=><div key={i} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'22px 16px'}}>
-        <div style={{fontSize:15,color:S.i3,display:'flex',alignItems:'center'}}>{x.l}<Info text={x.info}/></div>
-        <div style={{fontSize:22,fontWeight:500,margin:'2px 0'}}>
-          {x.k?<>{x.pre||''}<EdNum value={m[x.k]} canEdit={ce} onSave={v=>upM(x.k,v)} style={{fontSize:22,fontWeight:500}}/></>
-          :x.k2?<>{x.pre||''}<EdNum value={x.v2} canEdit={ce} onSave={v=>{if(v==null)upM(x.k2,null);else upM(x.k2,v)}} style={{fontSize:22,fontWeight:500}}/></>
+      ].map((x,i)=><div key={i} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'18px 16px'}}>
+        <div style={{fontSize:14,color:S.i3,display:'flex',alignItems:'center'}}>{x.l}<Info text={x.info}/></div>
+        <div className='lh-num' style={{fontSize:28,fontWeight:600,margin:'4px 0'}}>
+          {x.k?<>{x.pre||''}<EdNum value={m[x.k]} canEdit={ce} onSave={v=>upM(x.k,v)} style={{fontSize:28,fontWeight:600}}/></>
+          :x.k2?<>{x.pre||''}<EdNum value={x.v2} canEdit={ce} onSave={v=>{if(v==null)upM(x.k2,null);else upM(x.k2,v)}} style={{fontSize:28,fontWeight:600}}/></>
           :x.v}
         </div>
         <div style={{fontSize:15,color:S.i2,display:'flex',alignItems:'center',gap:4}}>
-          {i===0&&<>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:15,color:S.i2}}/></>}
-          {i===1&&<>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:15,color:S.i2}}/></>}
-          {i===2&&<>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:15,color:S.i2}}/></>}
+          {i===0&&<><span>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={m.totalSales} prev={pm.totalSales}/></>}
+          {i===1&&<><span>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoAds} prev={pm.totalSales>0?Math.round((pch.reduce((s,c2)=>s+(c2.spent||0),0)+(pm.discBL||0))/Math.max(pch.filter(c2=>(c2.spent||0)>0).reduce((s,c2)=>s+(c2.sales||0),0),1)):null} invert/></>}
+          {i===2&&<><span>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoTotal} prev={pm.totalSales>0?Math.round((pm.totalSpentBM||0)/pm.totalSales):null} invert/></>}
           {i===3&&<>из $<EdNum value={m.budgetPlan!=null?m.budgetPlan:(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:15,color:S.i2}}/>K</>}
         </div>
       </div>)}
@@ -301,7 +303,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
 
     <Label>Брэкдаун по дням</Label>
     <div className='lh-grid7' style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8,marginBottom:16}}>
-      {(daily.length>0?daily:Array(7).fill(null)).map((d,i)=>{const chTip=d?.ch?Object.entries(d.ch).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join('\n'):'';return<div key={i} title={chTip} style={{background:S.sf,border:`1px solid ${S.ln}`,borderRadius:10,padding:'8px 4px',textAlign:'center',cursor:chTip?'help':'default'}}>
+      {(daily.length>0?daily:Array(7).fill(null)).map((d,i)=>{const chTip=d?.ch?Object.entries(d.ch).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join('\n'):'';return<div key={i} title={chTip} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'12px 8px',textAlign:'center',cursor:chTip?'help':'default'}}>
         <Ed value={d?.day||''} canEdit={ce} onSave={v=>upDay(i,'day',v)} style={{fontSize:15,color:S.i3}}/>
         <div style={{margin:'4px 0'}}><EdNum value={d?.sales} canEdit={ce} onSave={v=>upDay(i,'sales',v)} style={{fontSize:18,fontWeight:500}}/></div>
         <Ed value={d?.note||(d?.sales==null?'—':'продаж')} canEdit={ce} onSave={v=>upDay(i,'note',v)} style={{fontSize:15,color:d?.sales==null?'#B76400':S.i2}}/>
@@ -310,11 +312,11 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
 
     <Label>Каналы</Label>
     <div className='lh-ch-wrap' style={{background:S.sf,borderRadius:14,boxShadow:S.sh,marginBottom:40}}>
-      <div className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'110px 1fr 70px 60px 55px 60px 70px 80px 60px',gap:4,padding:'16px 20px',background:S.bg,fontSize:13,fontWeight:600,color:S.i3,textTransform:'uppercase',letterSpacing:'.08em'}}>
-        <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Sales</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO план</span><span style={{textAlign:'right'}}>Δ CPO</span>
+      <div className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 55px 50px 55px 60px 70px 55px 55px',gap:4,padding:'16px 20px',background:S.bg,fontSize:13,fontWeight:600,color:S.i3,textTransform:'uppercase',letterSpacing:'.08em'}}>
+        <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Sales</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO план</span><span style={{textAlign:'right'}}>Δ CPO</span><span style={{textAlign:'right'}}>WoW</span>
       </div>
       {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales!=null?c.planSales:(mp.planSales||0);const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#497B02':(c.sales||0)>=ps*0.7?'#F18B0E':'#DD2A02'):((c.sales||0)>0?S.gl:'#E4E6E9');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
-        return<div key={i} className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'110px 1fr 70px 60px 55px 60px 70px 80px 60px',gap:4,padding:'18px 20px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
+        return<div key={i} className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 55px 50px 55px 60px 70px 55px 55px',gap:4,padding:'18px 20px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:S.ln,cursor:'pointer',fontSize:15,padding:0,lineHeight:1}}>✕</button>}
           <Ed value={c.name} canEdit={ce} onSave={v=>upCh(ci,'name',v)} style={{fontWeight:500,fontSize:17}}/>
@@ -327,6 +329,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         <span style={{textAlign:'right'}}><EdNum value={chCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'cpo',v)} style={{fontSize:17,color:S.i2}}/></span>
         <span style={{textAlign:'right'}}><EdNum value={c.planCpo!=null?c.planCpo:mp.planCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'planCpo',v)} style={{fontSize:15,color:S.i3}}/></span>
         <span style={{textAlign:'right'}}><CpoCompare fact={chCpo} plan={c.planCpo!=null?c.planCpo:mp.planCpo}/></span>
+        <span style={{textAlign:'right',fontSize:13}}>{(()=>{const pc=pch.find(pc2=>pc2.name===c.name);const d=wow(c.sales,pc?.sales);if(d==null)return'—';return<span style={{fontWeight:600,color:d>=0?'#497B02':'#A71F00'}}>{d>0?'+':''}{d}%</span>})()}</span>
       </div>})}
       {ce&&<div style={{padding:'12px 16px'}}><button onClick={addCh} style={{fontSize:17,color:S.gd,background:'none',border:`1px dashed ${S.ln}`,borderRadius:8,padding:'10px 18px',cursor:'pointer',width:'100%',fontWeight:600}}>+ Добавить канал</button></div>}
     </div>
@@ -383,7 +386,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
 }
 
 // ═══ TACTICAL TASKS ═══
-function Tactical({tasks,progress,reports,aIdx,ce,reload,profile}){
+function Tactical({tasks,progress,reports,aIdx,ce,reload,profile,mPlans}){
   const rep=reports[aIdx];const ws=rep?.week_start;const[showAdd,setShowAdd]=useState(false);const[newName,setNewName]=useState('');const[newType,setNewType]=useState('numeric');const[newTarget,setNewTarget]=useState('');const[newMs,setNewMs]=useState([{name:''}]);const[showHidden,setShowHidden]=useState(false);const tcRef=useRef('')
   const getTP=(tid)=>progress.filter(p=>p.task_id===tid&&p.week_start<=ws).sort((a,b)=>b.week_start.localeCompare(a.week_start))[0]||null
   const getAllTP=(tid)=>progress.filter(p=>p.task_id===tid).sort((a,b)=>b.week_start.localeCompare(a.week_start))
@@ -471,9 +474,9 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {!isO&&ds&&<div style={{fontSize:13,color:S.i3,marginTop:4}}>{ds}</div>}
 
       {/* 4. Последний комментарий (collapsed: 3 lines, expanded: full) */}
-      {!isO&&lastC&&<div style={{borderTop:`1px solid ${S.ln}`,marginTop:8,paddingTop:8}}>
-        <div style={{fontSize:12,color:S.i3,marginBottom:2}}>{lastC.author} · {lastC.week_start}</div>
-        <div style={{fontSize:14,color:S.i2,lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{lastC.full_text||lastC.summary}</div>
+      {!isO&&(lastC||prev)&&<div style={{borderTop:`1px solid ${S.ln}`,marginTop:8,paddingTop:8}}>
+        <div style={{fontSize:12,color:lastC?S.i3:'#B76400',marginBottom:2}}>{lastC?`${lastC.author} · ${lastC.week_start}`:`${prev.author} · ${prev.week_start} (пр. неделя)`}</div>
+        <div style={{fontSize:14,color:S.i2,lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{(lastC||prev).full_text||(lastC||prev).summary}</div>
       </div>}
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}>
         <div style={{fontSize:13,color:S.i3,marginBottom:6}}>Комментарии</div>
@@ -713,16 +716,20 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
           <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:13,color:'#9AA0A6'}}>vs:</span><select value={cc} onChange={e=>setChurnCmp(Number(e.target.value))} style={{font:'500 13px/1 Poppins,sans-serif',padding:'6px 10px',borderRadius:8,border:`1px solid ${S.ln}`,cursor:'pointer'}}>{months.map((mn,mi)=>{const k=`${year}-${String(mi+1).padStart(2,'0')}`;const has=mPlans.some(p=>p.id===k);return<option key={mi} value={mi}>{mn} {year}{has?'':' (нет данных)'}</option>})}</select></div>
         </div>
         <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}} className='lh-grid4'>
-          {churnFields.map(f=>{const val=plan?.[f.k];const prev=cmpPlan?.[f.k];const d=val!=null&&prev!=null&&prev!==0?(f.isBs?((val-prev)/prev*100):(val-prev)):null;const dStr=d!=null?(f.isBs?(d>0?'+':'')+d.toFixed(1)+'%':(d>0?'+':'')+d.toFixed(1)+'pp'):null;const isGood=f.isBs?(d&&d>0):(d&&d<0)
+          {churnFields.map(f=>{const val=plan?.[f.k];const prev=cmpPlan?.[f.k];const d=val!=null&&prev!=null&&prev!==0?(f.isBs?((val-prev)/prev*100):(val-prev)):null;const dStr=d!=null?(f.isBs?(d>0?'+':'')+d.toFixed(1)+'%':(d>0?'+':'')+d.toFixed(1)+'pp'):null;const isGood=f.k==='churn_base'?(d&&d>0):(d&&d<0)
             return<div key={f.k} style={{background:'#F7F8F9',borderRadius:10,padding:'14px 12px'}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>{f.l}</div><div className='lh-num' style={{fontSize:22,fontWeight:600}}><EdNum value={val} canEdit={ce} onSave={v=>savePlan(f.k,v)} style={{fontSize:22,fontWeight:600}}/>{!f.isBs&&val!=null&&<span style={{fontSize:16,fontWeight:500}}>%</span>}</div><div style={{fontSize:12,color:'#9AA0A6',marginTop:4}}>{months[cc]?.slice(0,3)}: {prev!=null?(f.isBs?prev.toLocaleString():prev+'%'):'—'} {dStr&&<span style={{fontWeight:600,color:isGood?'#497B02':'#A71F00'}}>{dStr}</span>}</div></div>})}
         </div>
       </div>})()}
 
         {/* ═══ 4. CHANNELS — fully editable ═══ */}
-    <Label>Каналы</Label>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <span style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Каналы</span>
+      {ce&&<select onChange={e=>{if(!e.target.value)return;const hc=plan?.hidden_channels||[];const next=hc.includes(e.target.value)?hc:([...hc,e.target.value]);saveText('hidden_channels',next);e.target.value=''}} style={{padding:'4px 8px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:12,cursor:'pointer'}}><option value="">скрыть канал...</option>{(sel.channels||[]).filter(ch2=>!(plan?.hidden_channels||[]).includes(ch2.name)).map(ch2=><option key={ch2.name} value={ch2.name}>{ch2.name}</option>)}</select>}
+    </div>
+    {(plan?.hidden_channels||[]).length>0&&ce&&<div style={{marginBottom:8,display:'flex',gap:4,flexWrap:'wrap'}}><span style={{fontSize:12,color:S.i3}}>Скрытые:</span>{(plan?.hidden_channels||[]).map(n=><button key={n} onClick={()=>saveText('hidden_channels',(plan?.hidden_channels||[]).filter(x=>x!==n))} style={{fontSize:11,padding:'2px 8px',borderRadius:6,border:`1px solid ${S.ln}`,background:'#F7F8F9',cursor:'pointer'}}>{n} ↩</button>)}</div>}
     <div style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'6px 12px',marginBottom:22}}>
       <table style={{width:'100%',borderCollapse:'collapse',fontSize:15}}><thead><tr style={{borderBottom:`1px solid ${S.ln}`}}>{['Канал','Sales','План','%','CPO','CPO план','Spent'].map(h=><th key={h} style={{textAlign:h==='Канал'?'left':'right',fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:'.08em',color:S.i3,padding:'10px 12px'}}>{h}</th>)}</tr></thead>
-      <tbody>{(sel.channels||[]).filter(c=>c.sales>0||c.spent>0).map((c,i)=>{const cp2=(plan?.channel_plans||{})[c.name?.toLowerCase?.()]||{};const ps=cp2.planSales||null;const pct=ps&&c.sales?Math.round(c.sales/ps*100):null;const cpo=c.spent&&c.sales?Math.round(c.spent/c.sales):null;return<tr key={i} style={{borderBottom:'1px solid #E4E6E9'}}>
+      <tbody>{(sel.channels||[]).filter(c=>(c.sales>0||c.spent>0)&&!(plan?.hidden_channels||[]).includes(c.name)).map((c,i)=>{const cp2=(plan?.channel_plans||{})[c.name?.toLowerCase?.()]||{};const ps=cp2.planSales||null;const pct=ps&&c.sales?Math.round(c.sales/ps*100):null;const cpo=c.spent&&c.sales?Math.round(c.spent/c.sales):null;return<tr key={i} style={{borderBottom:'1px solid #E4E6E9'}}>
         <td style={{padding:12,fontWeight:600}}>{c.name}</td>
         <td style={{padding:12,textAlign:'right'}}><EdNum value={c.sales} canEdit={ce} onSave={v=>{const chs=[...(sel.channels||[])];chs[i]={...chs[i],sales:v};saveText('channel_overrides',chs)}} style={{fontWeight:600}}/></td>
         <td style={{padding:12,textAlign:'right'}}><EdNum value={ps} canEdit={ce} onSave={v=>{const cp3={...(plan?.channel_plans||{})};const k=c.name?.toLowerCase?.();cp3[k]={...(cp3[k]||{}),planSales:v};savePlan('channel_plans',cp3)}} style={{color:S.i3}}/></td>
@@ -835,7 +842,7 @@ function YoYReport(){
     const mn=Math.min(...all),mx=Math.max(...all),rng=mx-mn||1;const c1=color1||'#6E9B0E';const c2=color2||'#1761CB'
     const px=i=>pad.l+i*(w-pad.l-pad.r)/11;const py=v=>h-pad.b-((v-mn)/rng)*(h-pad.t-pad.b)
     const line=arr=>{const pts=arr.map((v,i)=>[i,v]).filter(([_,v])=>v!=null);return pts.map(([i,v])=>`${px(i)},${py(v)}`).join(' ')}
-    const onMove=(e,yr)=>{const rect=e.currentTarget.getBoundingClientRect();const x=e.clientX-rect.left;const mi=Math.round((x-pad.l)/((w-pad.l-pad.r)/11));if(mi<0||mi>11)return;const v=get(yr,mi+1,field);if(v!=null)setTooltip({x:e.clientX,y:e.clientY,text:`${MF[mi]} ${yr}: ${prefix||''}${v.toLocaleString()}`})}
+    const onMove=(e,yr)=>{const rect=e.currentTarget.getBoundingClientRect();const x=e.clientX-rect.left;const mi=Math.round((x-pad.l)/((w-pad.l-pad.r)/11));if(mi<0||mi>11)return;const v=get(yr,mi+1,field);if(v!=null){const ann=data.find(d2=>d2.year===yr&&d2.month===mi+1)?.annotation;setTooltip({x:e.clientX,y:e.clientY,text:`${MF[mi]} ${yr}: ${prefix||''}${v.toLocaleString()}${ann?' · '+ann:''}`.slice(0,120)})}}
     return<svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:'auto'}} onMouseLeave={()=>setTooltip(null)}>
       {[0,.25,.5,.75,1].map(p=><g key={p}><line x1={pad.l} x2={w-pad.r} y1={py(mn+p*rng)} y2={py(mn+p*rng)} stroke="#E4E6E9" strokeWidth={.5} strokeDasharray="4,4"/><text x={pad.l-6} y={py(mn+p*rng)+4} textAnchor="end" fill="#9AA0A6" fontSize={9} fontFamily="Poppins,sans-serif">{prefix||''}{Math.round(mn+p*rng).toLocaleString()}</text></g>)}
       {ML.map((m,i)=><text key={i} x={px(i)} y={h-8} textAnchor="middle" fill="#9AA0A6" fontSize={10}>{m}</text>)}
@@ -968,19 +975,17 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>CPO · 2025 vs 2026</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <CmpRow label="CPO Meta" field="cpo_meta" prefix="$" invertGood={true} isAvg={true}/>
-          <CmpRow label="CPO Google" field="cpo_google" prefix="$" invertGood={true} isAvg={true}/>
+          <ChRow label="CPO Meta" field="cpo_meta" yr1={2025} yr2={2026} color1="#FF6C1C" color2="#F6360B"/>
+          <ChRow label="CPO Google" field="cpo_google" yr1={2025} yr2={2026}/>
         </tbody></table>
-        <div style={{padding:'8px 16px'}}><Chart field="cpo_meta" yr1={2025} yr2={2026} prefix="$" color1="#FF6C1C" color2="#F6360B"/></div>
-        <div style={{padding:'8px 16px'}}><Chart field="cpo_google" yr1={2025} yr2={2026} prefix="$"/></div>
       </div>
 
       {/* Spend comparison */}
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Spend · 2025 vs 2026</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <CmpRow label="Meta" field="spend_meta" prefix="$"/>
-          <CmpRow label="Google" field="spend_google" prefix="$"/>
+          <ChRow label="Meta" field="spend_meta" yr1={2025} yr2={2026} color1="#FF6C1C" color2="#F6360B"/>
+          <ChRow label="Google" field="spend_google" yr1={2025} yr2={2026}/>
         </tbody></table>
       </div>
 
@@ -988,13 +993,11 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Retention · 2025 vs 2026</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <CmpRow label="База" field="subscriber_base"/>
-          <CmpRow label="Churn %" field="churn_rate" invertGood={true} isAvg={true}/>
-          <CmpRow label="Отток шт" field="churn_units" invertGood={true}/>
-          <CmpRow label="Net Growth" field="net_growth"/>
+          <ChRow label="База" field="subscriber_base" yr1={2025} yr2={2026}/>
+          <ChRow label="Churn %" field="churn_rate" yr1={2025} yr2={2026} color1="#DD2A02" color2="#F18B0E"/>
+          <ChRow label="Отток шт" field="churn_units" yr1={2025} yr2={2026} color1="#DD2A02" color2="#F18B0E"/>
+          <ChRow label="Net Growth" field="net_growth" yr1={2025} yr2={2026} color1="#497B02" color2="#DD2A02"/>
         </tbody></table>
-        <div style={{padding:'8px 16px'}}><Chart field="subscriber_base" yr1={2025} yr2={2026}/></div>
-        <div style={{padding:'8px 16px'}}><Chart field="net_growth" yr1={2025} yr2={2026} color1="#497B02" color2="#DD2A02"/></div>
       </div>
 
       {/* Annotations */}
