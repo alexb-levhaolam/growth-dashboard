@@ -104,7 +104,8 @@ function Main({profile}){
     </>}
 
     {/* WEEKLY */}
-    {page==='weekly'&&<>
+    {page==='weekly'&&!rep&&<div style={{padding:40,textAlign:'center',color:S.i3}}>Нет отчётов. Создайте первый отчёт.</div>}
+    {page==='weekly'&&rep&&<>
       <div className='lh-plate' style={{background:'linear-gradient(180deg,#6E9B0E,#497B02)',borderRadius:14,padding:'32px 32px 28px',marginBottom:22}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div style={{fontSize:15,letterSpacing:'.1em',textTransform:'uppercase',color:'#FAFAFA',fontWeight:600}}>Growth · еженедельный отчёт</div>
@@ -172,30 +173,7 @@ function Main({profile}){
     {/* SLACK BOT */}
     {page==='bot'&&isA&&<>
       <h1 style={{fontSize:24,fontWeight:600,marginBottom:22}}>Slack бот</h1>
-      {(()=>{const[preMsg,setPreMsg]=useState('Ребята, через 5 минут вам напишет бот с просьбой обновить статусы по проектам. Пожалуйста, ответьте ему.');const[sending,setSending]=useState(false)
-      const sendWithDelay=async()=>{if(!confirm('Отправить предупреждение в чат, потом через 5 мин запустить бот?'))return;setSending(true);try{await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'pre_message',text:preMsg})});setTimeout(async()=>{const r=await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'manual_trigger',week_start:rep?.week_start})});const d=await r.json();alert(d.message||'Бот запущен!');setSending(false)},5*60*1000);alert('Предупреждение отправлено. Бот запустится через 5 минут.')}catch(e){alert('Ошибка: '+e.message);setSending(false)}}
-      return<>
-      <div style={{display:'flex',gap:10,marginBottom:22,flexWrap:'wrap'}}>
-        <button onClick={sendWithDelay} disabled={sending} style={{padding:'10px 18px',borderRadius:8,border:'none',background:S.gm,color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',opacity:sending?.5:1}}>{sending?'Ожидание...':'Предупредить + Запустить (5 мин)'}</button>
-        <button onClick={async()=>{const r=await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'manual_trigger',week_start:rep?.week_start})});const d=await r.json();alert(d.message||'Отправлено')}} style={{padding:'10px 18px',borderRadius:8,border:`1px solid ${S.ln}`,background:S.sf,color:S.ink,fontSize:14,fontWeight:600,cursor:'pointer'}}>Запустить сразу</button>
-      </div>
-
-      <Label>Предупреждение команде</Label>
-      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16,marginBottom:22}}>
-        <textarea value={preMsg} onChange={e=>setPreMsg(e.target.value)} rows={3} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,resize:'vertical',fontFamily:'inherit',color:'#121416'}}/>
-        <div style={{fontSize:12,color:S.i3,marginTop:6}}>Это сообщение отправится в канал маркетинга перед запуском бота</div>
-      </div>
-
-      <Label>Настройки</Label>
-      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22}}>
-        <div style={{display:'grid',gridTemplateColumns:'160px 1fr',gap:10,fontSize:14}}>
-          <span style={{color:S.i3,fontWeight:600}}>Пропуск статусов:</span><span>готово, ожидание</span>
-          <span style={{color:S.i3,fontWeight:600}}>Язык бота:</span><span>English</span>
-          <span style={{color:S.i3,fontWeight:600}}>Ответы команды:</span><span>любой язык</span>
-          <span style={{color:S.i3,fontWeight:600}}>Задержка:</span><span>5 минут после предупреждения</span>
-        </div>
-      </div>
-      </>})()}
+      <SlackBotPage weekStart={rep?.week_start}/>
     </>}
 
     {/* ADMIN */}
@@ -208,7 +186,7 @@ function Main({profile}){
 
 // ═══ OVERVIEW ═══
 function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily,mPlans}){
-  const prevRep=aIdx>0?reports[aIdx-1]:null;const pm=prevRep?.metrics||{};const pch=prevRep?.channels||[];const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
+  if(!rep)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Выберите отчёт</div>;const prevRep=aIdx>0?reports[aIdx-1]:null;const pm=prevRep?.metrics||{};const pch=prevRep?.channels||[];const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
   const pins=rep.pinned_projects||[];const shown=pins.length>0?projects.filter(p=>pins.includes(p.id)):projects.filter(p=>p.priority==='key').slice(0,8)
   const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const visCh=rep.visible_channels||(ch.map(c=>c.name).filter(n=>!DEFAULT_HIDDEN.includes(n)))
@@ -839,6 +817,34 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
 }
 
 
+
+
+// ═══ SLACK BOT PAGE ═══
+function SlackBotPage({weekStart}){
+  const[preMsg,setPreMsg]=useState('Ребята, через 5 минут вам напишет бот с просьбой обновить статусы по проектам. Пожалуйста, ответьте ему.')
+  const[sending,setSending]=useState(false)
+  const sendWithDelay=async()=>{if(!confirm('Отправить предупреждение в чат, потом через 5 мин запустить бот?'))return;setSending(true);try{await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'pre_message',text:preMsg})});setTimeout(async()=>{const r=await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'manual_trigger',week_start:weekStart})});const d=await r.json();alert(d.message||'Бот запущен!');setSending(false)},5*60*1000);alert('Предупреждение отправлено. Бот запустится через 5 минут.')}catch(e){alert('Ошибка: '+e.message);setSending(false)}}
+  return<>
+    <div style={{display:'flex',gap:10,marginBottom:22,flexWrap:'wrap'}}>
+      <button onClick={sendWithDelay} disabled={sending} style={{padding:'10px 18px',borderRadius:8,border:'none',background:S.gm,color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',opacity:sending?.5:1}}>{sending?'Ожидание...':'Предупредить + Запустить (5 мин)'}</button>
+      <button onClick={async()=>{const r=await fetch('/api/slack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'manual_trigger',week_start:weekStart})});const d=await r.json();alert(d.message||'Отправлено')}} style={{padding:'10px 18px',borderRadius:8,border:`1px solid ${S.ln}`,background:S.sf,color:S.ink,fontSize:14,fontWeight:600,cursor:'pointer'}}>Запустить сразу</button>
+    </div>
+    <Label>Предупреждение команде</Label>
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16,marginBottom:22}}>
+      <textarea value={preMsg} onChange={e=>setPreMsg(e.target.value)} rows={3} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,resize:'vertical',fontFamily:'inherit',color:'#121416'}}/>
+      <div style={{fontSize:12,color:S.i3,marginTop:6}}>Это сообщение отправится в канал маркетинга перед запуском бота</div>
+    </div>
+    <Label>Настройки</Label>
+    <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22}}>
+      <div style={{display:'grid',gridTemplateColumns:'160px 1fr',gap:10,fontSize:14}}>
+        <span style={{color:S.i3,fontWeight:600}}>Пропуск статусов:</span><span>готово, ожидание</span>
+        <span style={{color:S.i3,fontWeight:600}}>Язык бота:</span><span>English</span>
+        <span style={{color:S.i3,fontWeight:600}}>Ответы команды:</span><span>любой язык</span>
+        <span style={{color:S.i3,fontWeight:600}}>Задержка:</span><span>5 минут после предупреждения</span>
+      </div>
+    </div>
+  </>
+}
 
 // ═══ IMAGE UPLOAD ═══
 function ImageUpload({bucket,folder,images,onSave,canEdit}){
