@@ -186,7 +186,7 @@ function Main({profile}){
 
 // ═══ OVERVIEW ═══
 function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily,mPlans}){
-  if(!rep)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Выберите отчёт</div>;const prevRep=aIdx>0?reports[aIdx-1]:null;const pm=prevRep?.metrics||{};const pch=prevRep?.channels||[];const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
+  if(!rep)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Выберите отчёт</div>;const repIdx=reports.findIndex(r=>r.id===rep.id);const prevRep=repIdx>0?reports[repIdx-1]:null;const pm=prevRep?.metrics||{};const pch=prevRep?.channels||[];const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[];const maxS=Math.max(...ch.map(c=>c.sales||0),1)
   const pins=rep.pinned_projects||[];const shown=pins.length>0?projects.filter(p=>pins.includes(p.id)):projects.filter(p=>p.priority==='key').slice(0,8)
   const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const visCh=rep.visible_channels||(ch.map(c=>c.name).filter(n=>!DEFAULT_HIDDEN.includes(n)))
