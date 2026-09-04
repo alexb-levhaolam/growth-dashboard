@@ -8,6 +8,7 @@ function getSupabase() {
 }
 
 async function getSheets() {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT) throw new Error('Missing env: GOOGLE_SERVICE_ACCOUNT');
   const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
   const auth = new google.auth.GoogleAuth({ credentials: creds, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
   return google.sheets({ version: 'v4', auth });
@@ -32,6 +33,11 @@ function colLetter(n) {
 
 export default async function handler(req, res) {
   try {
+    const missing = [];
+    if (!process.env.SUPABASE_URL && !process.env.VITE_SUPABASE_URL) missing.push('SUPABASE_URL');
+    if (!process.env.SUPABASE_SERVICE_KEY && !process.env.VITE_SUPABASE_ANON_KEY) missing.push('SUPABASE_SERVICE_KEY');
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT) missing.push('GOOGLE_SERVICE_ACCOUNT');
+    if (missing.length) return res.status(500).json({ error: 'Missing env vars: ' + missing.join(', ') });
     const sb = getSupabase();
     const { week_start: overrideWs } = req.body || {};
     const { label, week_start } = overrideWs ? { label: overrideWs, week_start: overrideWs } : getLastWeek();
