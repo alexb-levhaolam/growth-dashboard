@@ -16,13 +16,18 @@ async function getSheets() {
 
 function getLastWeek() {
   const now = new Date();
-  const mon = new Date(now);
-  mon.setDate(mon.getDate() - mon.getDay() - 6);
-  const sun = new Date(mon);
-  sun.setDate(sun.getDate() + 6);
+  // Find Monday of CURRENT week
+  const todayDay = now.getDay(); // 0=Sun, 1=Mon...
+  const currentMon = new Date(now);
+  currentMon.setDate(now.getDate() - (todayDay === 0 ? 6 : todayDay - 1));
+  // Last complete week = subtract 7 days
+  const lastMon = new Date(currentMon);
+  lastMon.setDate(currentMon.getDate() - 7);
+  const lastSun = new Date(lastMon);
+  lastSun.setDate(lastMon.getDate() + 6);
   const fmt = d => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
-  const ws = `${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,'0')}-${String(mon.getDate()).padStart(2,'0')}`;
-  return { label: `${fmt(mon)}-${fmt(sun)}`, week_start: ws };
+  const ws = `${lastMon.getFullYear()}-${String(lastMon.getMonth()+1).padStart(2,'0')}-${String(lastMon.getDate()).padStart(2,'0')}`;
+  return { label: `${fmt(lastMon)}-${fmt(lastSun)}`, week_start: ws };
 }
 
 function colLetter(n) {
@@ -39,17 +44,8 @@ export default async function handler(req, res) {
     if (!process.env.GOOGLE_SERVICE_ACCOUNT) missing.push('GOOGLE_SERVICE_ACCOUNT');
     if (missing.length) return res.status(500).json({ error: 'Missing env vars: ' + missing.join(', ') });
     const sb = getSupabase();
-    const { week_start: overrideWs } = req.body || {};
-    let label, week_start;
-    if (overrideWs) {
-      week_start = overrideWs;
-      const d = new Date(overrideWs + 'T12:00:00');
-      const sun = new Date(d); sun.setDate(sun.getDate() + 6);
-      const fmt = dt => `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`;
-      label = `${fmt(d)}-${fmt(sun)}.${sun.getFullYear()}`;
-    } else {
-      ({ label, week_start } = getLastWeek());
-    }
+    // Always export last complete week (Mon-Sun that has ended)
+    const { label, week_start } = getLastWeek();
 
     const { data: tasks } = await sb.from('tactical_tasks').select('*').order('sort_order');
     const { data: allProgress } = await sb.from('tactical_progress').select('*').order('week_start', { ascending: false });
