@@ -52,19 +52,7 @@ export default async function handler(req, res) {
     }
 
     const { data: tasks } = await sb.from('tactical_tasks').select('*').order('sort_order');
-    let { data: progress } = await sb.from('tactical_progress').select('*').eq('week_start', week_start);
-    if (!progress?.length) {
-      const { data: allProg } = await sb.from('tactical_progress').select('*').order('week_start', { ascending: false }).limit(50);
-      if (allProg?.length) {
-        const closest = [...new Set(allProg.map(p => p.week_start))].sort().reverse()[0];
-        progress = allProg.filter(p => p.week_start === closest);
-        week_start = closest;
-        const d = new Date(closest + 'T12:00:00');
-        const sun = new Date(d); sun.setDate(sun.getDate() + 6);
-        const fmt = dt => `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`;
-        label = `${fmt(d)}-${fmt(sun)}.${sun.getFullYear()}`;
-      }
-    }
+    const { data: allProgress } = await sb.from('tactical_progress').select('*').order('week_start', { ascending: false });
 
     if (!tasks?.length) return res.json({ message: 'No tactical tasks found' });
 
@@ -93,12 +81,32 @@ export default async function handler(req, res) {
     const row = [label];
     for (const taskName of taskOrder) {
       const task = tasks.find(t => t.name === taskName);
-      const prog = task ? progress?.find(p => p.task_id === task.id) : null;
-      const current = prog?.current ?? task?.current ?? '';
-      const target = task?.target ?? '';
-      const pct = target && current ? Math.round((current / target) * 100) + '%' : '';
-      const comment = prog?.comment || '';
-      row.push(current || target ? `${current} / ${target}` : '', pct, comment);
+      const prog = task ? allProgress?.find(p => p.task_id === task.id) : null;
+      
+      let valStr = '', pct = '', comment = '';
+      
+      if (task) {
+        if (task.target_type === 'numeric') {
+          const current = prog?.current_value ?? 0;
+          const target = task.target_value ?? 0;
+          valStr = `${current} / ${target}`;
+          pct = target ? Math.round((current / target) * 100) + '%' : '';
+        } else {
+          const ms = task.milestones || [];
+          const cur = prog?.milestone_status ?? 0;
+          valStr = cur > 0 && cur <= ms.length ? ms[cur-1]?.name : 'Не начато';
+          pct = ms.length ? Math.round(cur / ms.length * 100) + '%' : '';
+        }
+        
+        // Get latest comment
+        if (prog?.comments?.length) {
+          comment = prog.comments[prog.comments.length - 1]?.text || '';
+        } else if (prog?.comment) {
+          comment = prog.comment;
+        }
+      }
+      
+      row.push(valStr, pct, comment);
     }
 
     await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: 'A:A', valueInputOption: 'USER_ENTERED', insertDataOption: 'INSERT_ROWS', requestBody: { values: [row] } });
