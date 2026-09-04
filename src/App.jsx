@@ -87,7 +87,7 @@ function Main({profile}){
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Быстрый доступ</div>
       <div className='lh-home-cards' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
         <div onClick={()=>navTo('weekly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>☰ Текущая неделя</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{rep?.week_label||'—'}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{rep?.metrics?.totalSales||0} продаж</div></div>
-        {isA&&<div onClick={()=>navTo('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▣ Ежемесячный</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{new Date().toLocaleString('ru',{month:'long',year:'numeric'})}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Предыдущий месяц</div></div>}
+        {isA&&<div onClick={()=>navTo('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▣ Ежемесячный</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{new Date(new Date().getFullYear(),new Date().getMonth()-1).toLocaleString('ru',{month:'long',year:'numeric'})}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Отчёт за прошлый месяц</div></div>}
         <div onClick={()=>navTo('projects-all')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:S.i3}}>▤ Проекты</div><div className='lh-num' className='lh-num' style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done'&&p.status!=='wait').length} в работе</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length} блокер(ов)</div></div>
       </div>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Статус проектов</div>
@@ -99,7 +99,7 @@ function Main({profile}){
       </div>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Последние комментарии</div>
       <div style={{display:'flex',flexDirection:'column',gap:6}}>
-        {[...comments].sort((a,b)=>(b.created_at||b.id).localeCompare(a.created_at||a.id)).slice(0,8).map(c=><div key={c.id} style={{background:S.sf,borderRadius:10,boxShadow:S.sh,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><b style={{fontSize:14}}>{c.author}</b><span style={{fontSize:13,color:S.i2,marginLeft:8}}>{(c.full_text||c.summary||'').slice(0,60)}</span></div><small style={{fontSize:12,color:'#9AA0A6',whiteSpace:'nowrap'}}>{c.week_start}</small></div>)}
+        {[...comments].sort((a,b)=>(b.created_at||b.id||'').localeCompare(a.created_at||a.id||'')).slice(0,8).map(c=>{const proj=projects.find(p=>p.id===c.project_id);return<div key={c.id} style={{background:S.sf,borderRadius:10,boxShadow:S.sh,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'start',gap:12}}><div><b style={{fontSize:14}}>{proj?.name||''}</b><span style={{fontSize:13,color:S.i3,marginLeft:4}}>({c.author})</span><div style={{fontSize:13,color:S.i2,marginTop:2}}>{(c.full_text||c.summary||'').slice(0,80)}</div></div><small style={{fontSize:12,color:'#9AA0A6',whiteSpace:'nowrap'}}>{c.week_start}</small></div>})}
       </div>
     </>}
 
@@ -286,9 +286,9 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
           :x.v}
         </div>
         <div style={{fontSize:15,color:S.i2,display:'flex',alignItems:'center',gap:4}}>
-          {i===0&&<><span>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={m.totalSales} prev={pm.totalSales}/></>}
-          {i===1&&<><span>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoAds} prev={prevRep?(() => {const ps2=pch.filter(c2=>(c2.spent||0)>0);const spend2=pch.reduce((s,c2)=>s+(c2.spent||0),0);const sales2=ps2.reduce((s,c2)=>s+(c2.sales||0),0);return sales2>0?Math.round((spend2+(pm.discBL||0))/sales2):null})():null} invert/></>}
-          {i===2&&<><span>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoTotal} prev={prevRep&&(pm.totalSales||0)>0?Math.round((pm.totalSpentBM||0)/pm.totalSales):null} invert/></>}
+          {i===0&&<><span>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:15,color:S.i2}}/></span></>}
+          {i===1&&<><span>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:15,color:S.i2}}/></span></>}
+          {i===2&&<><span>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:15,color:S.i2}}/></span></>}
           {i===3&&<>из $<EdNum value={m.budgetPlan!=null?m.budgetPlan:(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:15,color:S.i2}}/>K</>}
         </div>
       </div>)}
@@ -305,11 +305,11 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
 
     <Label>Каналы</Label>
     <div className='lh-ch-wrap' style={{background:S.sf,borderRadius:14,boxShadow:S.sh,marginBottom:40}}>
-      <div className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 55px 50px 55px 60px 70px 55px 55px',gap:4,padding:'16px 20px',background:S.bg,fontSize:13,fontWeight:600,color:S.i3,textTransform:'uppercase',letterSpacing:'.08em'}}>
-        <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Sales</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO план</span><span style={{textAlign:'right'}}>Δ CPO</span><span style={{textAlign:'right'}}>WoW</span>
+      <div className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 55px 50px 55px 60px 70px 55px',gap:4,padding:'16px 20px',background:S.bg,fontSize:13,fontWeight:600,color:S.i3,textTransform:'uppercase',letterSpacing:'.08em'}}>
+        <span>Канал</span><span>прогресс</span><span style={{textAlign:'right'}}>Sales</span><span style={{textAlign:'right'}}>План</span><span style={{textAlign:'right'}}>%</span><span style={{textAlign:'right'}}>Δ</span><span style={{textAlign:'right'}}>CPO</span><span style={{textAlign:'right'}}>CPO план</span><span style={{textAlign:'right'}}>Δ CPO</span>
       </div>
       {ch.filter(c=>!visCh||visCh.includes(c.name)).map((c,i)=>{const ci=ch.indexOf(c);const mp=getChPlan(c.name);const ps=c.planSales!=null?c.planSales:(mp.planSales||0);const barPct=ps?(Math.min((c.sales||0)/ps*100,100)):((c.sales||0)>0?100:0);const barColor=ps?((c.sales||0)>=ps?'#497B02':(c.sales||0)>=ps*0.7?'#F18B0E':'#DD2A02'):((c.sales||0)>0?S.gl:'#E4E6E9');const chCpo=(c.spent&&c.sales)?Math.round(c.spent/c.sales):c.cpo
-        return<div key={i} className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 55px 50px 55px 60px 70px 55px 55px',gap:4,padding:'18px 20px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
+        return<div key={i} className='lh-ch-row' style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 55px 50px 55px 60px 70px 55px',gap:4,padding:'18px 20px',borderBottom:`1px solid ${S.ln}`,alignItems:'center',fontSize:17}}>
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           {ce&&<button onClick={()=>remCh(ci)} style={{background:'none',border:'none',color:S.ln,cursor:'pointer',fontSize:15,padding:0,lineHeight:1}}>✕</button>}
           <Ed value={c.name} canEdit={ce} onSave={v=>upCh(ci,'name',v)} style={{fontWeight:500,fontSize:17}}/>
@@ -322,7 +322,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         <span style={{textAlign:'right'}}><EdNum value={chCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'cpo',v)} style={{fontSize:17,color:S.i2}}/></span>
         <span style={{textAlign:'right'}}><EdNum value={c.planCpo!=null?c.planCpo:mp.planCpo} canEdit={ce} prefix="$" onSave={v=>upCh(ci,'planCpo',v)} style={{fontSize:15,color:S.i3}}/></span>
         <span style={{textAlign:'right'}}><CpoCompare fact={chCpo} plan={c.planCpo!=null?c.planCpo:mp.planCpo}/></span>
-        <span style={{textAlign:'right',fontSize:13}}>{(()=>{const pc=pch.find(pc2=>pc2.name===c.name);const d=wow(c.sales,pc?.sales);if(d==null)return'—';return<span style={{fontWeight:600,color:d>=0?'#497B02':'#A71F00'}}>{d>0?'+':''}{d}%</span>})()}</span>
+        
       </div>})}
       {ce&&<div style={{padding:'12px 16px'}}><button onClick={addCh} style={{fontSize:17,color:S.gd,background:'none',border:`1px dashed ${S.ln}`,borderRadius:8,padding:'10px 18px',cursor:'pointer',width:'100%',fontWeight:600}}>+ Добавить канал</button></div>}
     </div>
@@ -471,9 +471,9 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {!isO&&ds&&<div style={{fontSize:13,color:S.i3,marginTop:4}}>{ds}</div>}
 
       {/* 4. Последний комментарий (collapsed: 3 lines, expanded: full) */}
-      {!isO&&(lastC||prev)&&<div style={{borderTop:`1px solid ${S.ln}`,marginTop:8,paddingTop:8}}>
-        <div style={{fontSize:12,color:lastC?S.i3:'#B76400',marginBottom:2}}>{lastC?`${lastC.author} · ${lastC.week_start}`:`${prev.author} · ${prev.week_start} (пр. неделя)`}</div>
-        <div style={{fontSize:14,color:S.i2,lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{(lastC||prev).full_text||(lastC||prev).summary}</div>
+      {!isO&&lastC&&<div style={{borderTop:`1px solid ${S.ln}`,marginTop:8,paddingTop:8}}>
+        <div style={{fontSize:12,color:S.i3,marginBottom:2}}>{lastC.author} · {lastC.week_start}</div>
+        <div style={{fontSize:14,color:S.i2,lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{lastC.full_text||lastC.summary}</div>
       </div>}
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}>
         <div style={{fontSize:13,color:S.i3,marginBottom:6}}>Комментарии</div>
@@ -697,7 +697,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
         {[{l:'Продажи',f:plan?.is_closed?plan.closed_sales:sel.totalSales,p:plan?.total_plan,pk:'total_plan',sp:wSales,inv:false,cf:mcData?.totalSales},{l:'CPO Ads',f:plan?.is_closed?plan.closed_cpo_ads:cpoAds,p:plan?.plan_cpo_ads,pk:'plan_cpo_ads',sp:wCpoAds,inv:true,pre:'$',cf:mcCpoAds},{l:'CPO Total',f:plan?.is_closed?plan.closed_cpo_total:cpoTotal,p:plan?.plan_cpo_total,pk:'plan_cpo_total',sp:wCpoTotal,inv:true,pre:'$',cf:mcCpoTotal},{l:'Бюджет',f:plan?.is_closed?plan.closed_budget:(sel.totalSpentBM||0),p:plan?.ads_budget,pk:'ads_budget',sp:ws.map(w=>w.metrics?.totalSpentBM||0),inv:true,pre:'$',cf:mcData?.totalSpentBM}].map((x,i)=>{const d=pctD(x.f,x.p);const isGood=x.inv?(d&&d<0):(d&&d>0);const cd=x.cf!=null&&x.f!=null&&x.cf!==0?Math.round((x.f-x.cf)/x.cf*100):null;const cGood=x.inv?(cd&&cd<0):(cd&&cd>0)
           return<div key={i}>
           <div style={{fontSize:14,color:'rgba(255,255,255,.6)',marginBottom:8}}>{x.l}</div>
-          <div style={{display:'flex',alignItems:'baseline',gap:10}}><span className='lh-num' style={{fontSize:36,fontWeight:600}}>{x.pre||''}<EdNum value={x.f} canEdit={ce} onSave={v=>savePlan('actual_'+x.pk,v)} style={{fontSize:36,fontWeight:600,color:'#fff'}}/></span><Spark data={x.sp} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/></div>
+          <div style={{display:'flex',alignItems:'baseline',gap:10}}><span className='lh-num' style={{fontSize:36,fontWeight:600}}>{x.pre||''}<EdNum value={x.f} canEdit={ce} onSave={v=>{}} style={{fontSize:36,fontWeight:600,color:'#fff'}}/></span><Spark data={x.sp} color={d==null?'rgba(255,255,255,.4)':isGood?'#AAD34F':'#FF8A6F'}/></div>
           <div style={{fontSize:13,color:'rgba(255,255,255,.45)',marginTop:6}}>план <EdNum value={x.p} canEdit={ce} onSave={v=>savePlan(x.pk,v)} style={{fontSize:13,color:'rgba(255,255,255,.45)'}}/>{d!=null&&<span style={{marginLeft:6,fontWeight:600,color:isGood?'#AAD34F':'#FF8A6F'}}>{d>0?'+':''}{d}%</span>}</div>
           {mc!=null&&<div style={{fontSize:12,color:'rgba(255,255,255,.35)',marginTop:4}}>{months[mc]?.slice(0,3)}: {x.pre||''}{x.cf?.toLocaleString()||'—'}{cd!=null&&<span style={{marginLeft:6,fontWeight:600,color:cGood?'#AAD34F':'#FF8A6F'}}>{cd>0?'+':''}{cd}%</span>}</div>}
         </div>})}
@@ -715,7 +715,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
         </div>
         <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}} className='lh-grid4'>
           {churnFields.map(f=>{const val=plan?.[f.k];const prev=cmpPlan?.[f.k];const d=val!=null&&prev!=null&&prev!==0?(f.isBs?((val-prev)/prev*100):(val-prev)):null;const dStr=d!=null?(f.isBs?(d>0?'+':'')+d.toFixed(1)+'%':(d>0?'+':'')+d.toFixed(1)+'pp'):null;const isGood=f.k==='churn_base'?(d&&d>0):(d&&d<0)
-            return<div key={f.k} style={{background:'#F7F8F9',borderRadius:10,padding:'14px 12px'}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>{f.l}</div><div className='lh-num' style={{fontSize:22,fontWeight:600}}><EdNum value={val} canEdit={ce} onSave={v=>savePlan(f.k,v)} style={{fontSize:22,fontWeight:600}}/>{!f.isBs&&val!=null&&<span style={{fontSize:16,fontWeight:500}}>%</span>}</div><div style={{fontSize:12,color:'#9AA0A6',marginTop:4}}>{months[cc]?.slice(0,3)}: {prev!=null?(f.isBs?prev.toLocaleString():prev+'%'):'—'} {dStr&&<span style={{fontWeight:600,color:isGood?'#497B02':'#A71F00'}}>{dStr}</span>}</div></div>})}
+            return<div key={f.k} style={{background:'#F7F8F9',borderRadius:10,padding:'14px 12px'}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>{f.l}</div><div className='lh-num' style={{fontSize:22,fontWeight:600}}><EdNum value={val} canEdit={ce} onSave={v=>savePlan(f.k,v)} style={{fontSize:22,fontWeight:600}}/>{!f.isBs&&val!=null&&<span style={{fontSize:16,fontWeight:500}}>%</span>}</div><div style={{fontSize:12,color:'#9AA0A6',marginTop:4}}>{months[cc]?.slice(0,3)}: {prev!=null?(f.isBs?prev.toLocaleString():prev+'%'):'—'} {dStr&&<span style={{fontWeight:700,fontSize:14,color:isGood?'#1B8A00':'#DD2A02'}}>{dStr}</span>}</div></div>})}
         </div>
       </div>})()}
 
@@ -981,10 +981,10 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>CPO и Spend · {yr}</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <Row label="CPO Meta" field="cpo_meta" yr={yr} prefix="$" isMoney={true} isAvg={true}/>
-          <Row label="CPO Google" field="cpo_google" yr={yr} prefix="$" isMoney={true} isAvg={true}/>
-          <Row label="Spend Meta" field="spend_meta" yr={yr} prefix="$" isMoney={true}/>
-          <Row label="Spend Google" field="spend_google" yr={yr} prefix="$" isMoney={true}/>
+          <ChRow label="CPO Meta" field="cpo_meta" yr1={yr} color1="#FF6C1C"/>
+          <ChRow label="CPO Google" field="cpo_google" yr1={yr} color1="#1761CB"/>
+          <ChRow label="Spend Meta" field="spend_meta" yr1={yr} color1="#FF6C1C"/>
+          <ChRow label="Spend Google" field="spend_google" yr1={yr} color1="#1761CB"/>
         </tbody></table>
       </div>
 
@@ -992,13 +992,27 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Retention · {yr}</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
-          <Row label="База" field="subscriber_base" yr={yr}/>
-          <Row label="Churn %" field="churn_rate" yr={yr} isAvg={true}/>
-          <Row label="Отток шт" field="churn_units" yr={yr}/>
-          <Row label="Net Growth" field="net_growth" yr={yr}/>
+          <ChRow label="База" field="subscriber_base" yr1={yr}/>
+          <ChRow label="Churn %" field="churn_rate" yr1={yr} color1="#DD2A02"/>
+          <ChRow label="Отток шт" field="churn_units" yr1={yr} color1="#DD2A02"/>
+          <ChRow label="Net Growth" field="net_growth" yr1={yr} color1="#497B02"/>
         </tbody></table>
       </div>
     </>}
+
+    {/* Annotations in single year */}
+    {mode!=='compare'&&<div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:22,marginBottom:22}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+        <div style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Аннотации · {yr}</div>
+        <select onChange={async e=>{if(!e.target.value)return;const id=e.target.value;const exists=data.find(d2=>d2.id===id);if(!exists){await supabase.from('yearly_metrics').insert({id,year:yr,month:parseInt(id.split('-')[1]),annotation:'Новая аннотация'});setData(prev=>[...prev,{id,year:yr,month:parseInt(id.split('-')[1]),annotation:'Новая аннотация'}])}else{await saveCell(id,'annotation','Новая аннотация')};e.target.value=''}} style={{padding:'4px 10px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:12,cursor:'pointer'}}><option value="">+ добавить...</option>{ML.map((m,i)=>{const id2=getId(yr,i+1);return!data.find(d2=>d2.id===id2&&d2.annotation)?<option key={id2} value={id2}>{m}</option>:null})}</select>
+      </div>
+      {data.filter(d=>d.year===yr&&d.annotation).sort((a,b)=>a.month-b.month).map(d=><div key={d.id} style={{display:'flex',gap:12,padding:'8px 0',borderBottom:'1px solid #E4E6E9',fontSize:14,alignItems:'center'}}>
+        <span style={{fontWeight:600,color:'#6E9B0E',minWidth:60,flexShrink:0}}>{MF[d.month-1]}</span>
+        <Ed value={d.annotation} canEdit={true} onSave={v=>saveCell(d.id,'annotation',v)} style={{color:S.i2,flex:1}}/>
+        <button onClick={()=>saveCell(d.id,'annotation',null)} style={{fontSize:12,color:'#C4C8CD',background:'none',border:'none',cursor:'pointer',flexShrink:0}}>✕</button>
+      </div>)}
+      {data.filter(d=>d.year===yr&&d.annotation).length===0&&<div style={{fontSize:13,color:S.i3}}>Нет аннотаций</div>}
+    </div>}
 
     {/* ═══ COMPARE MODE ═══ */}
     {mode==='compare'&&<>
