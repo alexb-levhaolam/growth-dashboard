@@ -212,7 +212,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   const pins=rep.pinned_projects||[];const shown=pins.length>0?projects.filter(p=>pins.includes(p.id)):projects.filter(p=>p.priority==='key').slice(0,8)
   const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const visCh=rep.visible_channels||(ch.map(c=>c.name).filter(n=>!DEFAULT_HIDDEN.includes(n)))
-  const[showPaste,setShowPaste]=useState(false);const[pasteText,setPasteText]=useState('')
+  const[showPaste,setShowPaste]=useState(false);const[pasteText,setPasteText]=useState('');const[expandedComm,setExpandedComm]=useState({})
   // Get monthly plan for this week's month
   const weekMonth=rep.week_start?.slice(0,7);const mPlan=mPlans.find(p=>p.id===weekMonth)
   const cp=mPlan?.channel_plans||{};const dim=weekMonth?new Date(parseInt(weekMonth.slice(0,4)),parseInt(weekMonth.slice(5,7)),0).getDate():30
@@ -309,8 +309,8 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>
         <div style={{fontSize:15,color:S.i2,display:'flex',alignItems:'center',gap:4}}>
           {i===0&&<><span>план <EdNum value={weekPlanSales||m.planSales} canEdit={ce} onSave={v=>upM('planSales',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={m.totalSales} prev={pm.totalSales}/></>}
-          {i===1&&<><span>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoAds} prev={pm.totalSales>0?Math.round((pch.reduce((s,c2)=>s+(c2.spent||0),0)+(pm.discBL||0))/Math.max(pch.filter(c2=>(c2.spent||0)>0).reduce((s,c2)=>s+(c2.sales||0),0),1)):null} invert/></>}
-          {i===2&&<><span>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoTotal} prev={pm.totalSales>0?Math.round((pm.totalSpentBM||0)/pm.totalSales):null} invert/></>}
+          {i===1&&<><span>план $<EdNum value={m.planCpoAds!=null?m.planCpoAds:planCpoAds} canEdit={ce} onSave={v=>upM('planCpoAds',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoAds} prev={prevRep?(() => {const ps2=pch.filter(c2=>(c2.spent||0)>0);const spend2=pch.reduce((s,c2)=>s+(c2.spent||0),0);const sales2=ps2.reduce((s,c2)=>s+(c2.sales||0),0);return sales2>0?Math.round((spend2+(pm.discBL||0))/sales2):null})():null} invert/></>}
+          {i===2&&<><span>план $<EdNum value={m.planCpoTotal!=null?m.planCpoTotal:planCpoTotal} canEdit={ce} onSave={v=>upM('planCpoTotal',v)} style={{fontSize:15,color:S.i2}}/></span><WoW cur={cpoTotal} prev={prevRep&&(pm.totalSales||0)>0?Math.round((pm.totalSpentBM||0)/pm.totalSales):null} invert/></>}
           {i===3&&<>из $<EdNum value={m.budgetPlan!=null?m.budgetPlan:(mPlan?.ads_budget?Math.round(mPlan.ads_budget/dim*7):null)} canEdit={ce} onSave={v=>upM('budgetPlan',v)} style={{fontSize:15,color:S.i2}}/>K</>}
         </div>
       </div>)}
@@ -361,7 +361,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>})}
     </div>
 
-        {(()=>{const visIds=rep.visible_overview_projects||[];const[expandedComm,setExpandedComm]=useState({});const visibleProjects=projects.filter(p=>p.status!=='done'&&visIds.includes(p.id))
+        {(()=>{const visIds=rep.visible_overview_projects||[];const visibleProjects=projects.filter(p=>p.status!=='done'&&visIds.includes(p.id))
     return visibleProjects.length>0&&<>
     <Label>Приоритетные проекты</Label>
     <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
@@ -396,7 +396,11 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
       <div style={{flex:1,background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'22px 16px'}}><div style={{fontSize:17,fontWeight:600,color:'#A71F00',marginBottom:6}}> Инсайты и наблюдения</div><EList items={rep.manual_worsened} canEdit={ce} onSave={v=>up({manual_worsened:v})} color="#791F1F"/></div>
     </div>
     <div style={{background:'#D6E8FA',borderRadius:14,padding:'22px 16px',marginBottom:12}}><div style={{fontSize:17,fontWeight:600,color:'#0C447C',marginBottom:6}}>Фокус на следующую неделю</div><EList items={rep.focus} canEdit={ce} onSave={v=>up({focus:v})} color="#0C447C"/></div>
-    <div style={{background:'linear-gradient(180deg,#234003,#131B0B)',borderRadius:14,padding:'22px 16px'}}><div style={{fontSize:17,fontWeight:600,color:'#FAFAFA',marginBottom:6}}>Нужно от руководства</div><div style={{color:'#FAFAFA'}}><EList items={rep.asks} canEdit={ce} onSave={v=>up({asks:v})}/></div></div>
+    <div style={{background:'linear-gradient(180deg,#234003,#131B0B)',borderRadius:14,padding:'22px 16px',marginBottom:22}}><div style={{fontSize:17,fontWeight:600,color:'#FAFAFA',marginBottom:6}}>Нужно от руководства</div><div style={{color:'#FAFAFA'}}><EList items={rep.asks} canEdit={ce} onSave={v=>up({asks:v})}/></div></div>
+
+    {/* IMAGES */}
+    <Label>Изображения</Label>
+    <ImageUpload bucket="report-images" folder={`weekly/${rep.week_start}`} images={rep.images||[]} onSave={v=>up({images:v})} canEdit={ce}/>
   </></div>
 }
 
