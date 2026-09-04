@@ -40,10 +40,31 @@ export default async function handler(req, res) {
     if (missing.length) return res.status(500).json({ error: 'Missing env vars: ' + missing.join(', ') });
     const sb = getSupabase();
     const { week_start: overrideWs } = req.body || {};
-    const { label, week_start } = overrideWs ? { label: overrideWs, week_start: overrideWs } : getLastWeek();
+    let label, week_start;
+    if (overrideWs) {
+      week_start = overrideWs;
+      const d = new Date(overrideWs + 'T12:00:00');
+      const sun = new Date(d); sun.setDate(sun.getDate() + 6);
+      const fmt = dt => `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`;
+      label = `${fmt(d)}-${fmt(sun)}.${sun.getFullYear()}`;
+    } else {
+      ({ label, week_start } = getLastWeek());
+    }
 
     const { data: tasks } = await sb.from('tactical_tasks').select('*').order('sort_order');
-    const { data: progress } = await sb.from('tactical_progress').select('*').eq('week_start', week_start);
+    let { data: progress } = await sb.from('tactical_progress').select('*').eq('week_start', week_start);
+    if (!progress?.length) {
+      const { data: allProg } = await sb.from('tactical_progress').select('*').order('week_start', { ascending: false }).limit(50);
+      if (allProg?.length) {
+        const closest = [...new Set(allProg.map(p => p.week_start))].sort().reverse()[0];
+        progress = allProg.filter(p => p.week_start === closest);
+        week_start = closest;
+        const d = new Date(closest + 'T12:00:00');
+        const sun = new Date(d); sun.setDate(sun.getDate() + 6);
+        const fmt = dt => `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`;
+        label = `${fmt(d)}-${fmt(sun)}.${sun.getFullYear()}`;
+      }
+    }
 
     if (!tasks?.length) return res.json({ message: 'No tactical tasks found' });
 
@@ -77,7 +98,7 @@ export default async function handler(req, res) {
       const target = task?.target ?? '';
       const pct = target && current ? Math.round((current / target) * 100) + '%' : '';
       const comment = prog?.comment || '';
-      row.push(`${current} / ${target}`, pct, comment);
+      row.push(current || target ? `${current} / ${target}` : '', pct, comment);
     }
 
     await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: 'A:A', valueInputOption: 'USER_ENTERED', insertDataOption: 'INSERT_ROWS', requestBody: { values: [row] } });
