@@ -873,7 +873,7 @@ function YoYReport(){
 
   useEffect(()=>{(async()=>{setLoading(true);const{data:d}=await supabase.from('yearly_metrics').select('*').order('id');if(d)setData(d);setLoading(false)})()},[])
 
-  const saveCell=async(id,field,val)=>{await supabase.from('yearly_metrics').update({[field]:val,updated_at:new Date().toISOString()}).eq('id',id);setData(prev=>prev.map(r=>r.id===id?{...r,[field]:val}:r))}
+  const saveCell=async(id,field,val)=>{const[y,mo]=id.split('-').map(Number);const exists=data.find(d=>d.id===id);if(!exists){const{error}=await supabase.from('yearly_metrics').insert({id,year:y,month:mo,[field]:val});if(!error)setData(prev=>[...prev,{id,year:y,month:mo,[field]:val}])}else{await supabase.from('yearly_metrics').update({[field]:val,updated_at:new Date().toISOString()}).eq('id',id);setData(prev=>prev.map(r=>r.id===id?{...r,[field]:val}:r))}}
 
   const d25=data.filter(d=>d.year===2025);const d26=data.filter(d=>d.year===2026)
   const get=(yr,m,f)=>{const r=data.find(x=>x.year===yr&&x.month===m);return r?r[f]:null}
@@ -895,9 +895,9 @@ function YoYReport(){
       {[0,.25,.5,.75,1].map(p=><g key={p}><line x1={pad.l} x2={w-pad.r} y1={py(mn+p*rng)} y2={py(mn+p*rng)} stroke="#E4E6E9" strokeWidth={.5} strokeDasharray="4,4"/><text x={pad.l-6} y={py(mn+p*rng)+4} textAnchor="end" fill="#9AA0A6" fontSize={9} fontFamily="Poppins,sans-serif">{prefix||''}{Math.round(mn+p*rng).toLocaleString()}</text></g>)}
       {ML.map((m,i)=><text key={i} x={px(i)} y={h-8} textAnchor="middle" fill="#9AA0A6" fontSize={10}>{m}</text>)}
       <polyline points={line(v1)} fill="none" stroke={c1} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={.9}/>
-      {v1.map((v,i)=>v!=null&&<circle key={'a'+i} cx={px(i)} cy={py(v)} r={4} fill="#fff" stroke={c1} strokeWidth={2} style={{cursor:'pointer'}} onMouseMove={e=>onMove(e,yr1)}/>)}
+      {v1.map((v,i)=>v!=null&&<circle key={'a'+i} cx={px(i)} cy={py(v)} r={5} fill="#fff" stroke={c1} strokeWidth={2.5} style={{cursor:'pointer'}} onMouseEnter={e=>{const ann=data.find(d2=>d2.year===yr1&&d2.month===i+1)?.annotation;setTooltip({x:e.clientX,y:e.clientY,text:`${MF[i]} ${yr1}: ${prefix||''}${v.toLocaleString()}${ann?' — '+ann:''}`.slice(0,150)})}}/>)}
       {v2&&<polyline points={line(v2)} fill="none" stroke={c2} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={.9}/>}
-      {v2&&v2.map((v,i)=>v!=null&&<circle key={'b'+i} cx={px(i)} cy={py(v)} r={4} fill="#fff" stroke={c2} strokeWidth={2} style={{cursor:'pointer'}} onMouseMove={e=>onMove(e,yr2)}/>)}
+      {v2&&v2.map((v,i)=>v!=null&&<circle key={'b'+i} cx={px(i)} cy={py(v)} r={5} fill="#fff" stroke={c2} strokeWidth={2.5} style={{cursor:'pointer'}} onMouseEnter={e=>{const ann=data.find(d2=>d2.year===yr2&&d2.month===i+1)?.annotation;setTooltip({x:e.clientX,y:e.clientY,text:`${MF[i]} ${yr2}: ${prefix||''}${v.toLocaleString()}${ann?' — '+ann:''}`.slice(0,150)})}}/>)}
       <text x={w-pad.r} y={14} textAnchor="end" fill={c1} fontSize={11} fontWeight={600}>{yr1}</text>
       {yr2&&<text x={w-pad.r} y={28} textAnchor="end" fill={c2} fontSize={11} fontWeight={600}>{yr2}</text>}
     </svg>}
@@ -917,12 +917,12 @@ function YoYReport(){
     return<><tr style={{borderBottom:`1px solid #E4E6E9`}}>
       <td style={{padding:'6px 10px',fontWeight:600}} rowSpan={3}>{label}</td>
       <td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E',fontWeight:600}}>2025</td>
-      {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}>{prefix||''}{fmt(get(2025,i+1,field))}</td>)}
+      {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(2025,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(2025,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}
       <td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{prefix||''}{fmt(ytd1)}</td>
     </tr>
     <tr style={{borderBottom:`1px solid #E4E6E9`}}>
       <td style={{padding:'7px 10px',fontSize:12,color:'#1761CB',fontWeight:600}}>2026</td>
-      {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}>{prefix||''}{fmt(get(2026,i+1,field))}</td>)}
+      {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(2026,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(2026,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}
       <td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{prefix||''}{fmt(ytd2)}</td>
     </tr>
     <tr style={{borderBottom:`1px solid ${S.ln}`}}>
@@ -935,10 +935,10 @@ function YoYReport(){
   const ChRow=({label,field,yr1,yr2,color1,color2})=>{const isOpen=expanded[field];return<>
     <tr style={{borderBottom:`1px solid ${S.ln}`,cursor:'pointer',background:isOpen?'#F7F8F9':'transparent'}} onClick={()=>setExpanded(prev=>({...prev,[field]:!prev[field]}))}>
       <td style={{padding:'8px 10px',fontWeight:600}}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
-      {yr2?<><td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E'}}>2025</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}>{fmt(get(yr1,i+1,field))}</td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(d25.reduce((s,d)=>s+(d[field]||0),0))}</td></>
+      {yr2?<><td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E'}}>2025</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td></>
       :<>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td></>}
     </tr>
-    {yr2&&isOpen&&<tr style={{borderBottom:`1px solid #E4E6E9`}}><td></td><td style={{padding:'7px 10px',fontSize:12,color:'#1761CB'}}>2026</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}>{fmt(get(yr2,i+1,field))}</td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(d26.reduce((s,d)=>s+(d[field]||0),0))}</td></tr>}
+    {yr2&&isOpen&&<tr style={{borderBottom:`1px solid #E4E6E9`}}><td></td><td style={{padding:'7px 10px',fontSize:12,color:'#1761CB'}}>2026</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr2,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr2,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600,fontSize:13}}>{fmt(data.filter(d=>d.year===yr2).reduce((s,d)=>s+(d[field]||0),0))}</td></tr>}
     {isOpen&&<tr><td colSpan={15} style={{padding:'8px 16px'}}><Chart field={field} yr1={yr1} yr2={yr2} color1={color1||'#6E9B0E'} color2={color2||'#1761CB'}/></td></tr>}
   </>}
 
