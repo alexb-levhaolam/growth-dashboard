@@ -1,5 +1,5 @@
-const { google } = require('googleapis');
-const { createClient } = require('@supabase/supabase-js');
+import { google } from 'googleapis';
+import { createClient } from '@supabase/supabase-js';
 
 const SHEET_ID = '1-H5ogBGHhJsYorfYIZ_yIywoGHTXxk_yEepIq6etij8';
 
@@ -30,7 +30,7 @@ function colLetter(n) {
   return s;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     const sb = getSupabase();
     const { week_start: overrideWs } = req.body || {};
@@ -82,4 +82,4 @@ module.exports = async function handler(req, res) {
     console.error('Export error:', error);
     return res.status(500).json({ error: error.message });
   }
-};
+}
