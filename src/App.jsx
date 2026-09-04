@@ -54,11 +54,11 @@ function Main({profile}){
     {id:'home',l:'Главная',ic:'home'},
     {id:'weekly',l:'Еженедельный',ic:'calendar'},
     ...(isA?[{id:'monthly',l:'Ежемесячный',ic:'chart-bar'}]:[]),
-    {id:'yoy',l:'Годовой / YoY',ic:'trending-up'},
+    {id:'yoy',l:'Годовой / YoY',ic:'trending-up'},{id:'seo',l:'SEO отчёт',ic:'target'},
     {sep:'Управление'},
     {id:'projects-all',l:'Проекты',ic:'layout-kanban'},
     {id:'tactical-all',l:'Тактические цели',ic:'target'},
-    ...(isA?[{id:'team',l:'Команда',ic:'users'},{id:'export',l:'Выгрузка',ic:'target'},{id:'seo',l:'SEO отчёт',ic:'target'}]:[]),
+    ...(isA?[{id:'team',l:'Команда',ic:'users'},{id:'export',l:'Выгрузка',ic:'target'}]:[]),
     {sep:'Настройки'},
     ...(isA?[{id:'channels',l:'Каналы и планы',ic:'adjustments'},{id:'integrations',l:'Интеграции',ic:'plug'},{id:'bot',l:'Slack бот',ic:'robot'},{id:'admin',l:'Администрирование',ic:'settings'}]:[]),
   ]

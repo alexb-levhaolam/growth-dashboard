@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
     if (type === 'weekly' || !type) {
       // Read weekly sheet (second sheet)
-      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Недельный'!A1:Z50" });
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Недельный отчет'!A1:Z50" });
       const rows = r.data.values || [];
       // Row 0-2: headers, Row 3+: data
       // Col 0: date, 1: organic visits, 2: organic sales, 3: ai visits, 4: ai sales
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
 
     if (type === 'monthly' || !type) {
       // Read monthly sheet (third sheet)
-      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Месячный'!A1:Z50" });
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Месячный отчет'!A1:Z50" });
       const rows = r.data.values || [];
       
       let imported = 0;
