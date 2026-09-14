@@ -452,7 +452,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
         <div style={{flex:1}}>
           <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}><Ed value={p.name} canEdit={ce} onSave={v=>upProj(p.id,'name',v)} style={{fontWeight:600,fontSize:16}}/><span style={{fontSize:13,color:S.i3}}>{p.id}</span><span style={{fontSize:13,color:S.i3}}>·</span><span onClick={e=>e.stopPropagation()}><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:13,color:S.i3}} ph="Владелец"/></span></div>
         </div>
-        <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>{ce?<select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:13,padding:'4px 8px',borderRadius:8,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}{ce&&<button onClick={e=>{e.stopPropagation();delProj(p.id,p.name)}} style={{fontSize:14,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}<span style={{color:S.i3,fontSize:12}}>{isO?'▲':'▼'}</span></div>
+        <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>{ce?<><select value={p.status} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'status',e.target.value)} style={{fontSize:13,padding:'4px 8px',borderRadius:8,border:`1px solid ${S.ln}`,background:ps.bg,color:ps.tx,cursor:'pointer'}}>{Object.entries(PROJ_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select><select value={p.category||'other'} onClick={e=>e.stopPropagation()} onChange={e=>upProj(p.id,'category',e.target.value)} style={{fontSize:12,padding:'3px 6px',borderRadius:6,border:`1px solid ${S.ln}`,cursor:'pointer'}}>{PROJ_CATS.map(c2=><option key={c2.v} value={c2.v}>{c2.l}</option>)}</select></>:<Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>}{ce&&<button onClick={e=>{e.stopPropagation();delProj(p.id,p.name)}} style={{fontSize:14,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}<span style={{color:S.i3,fontSize:12}}>{isO?'▲':'▼'}</span></div>
       {/* Checkbox moved inside expanded */}
       </div>
 
@@ -619,6 +619,7 @@ function Admin({profiles,projects,reports,aIdx,reload,rep,upRep}){const[pins,set
     <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:17,fontWeight:600,marginBottom:12}}>Подключения и интеграции</div>{INTEG.map((ig,i)=>{const sc=stC[ig.st]||stC.planned;return<div key={i} style={{padding:'10px 0',borderBottom:`1px solid ${S.ln}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}><div style={{flex:1}}>{ig.url?<a href={ig.url} target="_blank" rel="noopener" style={{color:S.gd,fontWeight:500,fontSize:17}}>{ig.name}</a>:<span style={{fontWeight:500,fontSize:17}}>{ig.name}</span>}<div style={{fontSize:15,color:S.i2,marginTop:2,lineHeight:1.5}}>{ig.desc}</div></div><Chip bg={sc.bg} tx={sc.tx}>{sc.l}</Chip></div></div>})}</div></>}
 
 // ═══ MONTHLY REPORT (CMO v2) ═══
+const PROJ_CATS=[{v:'acquisition',l:'Аквизиция'},{v:'retention',l:'Ретеншн'},{v:'brand',l:'Бренд / PR'},{v:'infra',l:'Инфраструктура'},{v:'other',l:'Другое'}]
 const DECISIONS=[{v:'continue_test',l:'продолжаем тест'},{v:'escalate',l:'эскалация'},{v:'close',l:'закрываем'},{v:'pivot',l:'меняем подход'},{v:'continue_as_is',l:'продолжаем как есть'},{v:'pause',l:'на паузе'}]
 
 function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
@@ -683,7 +684,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     {(()=>{const mc=metricsCmp!=null?metricsCmp:null;const mcKey=mc!=null?`${year}-${String(mc+1).padStart(2,'0')}`:null;const mcData=mcKey?mData[mcKey]:null;const mcPlan=mcKey?mPlans.find(p=>p.id===mcKey):null;const mcCpoAds=mcData&&mcData.paidSales>0?Math.round((mcData.adSpend+(mcData.discountsBL||0))/mcData.paidSales):null;const mcCpoTotal=mcData&&mcData.totalSales>0?Math.round((mcData.totalSpentBM||0)/mcData.totalSales):null
     return<div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:22}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-        <div style={{display:'flex',alignItems:'center',gap:12}}><span style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase'}}>Метрики · факт vs план</span>{plan?.is_closed&&<span style={{fontSize:11,padding:'3px 10px',borderRadius:999,background:'rgba(255,255,255,.2)',color:'#fff'}}>закрыт</span>}</div>
+        <div style={{display:'flex',alignItems:'center',gap:12}}><span style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase'}}>Метрики · факт vs план</span>{plan?.is_closed&&<span style={{fontSize:11,padding:'3px 10px',borderRadius:999,background:'rgba(255,255,255,.2)',color:'#fff'}}>закрыт</span>}<a href='https://docs.google.com/spreadsheets/d/1FkXG0k97T-7uxLYdSh3eHHqKBaOiPRGnUQKQTcziXAs/edit?gid=489474941#gid=489474941' target='_blank' rel='noopener' style={{fontSize:11,padding:'4px 12px',borderRadius:8,background:'rgba(255,255,255,.15)',color:'#fff',textDecoration:'none',border:'1px solid rgba(255,255,255,.25)',cursor:'pointer',fontWeight:600}}>Финансовый отчёт ↗</a></div>
         <div style={{display:'flex',alignItems:'center',gap:8}}>{ce&&!plan?.is_closed&&<button onClick={async()=>{if(!confirm('Закрыть месяц? Метрики будут зафиксированы.'))return;await savePlan('is_closed',true);await savePlan('closed_sales',sel.totalSales);await savePlan('closed_cpo_ads',cpoAds);await savePlan('closed_cpo_total',cpoTotal);await savePlan('closed_budget',sel.totalSpentBM)}} style={{fontSize:11,padding:'4px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'transparent',color:'#fff',cursor:'pointer'}}>Закрыть месяц</button>}{ce&&plan?.is_closed&&<button onClick={()=>savePlan('is_closed',false)} style={{fontSize:11,padding:'4px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'transparent',color:'#fff',cursor:'pointer'}}>Открыть</button>}
         <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:12,color:'rgba(255,255,255,.4)'}}>vs:</span><select value={mc!=null?mc:''} onChange={async e=>{const v=e.target.value;if(v===''){setMetricsCmp(null);return};const mi=Number(v);setMetricsCmp(mi);const k=`${year}-${String(mi+1).padStart(2,'0')}`;if(!mData[k])await loadMonth(year,mi)}} style={{font:'500 12px/1 Poppins,sans-serif',padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,.3)',background:'rgba(255,255,255,.15)',cursor:'pointer'}}><option value=''>без сравнения</option>{months.map((mn,mi)=>mi!==month&&<option key={mi} value={mi}>{mn}</option>)}</select></div></div>
       </div>
@@ -741,11 +742,11 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
       </div>}
     </div>
     {ce&&(plan?.hidden_key_projects||[]).length>0&&<div style={{marginBottom:12,display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}><span style={{fontSize:12,color:S.i3}}>Скрытые:</span>{(plan?.hidden_key_projects||[]).map(id=>{const p=projects.find(pr=>pr.id===id);return p&&<button key={id} onClick={()=>saveText('hidden_key_projects',(plan?.hidden_key_projects||[]).filter(x=>x!==id))} style={{fontSize:12,padding:'3px 8px',borderRadius:6,border:`1px solid ${S.ln}`,background:'#F7F8F9',cursor:'pointer'}}>{p.name} ↩</button>})}</div>}
-    {keyProjects.filter(p=>!(plan?.hidden_key_projects||[]).includes(p.id)).map(p=>{const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait;const sm=summaries[p.id]||{};const showW=expandedWeekly[p.id]||false
+    {(()=>{const visibleKey=keyProjects.filter(p=>!(plan?.hidden_key_projects||[]).includes(p.id));const cats=PROJ_CATS.filter(cat=>visibleKey.some(p=>(p.category||'other')===cat.v));return cats.map(cat=><div key={cat.v}><div style={{fontSize:13,fontWeight:700,color:S.gd,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8,marginTop:16}}>{cat.l}</div>{visibleKey.filter(p=>(p.category||'other')===cat.v).map(p=>{const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait;const sm=summaries[p.id]||{};const showW=expandedWeekly[p.id]||false
       return<div key={p.id} style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'22px 24px',marginBottom:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:14}}>
           <div><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><div style={{fontSize:14,color:S.i3,marginTop:2}}>{p.owner}{p.date_start&&<span> · с {p.date_start}</span>}{p.date_test&&<span> · тест {p.date_test}</span>}{p.date_results&&<span> · результаты {p.date_results}</span>}{p.date_done&&<span> · завершение {p.date_done}</span>}</div></div>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>{ce&&<button onClick={async()=>{await supabase.from('projects').update({priority:'current'}).eq('id',p.id);reload()}} title="Убрать из ключевых" style={{fontSize:15,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button>}</div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip>{ce&&<><button onClick={async e=>{e.stopPropagation();const cur=p.sort_order||0;await supabase.from('projects').update({sort_order:cur-1}).eq('id',p.id);reload()}} title="Вверх" style={{fontSize:12,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>↑</button><button onClick={async e=>{e.stopPropagation();const cur=p.sort_order||0;await supabase.from('projects').update({sort_order:cur+1}).eq('id',p.id);reload()}} title="Вниз" style={{fontSize:12,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>↓</button><button onClick={async()=>{await supabase.from('projects').update({priority:'current'}).eq('id',p.id);reload()}} title="Убрать из ключевых" style={{fontSize:15,background:'none',border:'none',cursor:'pointer',color:'#C4C8CD'}}>✕</button></>}</div>
         </div>
         <div style={{borderLeft:`3px solid ${p.status==='risk'||p.status==='blocked'?'#DD2A02':p.status==='done'?'#6E9B0E':'#F18B0E'}`,paddingLeft:16}}>
           <div style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:4,padding:'6px 0',fontSize:15}}><span style={{color:S.i3,fontWeight:600}}>Обещали:</span><Ed value={p.promised||''} canEdit={ce} onSave={async v=>{await supabase.from('projects').update({promised:v}).eq('id',p.id);reload()}} ph='Обещали...' style={{color:S.ink}}/></div>
@@ -756,7 +757,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
         {pc.length>0&&<button onClick={()=>setExpandedWeekly(prev=>({...prev,[p.id]:!showW}))} style={{fontSize:13,color:'#1761CB',cursor:'pointer',border:'none',background:'none',fontWeight:600,marginTop:10,padding:0}}>{showW?'▾ Скрыть':'▸ Показать'} недельные ({pc.length})</button>}
         {showW&&<div style={{marginTop:8}}>{pc.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={async()=>{await supabase.from('project_comments').delete().eq('id',c.id);reload()}}/>)}</div>}
         {ce&&<div style={{marginTop:8}}><AddComment projectId={p.id} weekStart={sel.key+'-01'} author="Monthly Report" reload={reload}/></div>}
-      </div>})}
+      </div>})}</div>)})()}
 
     {/* ═══ 6. OTHER PROJECTS — edit, hide/show, wait at bottom ═══ */}
     {(()=>{const hidden=plan?.hidden_projects||[];const others=projects.filter(p=>p.priority!=='key'&&p.status!=='done'&&!hidden.includes(p.id));const sorted=[...others].sort((a,b)=>a.status==='wait'?1:b.status==='wait'?-1:0);const hiddenList=projects.filter(p=>hidden.includes(p.id))
@@ -888,7 +889,7 @@ function SEOReport(){
           <td style={{textAlign:'right',padding:'8px 4px'}}><GrowthBadge cur={r.gsc_clicks} prev={prev?.gsc_clicks}/></td>
         </tr>})}</tbody>
       </table>
-      {sorted.length>1&&<div style={{padding:'8px 16px'}}><MiniChart data={sorted.map(r=>r.organic_visits)} color="#6E9B0E"/></div>}
+      {sorted.length>1&&<div style={{padding:'8px 16px'}}><div style={{fontSize:12,fontWeight:600,color:S.i3,marginBottom:4}}>Органические визиты</div><MiniChart data={sorted.map(r=>r.organic_visits)} color="#6E9B0E"/></div>}
     </div>
 
     {/* SECTIONS — expandable */}
@@ -912,7 +913,7 @@ function SEOReport(){
           <td style={{textAlign:'right',padding:'8px 8px'}}><EdNum value={s.position} canEdit={true} onSave={v=>saveSec(r.id,table,sec,'position',v)} style={{fontSize:13,textAlign:'right'}}/></td>
         </tr>})}</tbody>
       </table>
-      <div style={{padding:'8px 16px'}}><MiniChart data={sorted.map(r=>(r.sections||{})[sec]?.clicks)} color="#1761CB"/></div>
+      <div style={{padding:'8px 16px'}}><div style={{fontSize:12,fontWeight:600,color:S.i3,marginBottom:4}}>Клики · {sec}</div><MiniChart data={sorted.map(r=>(r.sections||{})[sec]?.clicks)} color="#1761CB"/></div>
       </>}
     </div>})}
 
