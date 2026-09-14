@@ -848,14 +848,25 @@ function SEOReport(){
   const allSections=[...new Set(data.flatMap(d=>Object.keys(d.sections||{})))]
 
   // Chart component
-  const MiniChart=({data:vals,color,height})=>{const h=height||80;const w2=500;const filtered=vals.filter(v=>v!=null);if(filtered.length<2)return null;const mn=Math.min(...filtered),mx=Math.max(...filtered),rng=mx-mn||1;const pts=vals.map((v,i)=>[i,v]).filter(([_,v])=>v!=null).map(([i,v])=>`${20+i*(w2-40)/(vals.length-1)},${h-15-((v-mn)/rng)*(h-30)}`).join(' ');return<svg viewBox={`0 0 ${w2} ${h}`} style={{width:'100%',height:'auto'}}><polyline points={pts} fill="none" stroke={color||'#6E9B0E'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>{vals.map((v,i)=>v!=null&&<circle key={i} cx={20+i*(w2-40)/(vals.length-1)} cy={h-15-((v-mn)/rng)*(h-30)} r={4} fill="#fff" stroke={color||'#6E9B0E'} strokeWidth={2}/>)}</svg>}
+  const[seoTip,setSeoTip]=useState(null)
+  const SEOChart=({data:vals,labels,color,height,title})=>{const h=height||160;const w2=620;const pad={t:24,b:32,l:55,r:20};const filtered=vals.filter(v=>v!=null);if(filtered.length<2)return null;const mn=Math.min(...filtered),mx=Math.max(...filtered),rng=mx-mn||1;const cl=color||'#6E9B0E'
+    const px=i=>pad.l+i*(w2-pad.l-pad.r)/Math.max(vals.length-1,1);const py=v=>h-pad.b-((v-mn)/rng)*(h-pad.t-pad.b)
+    const pts=vals.map((v,i)=>[i,v]).filter(([_,v])=>v!=null).map(([i,v])=>`${px(i)},${py(v)}`).join(' ')
+    return<svg viewBox={`0 0 ${w2} ${h}`} style={{width:'100%',height:'auto'}} onMouseLeave={()=>setSeoTip(null)}>
+      {[0,.25,.5,.75,1].map(p=><g key={p}><line x1={pad.l} x2={w2-pad.r} y1={py(mn+p*rng)} y2={py(mn+p*rng)} stroke="#E4E6E9" strokeWidth={.5} strokeDasharray="4,4"/><text x={pad.l-6} y={py(mn+p*rng)+4} textAnchor="end" fill="#9AA0A6" fontSize={9} fontFamily="Poppins,sans-serif">{Math.round(mn+p*rng).toLocaleString()}</text></g>)}
+      {labels&&labels.map((l,i)=><text key={i} x={px(i)} y={h-8} textAnchor="middle" fill="#9AA0A6" fontSize={8} fontFamily="Poppins,sans-serif">{l.length>8?l.slice(0,8):l}</text>)}
+      <polyline points={pts} fill="none" stroke={cl} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={.9}/>
+      {vals.map((v,i)=>v!=null&&<circle key={i} cx={px(i)} cy={py(v)} r={5} fill="#fff" stroke={cl} strokeWidth={2.5} style={{cursor:'pointer'}} onMouseEnter={e=>setSeoTip({x:e.clientX,y:e.clientY,text:`${labels?.[i]||''}: ${v.toLocaleString()}`})}/>)}
+      {title&&<text x={pad.l} y={14} fill="#737A82" fontSize={11} fontWeight={600} fontFamily="Poppins,sans-serif">{title}</text>}
+    </svg>}
 
   if(loading)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Загрузка...</div>
 
-  const sorted=[...data].sort((a,b)=>a.id.localeCompare(b.id))
+  const sorted=[...data].sort((a,b)=>a.id.localeCompare(b.id));const labels=sorted.map(r=>(r[labelField]||r.id).replace(/\.\d{4}$/,''))
 
   return<>
     <h1 style={{fontSize:24,fontWeight:600,marginBottom:16}}>SEO отчёт</h1>
+    {seoTip&&<div style={{position:'fixed',left:seoTip.x+12,top:seoTip.y-30,background:'#121416',color:'#fff',padding:'6px 12px',borderRadius:8,fontSize:13,fontWeight:600,pointerEvents:'none',zIndex:9999,whiteSpace:'nowrap'}}>{seoTip.text}</div>}
 
     <div style={{display:'flex',gap:6,marginBottom:16}}>
       {[{id:'weekly',l:'Недельный'},{id:'monthly',l:'Месячный'}].map(t=><button key={t.id} onClick={()=>{setTab(t.id);setExpanded({})}} style={{padding:'10px 20px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:tab===t.id?S.gd:'#fff',color:tab===t.id?'#fff':S.i2,boxShadow:S.sh}}>{t.l}</button>)}
@@ -890,7 +901,7 @@ function SEOReport(){
           <td style={{textAlign:'right',padding:'8px 4px'}}><GrowthBadge cur={r.gsc_clicks} prev={prev?.gsc_clicks}/></td>
         </tr>})}</tbody>
       </table>
-      {sorted.length>1&&<div style={{padding:'8px 16px'}}><div style={{fontSize:12,fontWeight:600,color:S.i3,marginBottom:4}}>Органические визиты</div><MiniChart data={sorted.map(r=>r.organic_visits)} color="#6E9B0E"/></div>}
+      {sorted.length>1&&<div style={{padding:'8px 16px'}}><SEOChart data={sorted.map(r=>r.organic_visits)} labels={labels} color="#6E9B0E" title="Органические визиты"/></div>}
     </div>
 
     {/* SECTIONS — expandable */}
@@ -914,7 +925,7 @@ function SEOReport(){
           <td style={{textAlign:'right',padding:'8px 8px'}}><EdNum value={s.position} canEdit={true} onSave={v=>saveSec(r.id,table,sec,'position',v)} style={{fontSize:13,textAlign:'right'}}/></td>
         </tr>})}</tbody>
       </table>
-      <div style={{padding:'8px 16px'}}><div style={{fontSize:12,fontWeight:600,color:S.i3,marginBottom:4}}>Клики · {sec}</div><MiniChart data={sorted.map(r=>(r.sections||{})[sec]?.clicks)} color="#1761CB"/></div>
+      <div style={{padding:'8px 16px'}}><SEOChart data={sorted.map(r=>(r.sections||{})[sec]?.clicks)} labels={labels} color="#1761CB" title={'Клики · '+sec}/><SEOChart data={sorted.map(r=>(r.sections||{})[sec]?.impressions)} labels={labels} color="#F18B0E" title={'Показы · '+sec} height={120}/></div>
       </>}
     </div>})}
 
