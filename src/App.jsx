@@ -619,7 +619,7 @@ function Admin({profiles,projects,reports,aIdx,reload,rep,upRep}){const[pins,set
     <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:17,fontWeight:600,marginBottom:12}}>Подключения и интеграции</div>{INTEG.map((ig,i)=>{const sc=stC[ig.st]||stC.planned;return<div key={i} style={{padding:'10px 0',borderBottom:`1px solid ${S.ln}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}><div style={{flex:1}}>{ig.url?<a href={ig.url} target="_blank" rel="noopener" style={{color:S.gd,fontWeight:500,fontSize:17}}>{ig.name}</a>:<span style={{fontWeight:500,fontSize:17}}>{ig.name}</span>}<div style={{fontSize:15,color:S.i2,marginTop:2,lineHeight:1.5}}>{ig.desc}</div></div><Chip bg={sc.bg} tx={sc.tx}>{sc.l}</Chip></div></div>})}</div></>}
 
 // ═══ MONTHLY REPORT (CMO v2) ═══
-const PROJ_CATS=[{v:'acquisition',l:'Аквизиция'},{v:'retention',l:'Ретеншн'},{v:'brand',l:'Бренд / PR'},{v:'infra',l:'Инфраструктура'},{v:'other',l:'Другое'}]
+const PROJ_CATS=[{v:'acquisition',l:'Acquisition'},{v:'acquisition_additional',l:'Acquisition / Additional Sales'},{v:'retention',l:'Retention & Churn'},{v:'reactivation',l:'Reactivation'},{v:'brand',l:'Brand Awareness'},{v:'infra',l:'Infrastructure'},{v:'strategy',l:'Strategy'},{v:'other',l:'Другое'}]
 const DECISIONS=[{v:'continue_test',l:'продолжаем тест'},{v:'escalate',l:'эскалация'},{v:'close',l:'закрываем'},{v:'pivot',l:'меняем подход'},{v:'continue_as_is',l:'продолжаем как есть'},{v:'pause',l:'на паузе'}]
 
 function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
