@@ -25,7 +25,12 @@ for (const [k,v] of Object.entries(TEAM)) {
 const SURVEY_MARKER = 'weekly project update';
 const WEEK_TAG_RE = /\[ws:([^\]]+)\]/;
 
+const processed = new Set();
 export default async function handler(req, res) {
+  // Deduplicate Slack retries
+  const eventId = req.headers['x-slack-retry-num'];
+  if (eventId) return res.status(200).json({ ok: true, retry: 'skipped' });
+  
   const TOKEN = process.env.SLACK_BOT_TOKEN;
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
@@ -35,6 +40,15 @@ export default async function handler(req, res) {
       method:'POST', headers:{'Authorization':`Bearer ${TOKEN}`,'Content-Type':'application/json'},
       body: JSON.stringify(body)
     }); return r.json();
+  };
+  const ADMIN_ID = 'U09NTUJL4KT';
+  const notifyError = async (context, error) => {
+    try {
+      const dm = await slack('conversations.open', { users: ADMIN_ID });
+      if (dm.ok) await slack('chat.postMessage', { channel: dm.channel.id,
+        text: `🚨 *Bot Error*\n*Context:* ${context}\n*Error:* ${String(error).slice(0,500)}\n*Time:* ${new Date().toISOString()}`
+      });
+    } catch(e) { console.error('Failed to notify admin:', e); }
   };
 
   // Helper: find current survey context from DM history
@@ -67,7 +81,14 @@ export default async function handler(req, res) {
   if (req.method === 'POST' && req.body) {
     if (req.body.type === 'url_verification') return res.json({ challenge: req.body.challenge });
 
-    if (req.body.event?.type === 'message' && !req.body.event?.bot_id && req.body.event?.channel_type === 'im') {
+    if (req.body.event?.type === 'message' && req.body.event?.channel_type === 'im') {
+      // Skip bot messages (3 checks)
+      if (req.body.event.bot_id) return res.status(200).end();
+      if (req.body.event.subtype === 'bot_message') return res.status(200).end();
+      if (!req.body.event.user) return res.status(200).end();
+      // Skip if this is the bot's own user ID
+      const botInfo = await slack('auth.test', {});
+      if (req.body.event.user === botInfo.user_id) return res.status(200).end();
       const userId = req.body.event.user;
       const owner = ID2OWNER[userId];
       if (!owner || !supabase || !TOKEN) return res.status(200).end();
@@ -111,7 +132,7 @@ export default async function handler(req, res) {
             text: `✅ Thank you ${owner}! All ${ops.length} projects updated.\nResponses saved to Growth Dashboard.`
           });
         }
-      } catch(e) { console.error('Slack event error:', e); }
+      } catch(e) { console.error('Slack event error:', e); await notifyError('Event handler, user: '+userId, e.message); }
       return res.status(200).end();
     }
     return res.status(200).end();
@@ -202,7 +223,7 @@ export default async function handler(req, res) {
         });
 
         results.push({name:owner,projects:ops.length,sent:true});
-      } catch(e) { results.push({name:owner,error:e.message}); }
+      } catch(e) { results.push({name:owner,error:e.message}); await notifyError('Send to '+owner, e.message); }
     }
 
     return res.json({ok:true,week:wl,weekStart:ws,results});
