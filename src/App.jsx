@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from './lib/supabase'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
+const weekEnd=(ws)=>{if(!ws)return'';const d=new Date(ws+'T12:00:00');d.setDate(d.getDate()+6);return d.toISOString().slice(0,10)}
 const S={bg:'#F7F8F9',sf:'#FFFFFF',ink:'#121416',i2:'#585E65',i3:'#737A82',ln:'#E4E6E9',gd:'#6E9B0E',gm:'#497B02',gl:'#AAD34F',gs:'#C1E274',gp:'#F7FBEA',ol:'#585E65',am:'#F18B0E',rm:'#DD2A02',bm:'#1761CB',cta:'#497B02',sh:'0 1px 2px rgba(18,20,22,.04)'}
 const STATUS_CFG={green:{label:'зелёный',bg:'#6E9B0E',tx:'#FFFFFF',desc:'Всё по плану'},yellow:{label:'жёлтый',bg:'#F18B0E',tx:'#FFFFFF',desc:'Есть отклонения'},red:{label:'красный',bg:'#DD2A02',tx:'#FFFFFF',desc:'Критичные проблемы'}}
 const PROJ_ST={done:{l:'готово',bg:'#F7FBEA',tx:'#497B02'},progress:{l:'в работе',bg:'#FFF6E8',tx:'#8A3500'},test:{l:'тест',bg:'#EDF5FF',tx:'#1761CB'},risk:{l:'риск',bg:'#FFEEEA',tx:'#A71F00'},wait:{l:'ожидание',bg:'#F7F8F9',tx:'#585E65'},blocked:{l:'блокер',bg:'#FFEEEA',tx:'#A71F00'}}
@@ -99,7 +100,7 @@ function Main({profile}){
       </div>
       <div style={{font:'600 11px/1 Montserrat,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Последние комментарии</div>
       <div style={{display:'flex',flexDirection:'column',gap:6}}>
-        {[...comments].sort((a,b)=>(b.created_at||b.id||'').localeCompare(a.created_at||a.id||'')).slice(0,8).map(c=>{const proj=projects.find(p=>p.id===c.project_id);return<div key={c.id} style={{background:S.sf,borderRadius:10,boxShadow:S.sh,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'start',gap:12}}><div><b style={{fontSize:14}}>{proj?.name||''}</b><span style={{fontSize:13,color:S.i3,marginLeft:4}}>({c.author})</span><div style={{fontSize:13,color:S.i2,marginTop:2}}>{(c.full_text||c.summary||'').slice(0,80)}</div></div><small style={{fontSize:12,color:'#9AA0A6',whiteSpace:'nowrap'}}>{c.week_start}</small></div>})}
+        {[...comments].sort((a,b)=>(b.created_at||b.id||'').localeCompare(a.created_at||a.id||'')).slice(0,8).map(c=>{const proj=projects.find(p=>p.id===c.project_id);return<div key={c.id} style={{background:S.sf,borderRadius:10,boxShadow:S.sh,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'start',gap:12}}><div><b style={{fontSize:14}}>{proj?.name||''}</b><span style={{fontSize:13,color:S.i3,marginLeft:4}}>({c.author})</span><div style={{fontSize:13,color:S.i2,marginTop:2}}>{(c.full_text||c.summary||'').slice(0,80)}</div></div><small style={{fontSize:12,color:'#9AA0A6',whiteSpace:'nowrap'}}>{weekEnd(c.week_start)}</small></div>})}
       </div>
     </>}
 
@@ -342,7 +343,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,marginBottom:6}}><span style={{fontSize:16,fontWeight:600}}>{p.name}</span><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></div>
           {p.last_update&&<div style={{fontSize:14,color:S.i2,marginBottom:8,lineHeight:1.4}}>{p.last_update.slice(0,100)}{p.last_update.length>100?'…':''}</div>}
           {lc&&<div style={{borderTop:`1px solid ${S.ln}`,paddingTop:8,marginTop:4}}>
-            <div style={{fontSize:12,color:S.i3,marginBottom:4}}>{lc.author} · {lc.week_start}</div>
+            <div style={{fontSize:12,color:S.i3,marginBottom:4}}>{lc.author} · {weekEnd(lc.week_start)}</div>
             <div style={{fontSize:14,color:S.i2,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{isFull||!isLong?<Linkify>{txt}</Linkify>:<>{txt.slice(0,150)}… <button onClick={()=>setExpandedComm(prev=>({...prev,[p.id]:true}))} style={{fontSize:12,color:'#1761CB',background:'none',border:'none',cursor:'pointer',fontWeight:600}}>ещё</button></>}</div>
           </div>}
         </div>})}
@@ -466,7 +467,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
 
       {/* 4. Последний комментарий (collapsed: 3 lines, expanded: full) */}
       {!isO&&lastC&&<div style={{borderTop:`1px solid ${S.ln}`,marginTop:8,paddingTop:8}}>
-        <div style={{fontSize:12,color:S.i3,marginBottom:2}}>{lastC.author} · {lastC.week_start}</div>
+        <div style={{fontSize:12,color:S.i3,marginBottom:2}}>{lastC.author} · {weekEnd(lastC.week_start)}</div>
         <div style={{fontSize:14,color:S.i2,lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{lastC.full_text||lastC.summary}</div>
       </div>}
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}>
@@ -619,12 +620,12 @@ function Admin({profiles,projects,reports,aIdx,reload,rep,upRep}){const[pins,set
     <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:17,fontWeight:600,marginBottom:12}}>Подключения и интеграции</div>{INTEG.map((ig,i)=>{const sc=stC[ig.st]||stC.planned;return<div key={i} style={{padding:'10px 0',borderBottom:`1px solid ${S.ln}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}><div style={{flex:1}}>{ig.url?<a href={ig.url} target="_blank" rel="noopener" style={{color:S.gd,fontWeight:500,fontSize:17}}>{ig.name}</a>:<span style={{fontWeight:500,fontSize:17}}>{ig.name}</span>}<div style={{fontSize:15,color:S.i2,marginTop:2,lineHeight:1.5}}>{ig.desc}</div></div><Chip bg={sc.bg} tx={sc.tx}>{sc.l}</Chip></div></div>})}</div></>}
 
 // ═══ MONTHLY REPORT (CMO v2) ═══
-const PROJ_CATS=[{v:'acquisition',l:'Acquisition'},{v:'acquisition_additional',l:'Acquisition / Additional Sales'},{v:'retention',l:'Retention & Churn'},{v:'reactivation',l:'Reactivation'},{v:'brand',l:'Brand Awareness'},{v:'infra',l:'Infrastructure'},{v:'strategy',l:'Strategy'},{v:'other',l:'Другое'}]
+const PROJ_CATS=[{v:'acquisition',l:'Аквизиция'},{v:'retention',l:'Ретеншн'},{v:'brand',l:'Бренд / PR'},{v:'infra',l:'Инфраструктура'},{v:'other',l:'Другое'}]
 const DECISIONS=[{v:'continue_test',l:'продолжаем тест'},{v:'escalate',l:'эскалация'},{v:'close',l:'закрываем'},{v:'pivot',l:'меняем подход'},{v:'continue_as_is',l:'продолжаем как есть'},{v:'pause',l:'на паузе'}]
 
 function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
   const[year,setYear]=useState(2026);const[month,setMonth]=useState(null);const[compare,setCompare]=useState(null)
-  const[mData,setMData]=useState({});const[loading,setLoading]=useState(false);const[churnCmp,setChurnCmp]=useState(null);const[expandedWeekly,setExpandedWeekly]=useState({});const[metricsCmp,setMetricsCmp]=useState(null);const[localStatus,setLocalStatus]=useState(null);const[catFilter,setCatFilter]=useState('all')
+  const[mData,setMData]=useState({});const[loading,setLoading]=useState(false);const[churnCmp,setChurnCmp]=useState(null);const[expandedWeekly,setExpandedWeekly]=useState({});const[metricsCmp,setMetricsCmp]=useState(null);const[localStatus,setLocalStatus]=useState(null)
   const months=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
 
   const loadMonth=async(y,m)=>{const key=`${y}-${String(m+1).padStart(2,'0')}`;if(mData[key])return mData[key];setLoading(true);try{const r=await fetch(`/api/monthly?month=${key}`);const d=await r.json();const weeks=reports.filter(r=>r.week_start?.startsWith(key)).sort((a,b)=>a.week_start.localeCompare(b.week_start));const result={...d,weeks,key};setMData(prev=>({...prev,[key]:result}));return result}catch(e){console.error(e)}finally{setLoading(false)}}
@@ -734,16 +735,15 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     </div>
 
     {/* ═══ 5. KEY PROJECTS — add/remove + structured ═══ */}
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
       <span style={{fontSize:15,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>Ключевые проекты · месячный итог</span>
       {ce&&<div style={{display:'flex',gap:8,alignItems:'center'}}>
         <select onChange={e=>{if(!e.target.value)return;supabase.from('projects').update({priority:'key'}).eq('id',e.target.value).then(()=>reload());e.target.value=''}} style={{padding:'6px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:13,cursor:'pointer'}}><option value="">+ добавить...</option>{projects.filter(p=>p.priority!=='key'&&p.status!=='done').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
         <select onChange={e=>{if(!e.target.value)return;const h=plan?.hidden_key_projects||[];saveText('hidden_key_projects',[...h,e.target.value]);e.target.value=''}} style={{padding:'6px 12px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:13,cursor:'pointer'}}><option value="">скрыть...</option>{keyProjects.filter(p=>!(plan?.hidden_key_projects||[]).includes(p.id)).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
       </div>}
     </div>
-    {ce&&(plan?.hidden_key_projects||[]).length>0&&<div style={{marginBottom:8,display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}><span style={{fontSize:12,color:S.i3}}>Скрытые:</span>{(plan?.hidden_key_projects||[]).map(id=>{const p=projects.find(pr=>pr.id===id);return p&&<button key={id} onClick={()=>saveText('hidden_key_projects',(plan?.hidden_key_projects||[]).filter(x=>x!==id))} style={{fontSize:12,padding:'3px 8px',borderRadius:6,border:`1px solid ${S.ln}`,background:'#F7F8F9',cursor:'pointer'}}>{p.name} ↩</button>})}</div>}
-    <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:14}}>{[{v:'all',l:'Все'},...PROJ_CATS].map(f=><button key={f.v} onClick={()=>setCatFilter(f.v)} style={{padding:'5px 12px',borderRadius:999,border:'none',fontSize:12,fontWeight:600,cursor:'pointer',background:catFilter===f.v?S.gd:'#F7F8F9',color:catFilter===f.v?'#fff':S.i2}}>{f.l}</button>)}</div>
-    {(()=>{const visibleKey=keyProjects.filter(p=>!(plan?.hidden_key_projects||[]).includes(p.id));const filtered=catFilter==='all'?visibleKey:visibleKey.filter(p=>(p.category||'other')===catFilter);const cats=PROJ_CATS.filter(cat=>filtered.some(p=>(p.category||'other')===cat.v));return cats.map(cat=><div key={cat.v}><div style={{fontSize:13,fontWeight:700,color:S.gd,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8,marginTop:16}}>{cat.l}</div>{filtered.filter(p=>(p.category||'other')===cat.v).map(p=>{const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait;const sm=summaries[p.id]||{};const showW=expandedWeekly[p.id]||false
+    {ce&&(plan?.hidden_key_projects||[]).length>0&&<div style={{marginBottom:12,display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}><span style={{fontSize:12,color:S.i3}}>Скрытые:</span>{(plan?.hidden_key_projects||[]).map(id=>{const p=projects.find(pr=>pr.id===id);return p&&<button key={id} onClick={()=>saveText('hidden_key_projects',(plan?.hidden_key_projects||[]).filter(x=>x!==id))} style={{fontSize:12,padding:'3px 8px',borderRadius:6,border:`1px solid ${S.ln}`,background:'#F7F8F9',cursor:'pointer'}}>{p.name} ↩</button>})}</div>}
+    {(()=>{const visibleKey=keyProjects.filter(p=>!(plan?.hidden_key_projects||[]).includes(p.id));const cats=PROJ_CATS.filter(cat=>visibleKey.some(p=>(p.category||'other')===cat.v));return cats.map(cat=><div key={cat.v}><div style={{fontSize:13,fontWeight:700,color:S.gd,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8,marginTop:16}}>{cat.l}</div>{visibleKey.filter(p=>(p.category||'other')===cat.v).map(p=>{const pc=monthComments.filter(c=>c.project_id===p.id);const ps=PROJ_ST[p.status]||PROJ_ST.wait;const sm=summaries[p.id]||{};const showW=expandedWeekly[p.id]||false
       return<div key={p.id} style={{background:'#fff',borderRadius:14,boxShadow:S.sh,padding:'22px 24px',marginBottom:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:14}}>
           <div><div style={{fontSize:17,fontWeight:600}}>{p.name}</div><div style={{fontSize:14,color:S.i3,marginTop:2}}>{p.owner}{p.date_start&&<span> · с {p.date_start}</span>}{p.date_test&&<span> · тест {p.date_test}</span>}{p.date_results&&<span> · результаты {p.date_results}</span>}{p.date_done&&<span> · завершение {p.date_done}</span>}</div></div>
@@ -848,25 +848,14 @@ function SEOReport(){
   const allSections=[...new Set(data.flatMap(d=>Object.keys(d.sections||{})))]
 
   // Chart component
-  const[seoTip,setSeoTip]=useState(null)
-  const SEOChart=({data:vals,labels,color,height,title})=>{const h=height||160;const w2=620;const pad={t:24,b:32,l:55,r:20};const filtered=vals.filter(v=>v!=null);if(filtered.length<2)return null;const mn=Math.min(...filtered),mx=Math.max(...filtered),rng=mx-mn||1;const cl=color||'#6E9B0E'
-    const px=i=>pad.l+i*(w2-pad.l-pad.r)/Math.max(vals.length-1,1);const py=v=>h-pad.b-((v-mn)/rng)*(h-pad.t-pad.b)
-    const pts=vals.map((v,i)=>[i,v]).filter(([_,v])=>v!=null).map(([i,v])=>`${px(i)},${py(v)}`).join(' ')
-    return<svg viewBox={`0 0 ${w2} ${h}`} style={{width:'100%',height:'auto'}} onMouseLeave={()=>setSeoTip(null)}>
-      {[0,.25,.5,.75,1].map(p=><g key={p}><line x1={pad.l} x2={w2-pad.r} y1={py(mn+p*rng)} y2={py(mn+p*rng)} stroke="#E4E6E9" strokeWidth={.5} strokeDasharray="4,4"/><text x={pad.l-6} y={py(mn+p*rng)+4} textAnchor="end" fill="#9AA0A6" fontSize={9} fontFamily="Poppins,sans-serif">{Math.round(mn+p*rng).toLocaleString()}</text></g>)}
-      {labels&&labels.map((l,i)=><text key={i} x={px(i)} y={h-8} textAnchor="middle" fill="#9AA0A6" fontSize={8} fontFamily="Poppins,sans-serif">{l.length>8?l.slice(0,8):l}</text>)}
-      <polyline points={pts} fill="none" stroke={cl} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={.9}/>
-      {vals.map((v,i)=>v!=null&&<circle key={i} cx={px(i)} cy={py(v)} r={5} fill="#fff" stroke={cl} strokeWidth={2.5} style={{cursor:'pointer'}} onMouseEnter={e=>setSeoTip({x:e.clientX,y:e.clientY,text:`${labels?.[i]||''}: ${v.toLocaleString()}`})}/>)}
-      {title&&<text x={pad.l} y={14} fill="#737A82" fontSize={11} fontWeight={600} fontFamily="Poppins,sans-serif">{title}</text>}
-    </svg>}
+  const MiniChart=({data:vals,color,height})=>{const h=height||80;const w2=500;const filtered=vals.filter(v=>v!=null);if(filtered.length<2)return null;const mn=Math.min(...filtered),mx=Math.max(...filtered),rng=mx-mn||1;const pts=vals.map((v,i)=>[i,v]).filter(([_,v])=>v!=null).map(([i,v])=>`${20+i*(w2-40)/(vals.length-1)},${h-15-((v-mn)/rng)*(h-30)}`).join(' ');return<svg viewBox={`0 0 ${w2} ${h}`} style={{width:'100%',height:'auto'}}><polyline points={pts} fill="none" stroke={color||'#6E9B0E'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>{vals.map((v,i)=>v!=null&&<circle key={i} cx={20+i*(w2-40)/(vals.length-1)} cy={h-15-((v-mn)/rng)*(h-30)} r={4} fill="#fff" stroke={color||'#6E9B0E'} strokeWidth={2}/>)}</svg>}
 
   if(loading)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Загрузка...</div>
 
-  const sorted=[...data].sort((a,b)=>a.id.localeCompare(b.id));const labels=sorted.map(r=>(r[labelField]||r.id).replace(/\.\d{4}$/,''))
+  const sorted=[...data].sort((a,b)=>a.id.localeCompare(b.id))
 
   return<>
     <h1 style={{fontSize:24,fontWeight:600,marginBottom:16}}>SEO отчёт</h1>
-    {seoTip&&<div style={{position:'fixed',left:seoTip.x+12,top:seoTip.y-30,background:'#121416',color:'#fff',padding:'6px 12px',borderRadius:8,fontSize:13,fontWeight:600,pointerEvents:'none',zIndex:9999,whiteSpace:'nowrap'}}>{seoTip.text}</div>}
 
     <div style={{display:'flex',gap:6,marginBottom:16}}>
       {[{id:'weekly',l:'Недельный'},{id:'monthly',l:'Месячный'}].map(t=><button key={t.id} onClick={()=>{setTab(t.id);setExpanded({})}} style={{padding:'10px 20px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:tab===t.id?S.gd:'#fff',color:tab===t.id?'#fff':S.i2,boxShadow:S.sh}}>{t.l}</button>)}
@@ -901,7 +890,7 @@ function SEOReport(){
           <td style={{textAlign:'right',padding:'8px 4px'}}><GrowthBadge cur={r.gsc_clicks} prev={prev?.gsc_clicks}/></td>
         </tr>})}</tbody>
       </table>
-      {sorted.length>1&&<div style={{padding:'8px 16px'}}><SEOChart data={sorted.map(r=>r.organic_visits)} labels={labels} color="#6E9B0E" title="Органические визиты"/></div>}
+      {sorted.length>1&&<div style={{padding:'8px 16px'}}><div style={{fontSize:12,fontWeight:600,color:S.i3,marginBottom:4}}>Органические визиты</div><MiniChart data={sorted.map(r=>r.organic_visits)} color="#6E9B0E"/></div>}
     </div>
 
     {/* SECTIONS — expandable */}
@@ -925,7 +914,7 @@ function SEOReport(){
           <td style={{textAlign:'right',padding:'8px 8px'}}><EdNum value={s.position} canEdit={true} onSave={v=>saveSec(r.id,table,sec,'position',v)} style={{fontSize:13,textAlign:'right'}}/></td>
         </tr>})}</tbody>
       </table>
-      <div style={{padding:'8px 16px'}}><SEOChart data={sorted.map(r=>(r.sections||{})[sec]?.clicks)} labels={labels} color="#1761CB" title={'Клики · '+sec}/><SEOChart data={sorted.map(r=>(r.sections||{})[sec]?.impressions)} labels={labels} color="#F18B0E" title={'Показы · '+sec} height={120}/></div>
+      <div style={{padding:'8px 16px'}}><div style={{fontSize:12,fontWeight:600,color:S.i3,marginBottom:4}}>Клики · {sec}</div><MiniChart data={sorted.map(r=>(r.sections||{})[sec]?.clicks)} color="#1761CB"/></div>
       </>}
     </div>})}
 
