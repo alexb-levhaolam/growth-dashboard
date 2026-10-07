@@ -625,7 +625,7 @@ const DECISIONS=[{v:'continue_test',l:'продолжаем тест'},{v:'escal
 
 function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
   const[year,setYear]=useState(2026);const[month,setMonth]=useState(null);const[compare,setCompare]=useState(null)
-  const[mData,setMData]=useState({});const[loading,setLoading]=useState(false);const[churnCmp,setChurnCmp]=useState(null);const[expandedWeekly,setExpandedWeekly]=useState({});const[metricsCmp,setMetricsCmp]=useState(null);const[localStatus,setLocalStatus]=useState(null)
+  const[mData,setMData]=useState({});const[loading,setLoading]=useState(false);const[churnCmp,setChurnCmp]=useState(null);const[expandedWeekly,setExpandedWeekly]=useState({});const[metricsCmp,setMetricsCmp]=useState(null);const[localStatus,setLocalStatus]=useState(null);const[catFilter,setCatFilter]=useState('all')
   const months=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
 
   const loadMonth=async(y,m)=>{const key=`${y}-${String(m+1).padStart(2,'0')}`;if(mData[key])return mData[key];setLoading(true);try{const r=await fetch(`/api/monthly?month=${key}`);const d=await r.json();const weeks=reports.filter(r=>r.week_start?.startsWith(key)).sort((a,b)=>a.week_start.localeCompare(b.week_start));const result={...d,weeks,key};setMData(prev=>({...prev,[key]:result}));return result}catch(e){console.error(e)}finally{setLoading(false)}}
