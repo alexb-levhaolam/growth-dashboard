@@ -9,9 +9,15 @@ export default async function handler(req, res) {
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
   try {
-    const resp = await fetch(CSV_URL);
-    if (!resp.ok) throw new Error('Sheet not accessible');
-    const csv = await resp.text();
+
+    // Источник: export (точные значения ячеек, без вывода типов gviz, из-за которого
+    // «текстовые» ячейки приходят пустыми). Если export не подходит — fallback на gviz.
+    const looksValid = t => { if (!t || t.trim().startsWith('<')) return false; const lines = t.split('\n'); const dated = lines.filter(l => /^"?\d{2}\.\d{2}"?,/.test(l)).length; return dated >= 20 && (lines[Math.floor(lines.length/2)]||'').split(',').length >= 60; };
+    let csv = null, source = null;
+    for (const [src, url] of [['export', `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`], ['gviz', CSV_URL]]) {
+      try { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) continue; const t = await r.text(); if (src === 'gviz' || looksValid(t)) { csv = t; source = src; break; } } catch (e) {}
+    }
+    if (!csv) throw new Error('Sheet not accessible');
 
     // Parse CSV
     const rows = []; let cur = '', inQ = false, row = [];
@@ -26,7 +32,7 @@ export default async function handler(req, res) {
     }
     if (cur || row.length) { row.push(cur.trim()); rows.push(row); }
 
-    const pn = s => { if (!s) return 0; return Number(s.replace(/[$,\s\u00a0]/g, '')) || 0; };
+    const pn = s => { if (!s) return 0; const n = Number(String(s).replace(/[^\d.\-]/g, '')); return isFinite(n) ? n : 0; }; // любые пробелы, $, запятые-разделители тысяч
     const ws = new Date(weekStart + 'T12:00:00');
     const we = new Date(ws); we.setDate(we.getDate() + 6);
     const wsYear = ws.getFullYear();
@@ -138,7 +144,7 @@ export default async function handler(req, res) {
       days, channels:chArr, totalSales, totalDiscBL, totalDiscBS, totalSpentBM,
       defaultHidden:['Reddit','Pinterest','Rumble','TikTok'],
       daysFound:days.length,
-      debug:{ totalRows:rows.length, matchedRows:debugRows }
+      debug:{ source, totalRows:rows.length, matchedRows:debugRows }
     });
   } catch(e) {
     res.status(500).json({ error:e.message });

@@ -661,7 +661,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
 
   // ═══ COMPUTED VALUES ═══
   const ws=sel.weeks||[];const wSales=ws.map(w=>w.metrics?.totalSales||0);const wCpoAds=ws.map(w=>{const m2=w.metrics||{};const ch2=w.channels||[];const sp=ch2.filter(isPaidCh).reduce((s,c)=>s+(c.spent||0),0);const ps=ch2.filter(isPaidCh).reduce((s,c)=>s+(c.sales||0),0);return ps>0?Math.round(sp/ps):0});const wCpoTotal=ws.map(w=>{const m2=w.metrics||{};return(m2.totalSales||0)>0?Math.round((m2.totalSpentBM||0)/(m2.totalSales||1)):0})
-  const cpoAds=sel.paidSales>0?Math.round((sel.adSpend+(sel.discountsBL||0))/sel.paidSales):null
+  const cpoAds=sel.paidSales>0?Math.round(sel.adSpend/sel.paidSales):null
   const cpoTotal=sel.totalSales>0?Math.round((sel.totalSpentBM||0)/sel.totalSales):null
   const cm=compare?mData[`${compare.year}-${String(compare.month+1).padStart(2,'0')}`]:null
   const monthComments=comments.filter(c=>c.week_start?.startsWith(sel.key))
@@ -689,7 +689,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
     </div>
 
     {/* ═══ 2. METRICS CARDS + COMPARISON ═══ */}
-    {(()=>{const mc=metricsCmp!=null?metricsCmp:null;const mcKey=mc!=null?`${year}-${String(mc+1).padStart(2,'0')}`:null;const mcData=mcKey?mData[mcKey]:null;const mcPlan=mcKey?mPlans.find(p=>p.id===mcKey):null;const mcCpoAds=mcData&&mcData.paidSales>0?Math.round((mcData.adSpend+(mcData.discountsBL||0))/mcData.paidSales):null;const mcCpoTotal=mcData&&mcData.totalSales>0?Math.round((mcData.totalSpentBM||0)/mcData.totalSales):null
+    {(()=>{const mc=metricsCmp!=null?metricsCmp:null;const mcKey=mc!=null?`${year}-${String(mc+1).padStart(2,'0')}`:null;const mcData=mcKey?mData[mcKey]:null;const mcPlan=mcKey?mPlans.find(p=>p.id===mcKey):null;const mcCpoAds=mcData&&mcData.paidSales>0?Math.round(mcData.adSpend/mcData.paidSales):null;const mcCpoTotal=mcData&&mcData.totalSales>0?Math.round((mcData.totalSpentBM||0)/mcData.totalSales):null
     return<div className='lh-mteal' style={{background:'linear-gradient(180deg,#0F6E5E,#0B5548)',borderRadius:14,padding:'28px 32px',color:'#fff',marginBottom:22}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
         <div style={{display:'flex',alignItems:'center',gap:12}}><span style={{fontSize:15,fontWeight:600,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',textTransform:'uppercase'}}>Метрики · факт vs план</span>{plan?.is_closed&&<span style={{fontSize:11,padding:'3px 10px',borderRadius:999,background:'rgba(255,255,255,.2)',color:'#fff'}}>закрыт</span>}<a href='https://docs.google.com/spreadsheets/d/1FkXG0k97T-7uxLYdSh3eHHqKBaOiPRGnUQKQTcziXAs/edit?gid=489474941#gid=489474941' target='_blank' rel='noopener' style={{fontSize:11,padding:'4px 12px',borderRadius:8,background:'rgba(255,255,255,.15)',color:'#fff',textDecoration:'none',border:'1px solid rgba(255,255,255,.25)',cursor:'pointer',fontWeight:600}}>Финансовый отчёт ↗</a></div>
