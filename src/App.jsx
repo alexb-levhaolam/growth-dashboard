@@ -206,11 +206,11 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
   // Бюджет Ads = SUM(BM) за период
   // CPO Total = Бюджет Ads / все продажи = BM / BJ
   // CPO Ads = (затраты платных каналов + скидки BL) / продажи платных каналов
-  const adSpend=ch.reduce((s,c)=>s+(c.spent||0),0)
-  const paidSales=ch.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0)
+  const adSpend=ch.filter(isPaidCh).reduce((s,c)=>s+(c.spent||0),0)
+  const paidSales=ch.filter(isPaidCh).reduce((s,c)=>s+(c.sales||0),0)
   const totalSpentBM=m.totalSpentBM||0
   const discBL=m.discBL||0
-  const calcCpoAds=paidSales>0?Math.round((adSpend+discBL)/paidSales):null
+  const calcCpoAds=paidSales>0?Math.round(adSpend/paidSales):null
   const calcCpoTotal=(m.totalSales||0)>0?Math.round(totalSpentBM/(m.totalSales||1)):null
   const cpoAds=m.cpoAdsOverride!=null?m.cpoAdsOverride:calcCpoAds
   const cpoTotal=m.cpoTotalOverride!=null?m.cpoTotalOverride:calcCpoTotal
@@ -273,7 +273,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
     <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:28}}>
       {[
         {l:'Продажи',k:'totalSales',info:ch.filter(c=>(c.sales||0)>0).map(c=>`${c.name}: ${c.sales}`).join('\n')||'Продажи за неделю (BJ)'},
-        {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'(Затраты платных каналов + Скидки BL) / продажи платных каналов'},
+        {l:'CPO Ads',k2:'cpoAdsOverride',v2:cpoAds,calc:calcCpoAds,pre:'$',info:'Затраты платных каналов (без Awareness и скидок) / их продажи'},
         {l:'CPO Total',k2:'cpoTotalOverride',v2:cpoTotal,calc:calcCpoTotal,pre:'$',info:'Бюджет Ads (BM) / все продажи (BJ)'},
         {l:'Бюджет Ads',k2:'budgetSpent',v2:m.budgetSpent!=null?m.budgetSpent:totalSpentBM,calc:totalSpentBM,pre:'$',info:'Сумма BM (Total_Spent) за период'},
       ].map((x,i)=><div key={i} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'18px 16px'}}>
@@ -560,7 +560,7 @@ function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[expanded,set
 
 // ═══ TRENDS ═══
 function Trends({reports,mPlans}){const[mode,setMode]=useState('weekly');const[selCh,setSelCh]=useState({});const[cpoMode,setCpoMode]=useState('both');const allCh=new Set();reports.forEach(r=>(r.channels||[]).forEach(c=>{const n=c.name?.split(' (')[0]||c.name;if(n)allCh.add(n)}));const chNames=[...allCh];useEffect(()=>{if(Object.keys(selCh).length===0){const init={};chNames.forEach(n=>init[n]=true);setSelCh(init)}},[chNames.length]);const togCh=(n)=>setSelCh(p=>({...p,[n]:!p[n]}));const toggleAll=()=>{const anyOff=chNames.some(n=>!selCh[n]);const nv={};chNames.forEach(n=>nv[n]=anyOff);setSelCh(nv)}
-  const weeklyData=reports.map(r=>{const m=r.metrics||{};const ch=r.channels||[];const adSpend=ch.reduce((s,c)=>s+(c.spent||0),0);const paidSales=ch.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0);const teamWeek=Math.round(TEAM_MONTHLY/30*7);const wm=r.week_start?.slice(0,7);const mp=(mPlans||[]).find(p=>p.id===wm);const dim=wm?new Date(parseInt(wm.slice(0,4)),parseInt(wm.slice(5,7)),0).getDate():30;const weekPlan=mp?.total_plan?Math.round(mp.total_plan/dim*7):m.planSales;const planCpoAds=mp?.channel_plans?.meta?.planCpo||mp?.channel_plans?.google?.planCpo||null;const planCpoTotal=mp?.plan_cpo_total||null;const o={week:r.week_label,sales:m.totalSales,planSales:weekPlan,cpoAds:m.cpoAdsOverride!=null?m.cpoAdsOverride:(paidSales>0?Math.round((adSpend+(m.discBL||0))/paidSales):null),cpoTotal:m.cpoTotalOverride!=null?m.cpoTotalOverride:((m.totalSales||0)>0?Math.round((m.totalSpentBM||0)/(m.totalSales||1)):null),planCpoAds,planCpoTotal};ch.forEach(c=>{o[c.name?.split(' (')[0]||c.name]=c.sales});return o})
+  const weeklyData=reports.map(r=>{const m=r.metrics||{};const ch=r.channels||[];const adSpend=ch.filter(isPaidCh).reduce((s,c)=>s+(c.spent||0),0);const paidSales=ch.filter(isPaidCh).reduce((s,c)=>s+(c.sales||0),0);const teamWeek=Math.round(TEAM_MONTHLY/30*7);const wm=r.week_start?.slice(0,7);const mp=(mPlans||[]).find(p=>p.id===wm);const dim=wm?new Date(parseInt(wm.slice(0,4)),parseInt(wm.slice(5,7)),0).getDate():30;const weekPlan=mp?.total_plan?Math.round(mp.total_plan/dim*7):m.planSales;const planCpoAds=mp?.channel_plans?.meta?.planCpo||mp?.channel_plans?.google?.planCpo||null;const planCpoTotal=mp?.plan_cpo_total||null;const o={week:r.week_label,sales:m.totalSales,planSales:weekPlan,cpoAds:m.cpoAdsOverride!=null?m.cpoAdsOverride:(paidSales>0?Math.round(adSpend/paidSales):null),cpoTotal:m.cpoTotalOverride!=null?m.cpoTotalOverride:((m.totalSales||0)>0?Math.round((m.totalSpentBM||0)/(m.totalSales||1)):null),planCpoAds,planCpoTotal};ch.forEach(c=>{o[c.name?.split(' (')[0]||c.name]=c.sales});return o})
   const dailyData=[];reports.forEach(r=>{(r.daily_data||[]).forEach(d=>{if(d?.sales!=null)dailyData.push({day:d.day,sales:d.sales})})});const data=mode==='weekly'?weeklyData:dailyData;const xKey=mode==='weekly'?'week':'day'
   return<><div style={{display:'flex',gap:8,marginBottom:16,alignItems:'center',flexWrap:'wrap'}}><div style={{display:'flex',gap:2,background:S.sf,borderRadius:8,padding:2,border:`1px solid ${S.ln}`}}><button onClick={()=>setMode('weekly')} style={{padding:'6px 14px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:mode==='weekly'?S.gd:'transparent',color:mode==='weekly'?S.gp:S.i2}}>По неделям</button><button onClick={()=>setMode('daily')} style={{padding:'6px 14px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:mode==='daily'?S.gd:'transparent',color:mode==='daily'?S.gp:S.i2}}>По дням</button></div>{mode==='weekly'&&<div style={{display:'flex',gap:2,background:S.sf,borderRadius:8,padding:2,border:`1px solid ${S.ln}`}}>{[{k:'both',l:'CPO оба'},{k:'ads',l:'CPO Ads'},{k:'total',l:'CPO Total'}].map(o=><button key={o.k} onClick={()=>setCpoMode(o.k)} style={{padding:'6px 10px',borderRadius:8,border:'none',cursor:'pointer',fontSize:15,fontWeight:600,background:cpoMode===o.k?S.am:'transparent',color:cpoMode===o.k?'#fff':S.i2}}>{o.l}</button>)}</div>}</div>
     <CC title="Продажи (факт vs план)"><ResponsiveContainer width="100%" height={220}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" stroke={S.ln}/><XAxis dataKey={xKey} tick={{fontSize:15,fill:S.i3}} interval={mode==='daily'?2:0}/><YAxis tick={{fontSize:15,fill:S.i3}}/><Tooltip contentStyle={{background:S.sf,borderRadius:8,boxShadow:S.sh,fontSize:15}}/><Bar dataKey="sales" fill={S.gm} radius={[4,4,0,0]} name="Факт"/>{mode==='weekly'&&<Bar dataKey="planSales" fill={S.gs} radius={[4,4,0,0]} name="План"/>}</BarChart></ResponsiveContainer></CC>
@@ -623,6 +623,7 @@ function Admin({profiles,projects,reports,aIdx,reload,rep,upRep}){const[pins,set
     <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:17,fontWeight:600,marginBottom:12}}>Подключения и интеграции</div>{INTEG.map((ig,i)=>{const sc=stC[ig.st]||stC.planned;return<div key={i} style={{padding:'10px 0',borderBottom:`1px solid ${S.ln}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}><div style={{flex:1}}>{ig.url?<a href={ig.url} target="_blank" rel="noopener" style={{color:S.gd,fontWeight:500,fontSize:17}}>{ig.name}</a>:<span style={{fontWeight:500,fontSize:17}}>{ig.name}</span>}<div style={{fontSize:15,color:S.i2,marginTop:2,lineHeight:1.5}}>{ig.desc}</div></div><Chip bg={sc.bg} tx={sc.tx}>{sc.l}</Chip></div></div>})}</div></>}
 
 // ═══ MONTHLY REPORT (CMO v2) ═══
+const isPaidCh=c=>(c?.spent||0)>0&&!/aware|israel\s*365|эвернес/i.test(c?.name||'')
 const PROJ_CATS=[{v:'acquisition',l:'Acquisition'},{v:'acquisition_additional',l:'Acquisition / Additional Sales'},{v:'conversion',l:'Conversion Rate'},{v:'retention',l:'Retention & Churn'},{v:'reactivation',l:'Reactivation'},{v:'brand',l:'Brand Awareness'},{v:'infra',l:'Infrastructure'},{v:'strategy',l:'Strategy'},{v:'other',l:'Другое'}]
 const catOf=p=>PROJ_CATS.some(c=>c.v===p.category)?p.category:'other'
 const DECISIONS=[{v:'continue_test',l:'продолжаем тест'},{v:'escalate',l:'эскалация'},{v:'close',l:'закрываем'},{v:'pivot',l:'меняем подход'},{v:'continue_as_is',l:'продолжаем как есть'},{v:'pause',l:'на паузе'}]
@@ -659,7 +660,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){
   if(!sel)return<div style={{padding:40,textAlign:'center',color:S.i3}}>{loading?'Загрузка...':'Нет данных'}</div>
 
   // ═══ COMPUTED VALUES ═══
-  const ws=sel.weeks||[];const wSales=ws.map(w=>w.metrics?.totalSales||0);const wCpoAds=ws.map(w=>{const m2=w.metrics||{};const ch2=w.channels||[];const sp=ch2.reduce((s,c)=>s+(c.spent||0),0);const ps=ch2.filter(c=>(c.spent||0)>0).reduce((s,c)=>s+(c.sales||0),0);return ps>0?Math.round((sp+(m2.discBL||0))/ps):0});const wCpoTotal=ws.map(w=>{const m2=w.metrics||{};return(m2.totalSales||0)>0?Math.round((m2.totalSpentBM||0)/(m2.totalSales||1)):0})
+  const ws=sel.weeks||[];const wSales=ws.map(w=>w.metrics?.totalSales||0);const wCpoAds=ws.map(w=>{const m2=w.metrics||{};const ch2=w.channels||[];const sp=ch2.filter(isPaidCh).reduce((s,c)=>s+(c.spent||0),0);const ps=ch2.filter(isPaidCh).reduce((s,c)=>s+(c.sales||0),0);return ps>0?Math.round(sp/ps):0});const wCpoTotal=ws.map(w=>{const m2=w.metrics||{};return(m2.totalSales||0)>0?Math.round((m2.totalSpentBM||0)/(m2.totalSales||1)):0})
   const cpoAds=sel.paidSales>0?Math.round((sel.adSpend+(sel.discountsBL||0))/sel.paidSales):null
   const cpoTotal=sel.totalSales>0?Math.round((sel.totalSpentBM||0)/sel.totalSales):null
   const cm=compare?mData[`${compare.year}-${String(compare.month+1).padStart(2,'0')}`]:null
