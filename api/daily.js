@@ -33,7 +33,31 @@ export default async function handler(req, res) {
     }
     if (cur || row.length) { row.push(cur.trim()); rows.push(row); }
 
+
     const pn = s => { if (!s) return 0; const n = Number(String(s).replace(/[^\d.\-]/g, '')); return isFinite(n) ? n : 0; }; // любые пробелы, $, запятые-разделители тысяч
+
+    // Meta: приоритет у блока «Meta Total» — N (траты) и O (продажи).
+    // Если N/O пустые или 0 → сумма блоков с Meta: траты B + K (Direct Sales + FEBR-1), продажи C + L.
+    // Если N/O заполнены, но не равны сумме блоков → используем N/O и сообщаем о расхождении.
+    // Разовые исключения по датам (поломка в N): 'max' — брать большее из N и B + K.
+    const META_EXCEPTIONS = { '2026-10-14': 'max' };
+    const metaRow = (r, iso) => {
+      const nSp = pn(r[13]), oSa = pn(r[14]), oRaw = String(r[14] || '').trim();
+      const bkSp = pn(r[1]) + pn(r[10]), clSa = pn(r[2]) + pn(r[11]);
+      const ex = META_EXCEPTIONS[iso];
+      let sp, spFrom;
+      if (ex === 'max') { sp = Math.max(nSp, bkSp); spFrom = sp === nSp ? 'N' : 'B+K (исключение)'; }
+      else if (nSp > 0) { sp = nSp; spFrom = 'N'; }
+      else { sp = bkSp; spFrom = 'B+K'; }
+      const useO = oRaw !== '' && (oSa > 0 || clSa === 0);
+      const sa = useO ? oSa : clSa, saFrom = useO ? 'O' : 'C+L';
+      const mism = [];
+      if (!ex && nSp > 0 && nSp !== bkSp) mism.push({ what: 'траты', total: nSp, sum: bkSp });
+      if (useO && oSa !== clSa) mism.push({ what: 'продажи', total: oSa, sum: clSa });
+      return { sp, sa, spFrom, saFrom, mism };
+    };
+    const metaCheck = { fallbackSpent: [], fallbackSales: [], mismatches: [] };
+    const noteMeta = (dateKey, m) => { if (m.spFrom !== 'N') metaCheck.fallbackSpent.push(dateKey); if (m.saFrom !== 'O') metaCheck.fallbackSales.push(dateKey); m.mism.forEach(x => metaCheck.mismatches.push({ date: dateKey, ...x })); };
     const ws = new Date(weekStart + 'T12:00:00');
     const we = new Date(ws); we.setDate(we.getDate() + 6);
     const wsYear = ws.getFullYear();
@@ -86,7 +110,7 @@ export default async function handler(req, res) {
 
       const tot = pn(r[61]);
 
-      const meta_sp=pn(r[13]), meta_sa=pn(r[14]);
+      const meta=metaRow(r, `${wsYear}-${dm[2]}-${dm[1]}`); noteMeta(dateKey, meta); const meta_sp=meta.sp, meta_sa=meta.sa;
       const g_sp=pn(r[16])+pn(r[19])+pn(r[22])+pn(r[25])+pn(r[28])+pn(r[34]);
       const g_sa=pn(r[17])+pn(r[20])+pn(r[23])+pn(r[26])+pn(r[29])+pn(r[35]);
       const i365_sp=pn(r[31]), i365_sa=pn(r[32]);
@@ -145,6 +169,7 @@ export default async function handler(req, res) {
       days, channels:chArr, totalSales, totalDiscBL, totalDiscBS, totalSpentBM,
       defaultHidden:['Reddit','Pinterest','Rumble','TikTok'],
       daysFound:days.length,
+      metaCheck,
       debug:{ source, totalRows:rows.length, matchedRows:debugRows }
     });
   } catch(e) {
