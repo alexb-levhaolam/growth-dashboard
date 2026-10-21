@@ -13,8 +13,9 @@ export default async function handler(req, res) {
     // «текстовые» ячейки приходят пустыми). Если export не подходит — fallback на gviz.
     const looksValid = t => { if (!t || t.trim().startsWith('<')) return false; const lines = t.split('\n'); const dated = lines.filter(l => /^"?\d{2}\.\d{2}"?,/.test(l)).length; return dated >= 20 && (lines[Math.floor(lines.length/2)]||'').split(',').length >= 60; };
     let csv = null, source = null;
-    for (const [src, url] of [['export', `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`], ['gviz', CSV_URL]]) {
-      try { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) continue; const t = await r.text(); if (src === 'gviz' || looksValid(t)) { csv = t; source = src; break; } } catch (e) {}
+    const nc = `_nc=${Date.now()}`; // без кэша Google: всегда свежие значения
+    for (const [src, url] of [['export', `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&${nc}`], ['gviz', `${CSV_URL}&${nc}`]]) {
+      try { const r = await fetch(url, { redirect: 'follow', cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }); if (!r.ok) continue; const t = await r.text(); if (src === 'gviz' || looksValid(t)) { csv = t; source = src; break; } } catch (e) {}
     }
     if (!csv) throw new Error('Sheet not accessible');
 
@@ -39,6 +40,9 @@ export default async function handler(req, res) {
     let discountsBL = 0, discountsBS = 0, totalSpentBM = 0; // BL(63)=Discount_Spent, BS(70)=Discount_Spent_Ivan
     const channels = {};
     const debug = req.query.debug === '1'; const debugRows = [];
+    // Платные каналы — как «All Paid» в LH Daily: Meta + Google + новые. Israel 365 (Awareness) не входит.
+    const PAID = new Set(['Meta', 'Google', 'TikTok', 'Reddit', 'Pinterest', 'Rumble', 'Taboola']);
+    const gaps = {}; // платный канал: есть продажи, но нет трат в Daily
     const seenDates = new Set();
     let firstMatchRow = -1;
 
@@ -86,8 +90,10 @@ export default async function handler(req, res) {
         if (!channels[name]) channels[name] = { sales: 0, spent: 0 };
         channels[name].sales += v.sa;
         channels[name].spent += v.sp;
-        // CPO Ads: только платные каналы; Israel 365 (Brand Awareness) не участвует
-        if (v.sp > 0 && name !== 'Israel 365') { adSpend += v.sp; paidSales += v.sa; }
+        if (PAID.has(name)) {
+          adSpend += v.sp; paidSales += v.sa;
+          if (v.sp === 0 && v.sa > 0) (gaps[name] = gaps[name] || []).push(dateKey);
+        }
       }
     }
 
@@ -96,7 +102,7 @@ export default async function handler(req, res) {
       cpo: v.sales > 0 && v.spent > 0 ? Math.round(v.spent / v.sales) : null
     }));
 
-    res.json({ month, totalSales, adSpend, paidSales, daysWithData, discountsBL, discountsBS, totalSpentBM, channels: chArr, source, ...(debug ? { debug: debugRows } : {}) });
+    res.json({ month, totalSales, adSpend, paidSales, daysWithData, discountsBL, discountsBS, totalSpentBM, channels: chArr, gaps, source, ...(debug ? { debug: debugRows } : {}) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
