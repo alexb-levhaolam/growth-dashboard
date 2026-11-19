@@ -1,7 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{font-family:'Poppins','Montserrat',-apple-system,sans-serif;color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
-body{font-weight:500;font-size:15px;line-height:1.45}
+html,body{font-family:'Poppins',-apple-system,'Segoe UI',sans-serif;color:#121416;background:#F7F8F9;-webkit-font-smoothing:antialiased}
+body{font-weight:400;font-size:14px;line-height:1.5}
+h1,h2,h3{font-weight:600;line-height:1.25}
+/* Цифры в таблицах и карточках — одинаковой ширины */
+.lh-main{font-variant-numeric:tabular-nums}
+/* Редактируемые поля: пунктир только при наведении */
+.lh-ed{border-bottom:1px dashed transparent;border-radius:3px;transition:background .12s,border-color .12s}
+.lh-ed:hover{border-bottom-color:#B7BCC2;background:#F3F5F7}
+/* Подписи Recharts */
+.recharts-text{font-family:'Poppins',sans-serif}
 input,select,textarea,button{font-family:inherit;color:#121416!important}
 select option{color:#121416!important;background:#fff!important}
 .lh-sidebar{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.1) transparent}
