@@ -47,12 +47,12 @@ function YoYReport(){
     const isOpen=expanded['cmp_'+field]
     return<><tr style={{borderBottom:`1px solid #E4E6E9`}}>
       <td style={{padding:'6px 10px',fontWeight:600,cursor:'pointer'}} rowSpan={3} onClick={()=>setExpanded(prev=>({...prev,['cmp_'+field]:!prev['cmp_'+field]}))}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
-      <td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E',fontWeight:500}}>2025</td>
+      <td style={{padding:'7px 10px',fontSize:12,color:'#737A82',fontWeight:500}}>2025</td>
       {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(2025,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(2025,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}
       {!hideYtd&&<td style={{textAlign:'right',padding:'7px 10px',fontWeight:500,fontSize:13}}>{prefix||''}{fmt(ytd1)}</td>}{hideYtd&&<td></td>}
     </tr>
     <tr style={{borderBottom:`1px solid #E4E6E9`}}>
-      <td style={{padding:'7px 10px',fontSize:12,color:'#1761CB',fontWeight:500}}>2026</td>
+      <td style={{padding:'7px 10px',fontSize:12,color:'#3B6402',fontWeight:600}}>2026</td>
       {Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(2026,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(2026,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}
       {!hideYtd&&<td style={{textAlign:'right',padding:'7px 10px',fontWeight:500,fontSize:13}}>{prefix||''}{fmt(ytd2)}</td>}{hideYtd&&<td></td>}
     </tr>
@@ -66,14 +66,14 @@ function YoYReport(){
   const ChRow=({label,field,yr1,yr2,color1,color2,hideYtd})=>{const isOpen=expanded[field];return<>
     <tr style={{borderBottom:`1px solid ${S.ln}`,background:isOpen?'#F7F8F9':'transparent'}}>
       <td style={{padding:'8px 10px',fontWeight:600,cursor:'pointer'}} onClick={()=>setExpanded(prev=>({...prev,[field]:!prev[field]}))}><span style={{marginRight:6,color:S.i3}}>{isOpen?'▾':'▸'}</span>{label}</td>
-      {yr2?<><td style={{padding:'7px 10px',fontSize:12,color:'#6E9B0E'}}>2025</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:500,fontSize:13}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</>
+      {yr2?<><td style={{padding:'7px 10px',fontSize:12,color:'#737A82',fontWeight:500}}>2025</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:500,fontSize:13}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</>
       :<>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr1,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr1,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:600}}>{fmt(data.filter(d=>d.year===yr1).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</>}
     </tr>
-    {yr2&&isOpen&&<tr style={{borderBottom:`1px solid #E4E6E9`}}><td></td><td style={{padding:'7px 10px',fontSize:12,color:'#1761CB'}}>2026</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr2,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr2,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:500,fontSize:13}}>{fmt(data.filter(d=>d.year===yr2).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</tr>}
+    {yr2&&isOpen&&<tr style={{borderBottom:`1px solid #E4E6E9`}}><td></td><td style={{padding:'7px 10px',fontSize:12,color:'#3B6402',fontWeight:600}}>2026</td>{Array.from({length:12},(_,i)=><td key={i} style={{textAlign:'right',padding:'7px 6px',fontSize:13}}><EdNum value={get(yr2,i+1,field)} canEdit={true} onSave={v=>saveCell(getId(yr2,i+1),field,v)} style={{fontSize:13,textAlign:'right'}}/></td>)}{!hideYtd?<td style={{textAlign:'right',padding:'7px 10px',fontWeight:500,fontSize:13}}>{fmt(data.filter(d=>d.year===yr2).reduce((s,d)=>s+(d[field]||0),0))}</td>:<td></td>}</tr>}
     {isOpen&&<tr><td colSpan={15} style={{padding:'8px 16px'}}><Chart field={field} yr1={yr1} yr2={yr2} color1={color1||'#6E9B0E'} color2={color2||'#1761CB'}/></td></tr>}
   </>}
 
-  const TH=()=><tr style={{borderBottom:`1px solid ${S.ln}`}}><th style={{textAlign:'left',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 10px'}}>Метрика</th>{mode==='compare'&&<th style={{fontSize:12,color:S.i3,padding:'8px 4px'}}>Год</th>}{ML.map(m=><th key={m} style={{textAlign:'right',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 4px'}}>{m}</th>)}<th style={{textAlign:'right',fontSize:12,fontWeight:500,color:S.i3,padding:'8px 10px'}}>YTD</th></tr>
+  const TH=()=><tr style={{borderBottom:`1px solid ${S.ln}`}}><th style={{textAlign:'left',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 10px'}}>Метрика</th>{mode==='compare'&&<th style={{textAlign:'left',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 10px',width:60}}>Год</th>}{ML.map(m=><th key={m} style={{textAlign:'right',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',color:S.i3,padding:'8px 4px'}}>{m}</th>)}<th style={{textAlign:'right',fontSize:12,fontWeight:500,color:S.i3,padding:'8px 10px'}}>YTD</th></tr>
 
   if(loading)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Загрузка...</div>
 

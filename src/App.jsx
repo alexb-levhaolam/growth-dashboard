@@ -16,6 +16,7 @@ import TeamPage from './pages/TeamPage'
 import SlackBotPage from './pages/SlackBotPage'
 import YoYReport from './pages/YoYReport'
 import Workshop from './pages/Workshop'
+import Home from './pages/Home'
 
 export default function App(){const[session,setSession]=useState(null);const[profile,setProfile]=useState(null);const[loading,setLoading]=useState(true);useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setLoading(false)});const{data:{subscription}}=supabase.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe()},[]);useEffect(()=>{if(!session?.user)return setProfile(null);supabase.from('profiles').select('*').eq('id',session.user.id).single().then(({data})=>setProfile(data))},[session]);if(loading)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;if(!session)return<Login/>;if(!profile)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;return<Main profile={profile}/>}
 
@@ -61,7 +62,7 @@ function Main({profile}){
   const navTo=(p)=>{setPage(p);setMenuOpen(false)};return<div className='lh-app' style={{display:'grid',gridTemplateColumns:'220px 1fr',minHeight:'100vh',background:S.bg}}>
     {/* ═══ SIDEBAR ═══ */}
     <div className={'lh-sidebar'+(menuOpen?' open':'')} style={{background:S.sf,borderRight:`1px solid ${S.ln}`,padding:'20px 10px',display:'flex',flexDirection:'column',gap:1,position:'sticky',top:0,height:'100vh',overflowY:'auto'}}>
-      <div style={{font:'700 20px/1 Poppins,sans-serif',color:S.gd,padding:'8px 14px 24px',display:'flex',alignItems:'center',gap:8}}>Growth</div>
+      <div style={{padding:'8px 14px 24px',display:'flex',flexDirection:'column',gap:2,lineHeight:1.1}}><span style={{font:'500 12px/1.2 Poppins,sans-serif',color:S.i3,letterSpacing:'.04em'}}>Lev Haolam</span><span style={{font:'700 20px/1.1 Poppins,sans-serif',color:S.gd}}>Growth</span></div>
       {NAV.map((n,i)=>n.sep?<div key={i} style={{font:'600 12px/1 Poppins,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',padding:'18px 14px 6px'}}>{n.sep}</div>:<button key={n.id} onClick={()=>navTo(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:8,font:'500 14px/1.3 Poppins,sans-serif',color:page===n.id?S.gm:S.i2,cursor:'pointer',border:'none',background:page===n.id?S.gp:'transparent',width:'100%',textAlign:'left',fontWeight:page===n.id?600:500}}><span style={{fontSize:18,width:20,textAlign:'center'}}>{n.ic==='home'?'⌂':n.ic==='map'?'▦':n.ic==='calendar'?'☰':n.ic==='chart-bar'?'▣':n.ic==='trending-up'?'↗':n.ic==='layout-kanban'?'▤':n.ic==='target'?'◎':n.ic==='users'?'⊛':n.ic==='adjustments'?'⚙':n.ic==='plug'?'⚡':n.ic==='robot'?'⊞':n.ic==='settings'?'⋮':'·'}</span>{n.l}</button>)}
       <div style={{marginTop:'auto',padding:'14px 10px',borderTop:`1px solid ${S.ln}`}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -77,26 +78,7 @@ function Main({profile}){
     <button className='lh-burger' onClick={()=>setMenuOpen(!menuOpen)} style={{display:'none',position:'fixed',top:12,left:12,zIndex:1001,width:40,height:40,borderRadius:8,border:'none',background:S.gd,color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>☰</button>
 
     {/* HOME */}
-    {page==='home'&&<>
-      <h1 style={{fontSize:24,fontWeight:600,marginBottom:22}}>Добро пожаловать{profile.name?', '+profile.name:''}</h1>
-      <div style={{font:'600 12px/1 Poppins,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Быстрый доступ</div>
-      <div className='lh-home-cards' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
-        <div onClick={()=>navTo('weekly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:500,color:S.i3}}>☰ Текущая неделя</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{rep?.week_label||'—'}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{rep?.metrics?.totalSales||0} продаж</div></div>
-        {isA&&<div onClick={()=>navTo('monthly')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:500,color:S.i3}}>▣ Ежемесячный</div><div className='lh-num' style={{fontSize:28,fontWeight:600}}>{new Date(new Date().getFullYear(),new Date().getMonth()-1).toLocaleString('ru',{month:'long',year:'numeric'})}</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>Отчёт за прошлый месяц</div></div>}
-        <div onClick={()=>navTo('projects-all')} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:20,cursor:'pointer'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:14,fontWeight:500,color:S.i3}}>▤ Проекты</div><div className='lh-num' className='lh-num' style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done'&&p.status!=='wait').length} в работе</div><div style={{fontSize:13,color:'#9AA0A6',marginTop:6}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length} блокер(ов)</div></div>
-      </div>
-      <div style={{font:'600 12px/1 Poppins,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Статус проектов</div>
-      <div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:32}}>
-        <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>Всего активных</div><div className='lh-num' className='lh-num' style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status!=='done').length}</div></div>
-        <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>В работе</div><div className='lh-num' className='lh-num' style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status==='progress').length}</div></div>
-        <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16,borderLeft:'3px solid #DD2A02',borderRadius:'0 14px 14px 0'}}><div style={{fontSize:13,color:'#DD2A02'}}>Блокеры</div><div className='lh-num' style={{fontSize:28,fontWeight:600,color:'#DD2A02'}}>{projects.filter(p=>p.status==='blocked'||p.status==='risk').length}</div></div>
-        <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:16}}><div style={{fontSize:13,color:S.i3}}>На тесте</div><div className='lh-num' className='lh-num' style={{fontSize:28,fontWeight:600}}>{projects.filter(p=>p.status==='test').length}</div></div>
-      </div>
-      <div style={{font:'600 12px/1 Poppins,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:12}}>Последние комментарии</div>
-      <div style={{display:'flex',flexDirection:'column',gap:6}}>
-        {[...comments].sort((a,b)=>(b.created_at||b.id||'').localeCompare(a.created_at||a.id||'')).slice(0,8).map(c=>{const proj=projects.find(p=>p.id===c.project_id);return<div key={c.id} style={{background:S.sf,borderRadius:10,boxShadow:S.sh,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'start',gap:12}}><div><b style={{fontSize:14}}>{proj?.name||''}</b><span style={{fontSize:13,color:S.i3,marginLeft:4}}>({c.author})</span><div style={{fontSize:13,color:S.i2,marginTop:2}}>{(c.full_text||c.summary||'').slice(0,80)}</div></div><small style={{fontSize:12,color:'#9AA0A6',whiteSpace:'nowrap'}}>{weekEnd(c.week_start)}</small></div>})}
-      </div>
-    </>}
+    {page==='home'&&<Home profile={profile} rep={rep} projects={projects} comments={comments} mPlans={mPlans} navTo={navTo} isA={isA}/>}
 
     {/* WEEKLY */}
     {page==='weekly'&&!rep&&<div style={{padding:40,textAlign:'center',color:S.i3}}>Нет отчётов. Создайте первый отчёт.</div>}
