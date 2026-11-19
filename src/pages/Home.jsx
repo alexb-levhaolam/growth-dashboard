@@ -4,6 +4,8 @@ import { S, PROJ_ST, Linkify, ACC } from '../lib/ui'
 // ═══ ГЛАВНАЯ ═══
 const fmt = (v) => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('ru-RU')
 const longDate = (d) => { if (!d) return ''; const x = new Date(String(d).length <= 10 ? d + 'T12:00:00' : d); return isNaN(x) ? '' : x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).replace(/\s?г\.$/, '') }
+// дата комментария = последний день недели (воскресенье), к которой он относится
+const weekEndDate = (c) => { const base = c.week_start || c.created_at; if (!base) return ''; const d = new Date(String(base).slice(0, 10) + 'T12:00:00'); if (isNaN(d)) return ''; const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const sun = new Date(mon); sun.setDate(mon.getDate() + 6); return longDate(sun.toISOString().slice(0, 10)) }
 const card = { background: S.sf, borderRadius: 14, boxShadow: S.sh, padding: 18 }
 const sec = { fontSize: 12, fontWeight: 600, color: S.i3, letterSpacing: '.07em', textTransform: 'uppercase', margin: '0 0 12px' }
 
@@ -115,7 +117,7 @@ export default function Home({ profile, rep, projects, comments, mPlans, navTo, 
             </div>
             <div style={{ fontSize: 13, color: S.i2, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'pre-wrap' }}><Linkify>{c.full_text || c.summary || ''}</Linkify></div>
           </div>
-          <span style={{ fontSize: 12, color: S.i3, whiteSpace: 'nowrap', flexShrink: 0 }}>{longDate(c.week_start || c.created_at)}</span>
+          <span style={{ fontSize: 12, color: S.i3, whiteSpace: 'nowrap', flexShrink: 0 }}>{weekEndDate(c)}</span>
         </div> })}
     </div>
   </>
