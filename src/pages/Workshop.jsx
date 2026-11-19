@@ -87,7 +87,7 @@ const Box = ({ on }) => <span style={{ width: 16, height: 16, borderRadius: 4, b
 export default function Workshop({ ce }) {
   const P0 = loadPrefs()
   const [raw, setRaw] = useState(null); const [err, setErr] = useState(''); const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState(P0.tab || 'road'); const [stage, setStage] = useState(P0.stage || 'all'); const [owner, setOwner] = useState(P0.owner || 'all')
+  const [tab, setTab] = useState(['dash', 'road', 'monthly', 'quarter'].includes(P0.tab) ? P0.tab : 'dash'); const [stage, setStage] = useState(P0.stage || 'all'); const [owner, setOwner] = useState(P0.owner || 'all')
   const [q, setQ] = useState(''); const [ptype, setPtype] = useState('all')
   const [hideNoDates, setHideNoDates] = useState(P0.hideNoDates ?? true); const [hideDone, setHideDone] = useState(P0.hideDone ?? true)
   const [details, setDetails] = useState(P0.details ?? false); const [hideEmpty, setHideEmpty] = useState(P0.hideEmpty ?? false)
@@ -132,10 +132,11 @@ export default function Workshop({ ce }) {
       const r = await fetch('/api/workshop', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ id: s.id, step: s.n, week: n, text }) })
       const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Ошибка')
       s.wk[n - 1] = text; setDrafts((p) => { const x = { ...p }; delete x[key]; return x })
+      fetch('/api/workshop?action=sync', { method: 'POST', headers: { Authorization: 'Bearer ' + (session?.access_token || '') } }).catch(() => {})
     } catch (e) { alert('Не сохранилось: ' + e.message) } finally { setSaving('') }
   }
 
-  const tabs = [['dash', 'Дашборд'], ['road', 'Roadmap'], ['monthly', 'Monthly Report'], ['quarter', 'Quarterly'], ['plan', 'Projects Plan'], ['timeline', 'Timeline']]
+  const tabs = [['dash', 'Дашборд'], ['road', 'Roadmap'], ['monthly', 'Monthly Report'], ['quarter', 'Quarterly']]
   const scrollBox = (minW, extra) => ({ ...card, padding: 0, overflow: 'auto', maxHeight: 'calc(100vh - 210px)', minHeight: 320, ...extra, '--minw': minW })
 
   // ---------- шапка: закреплённая панель ----------
@@ -159,48 +160,77 @@ export default function Workshop({ ce }) {
     </div>
   </div>
 
-  // ---------- Дашборд ----------
+  // ---------- Дашборд: Baseline (окт 26) + Expected = цель конца 2027 ----------
   const Dash = () => {
-    const scope = D.plan.filter((p) => !p.parent && inStage(p.stage) && (ptype === 'all' || p.type === ptype) && matchTop(p.id))
-    const topScope = D.top.filter((t) => inStage(t.stage) && (ptype === 'all' || t.type === ptype) && matchTop(t.id))
-    const base = topScope.reduce((a, t) => a + (t.base || 0), 0); const now = topScope.reduce((a, t) => a + (t.months[D.lastIdx] || 0), 0)
-    const tgt = scope.reduce((a, p) => a + ((p.expTotal ?? p.exp) || 0), 0); const gr = now - base
-    const agg = (k, keys) => { const t = {}; scope.forEach((p) => { t[p[k]] = (t[p[k]] || 0) + ((p.expTotal ?? p.exp) || 0) }); return keys.map((x) => [x, t[x] || 0]) }
-    const maxC = Math.max(1, ...D.chart.map((c) => Math.max(c.fact || 0, c.plan || 0)))
-    const top5 = scope.slice().sort((a, b) => ((b.expTotal ?? b.exp) || 0) - ((a.expTotal ?? a.exp) || 0)).slice(0, 6)
+    const mi = (k) => D.months.indexOf(k)
+    const TS = D.special['TOTAL-SALES'] || []; const PS = D.special['PLAN SALES'] || []
+    const iBase = mi('2026-10'); const base = TS[iBase]; const now = TS[D.lastIdx]; const nowLbl = D.months[D.lastIdx] || '—'
+    const planEnd = PS[mi('2027-12')]
+    const totRow = D.pva.find((r) => /^Total/.test(r[0])) || []; const expTot = num(totRow[3]) || 0
+    const potential = base != null ? base + expTot : null
+    const pct = (a, b) => (b ? Math.round(a / b * 100) : 0)
+    const mLbl = (k) => { const [y, m] = String(k).split('-'); return MN[+m - 1] + ' ' + y.slice(2) }
+    const scaleMax = Math.max(potential || 0, planEnd || 0, ...TS.filter((v) => v != null)) * 1.05 || 1
+    const pos = (v) => Math.max(0, Math.min(100, v / scaleMax * 100)) + '%'
+    // график: факт, план, потенциал (линейно от baseline до потенциала к дек 27)
+    const i0 = Math.max(0, mi('2026-01')); const iEnd = mi('2027-12'); const iStart = iBase
+    const series = D.months.slice(i0, iEnd + 1).map((k, j) => { const i = i0 + j; const pot = base != null && i >= iStart ? base + (potential - base) * (i - iStart) / Math.max(1, iEnd - iStart) : null; return { k, fact: TS[i], plan: PS[i], pot } })
+    const maxC = Math.max(1, ...series.map((x) => Math.max(x.fact || 0, x.plan || 0, x.pot || 0))) * 1.05
+    const dirRows = D.pva.filter((r) => !/^Total/.test(r[0]) && (stage === 'all' || r[0] === stage))
+    const projRows = D.top.filter((t) => inStage(t.stage) && matchTop(t.id)).map((t) => { const p = D.byId[t.id] || {}; const exp = (p.expTotal ?? p.exp ?? t.exp) || 0; const b = t.base ?? p.base; const n = t.months[D.lastIdx]; return { t, exp, b, n, total: (b || 0) + exp, gr: b != null && n != null ? n - b : null } }).sort((a, b) => b.exp - a.exp)
+    const Big = ({ l, v, sub, color }) => <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 130 }}><span style={{ fontSize: 12, color: S.i3 }}>{l}</span><span style={{ fontSize: 28, fontWeight: 600, color: color || S.ink, lineHeight: 1.15 }}>{v}</span>{sub && <span style={{ fontSize: 12, color: S.i3 }}>{sub}</span>}</div>
+    const th2 = { fontSize: 11, fontWeight: 600, color: S.i3, textAlign: 'right' }
     return <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
-        {D.pva.filter((r) => stage === 'all' || r[0] === stage || /^Total/.test(r[0])).map((r, i) => { const tot = /^Total/.test(r[0]); const pct = Math.min(100, Math.max(0, parseFloat(String(r[5]).replace('%', '').replace(',', '.')) || 0))
-          return <div key={i} style={{ ...card, padding: '14px 16px', background: tot ? ACC.soft : '#fff', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}><span style={{ fontSize: 13, fontWeight: 600 }}>{tot ? 'Вся компания' : r[0]}</span><span style={{ fontSize: 11, color: S.i2, background: '#F1F2F4', borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>{r[6]}</span></div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span style={{ fontSize: 26, fontWeight: 600 }}>{r[2]}</span><span style={{ fontSize: 13, color: S.i2 }}>→ {r[3]}</span></div>
-            <span style={{ fontSize: 12, color: S.i3 }}>{tot ? 'продаж в месяц · сейчас → цель' : `база ${r[1]} · рост ${r[4] || 0} · ${r[5]} цели`}</span>
-            <span style={{ height: 5, background: '#EEF0F2', borderRadius: 3, marginTop: 4 }}><span style={{ display: 'block', height: 5, width: pct + '%', background: '#8CC63F', borderRadius: 3 }} /></span>
+      <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          {Big({ l: 'Baseline · окт 26', v: fmt(base), sub: 'продаж в месяц сейчас' })}
+          {Big({ l: `Сейчас · ${mLbl(nowLbl)}`, v: fmt(now), sub: base != null && now != null ? `${now - base >= 0 ? '+' : ''}${fmt(now - base)} к baseline` : '' })}
+          {Big({ l: 'План · дек 27', v: fmt(planEnd), sub: planEnd && base != null ? `+${fmt(planEnd - base)} к baseline · ориентир`: 'PLAN SALES', color: '#1761CB' })}
+          {Big({ l: 'Потенциал мер · конец 2027', v: fmt(potential), sub: `baseline + ${fmt(expTot)} от мер · если всё сработает`, color: '#3B6402' })}
+        </div>
+        <div style={{ position: 'relative', height: 44, marginTop: 4 }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 16, height: 10, background: '#EEF0F2', borderRadius: 6 }} />
+          {base != null && potential != null && <div style={{ position: 'absolute', left: pos(base), width: `calc(${pos(potential)} - ${pos(base)})`, top: 16, height: 10, background: '#E4F2C8', borderRadius: 6 }} />}
+          {base != null && now != null && <div style={{ position: 'absolute', left: pos(Math.min(base, now)), width: `calc(${pos(Math.max(base, now))} - ${pos(Math.min(base, now))})`, top: 16, height: 10, background: now >= base ? '#8CC63F' : '#F18B0E', borderRadius: 6 }} />}
+          {[[base, 'baseline', S.i2], [now, 'сейчас', '#3B6402'], [planEnd, 'план', '#1761CB'], [potential, 'потенциал', '#3B6402']].filter(([v]) => v != null).map(([v, l, col], i) => <div key={i} style={{ position: 'absolute', left: pos(v), top: 0, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ fontSize: 10, color: col, whiteSpace: 'nowrap' }}>{l}</span><span style={{ width: 2, height: 22, background: col, marginTop: 1 }} /></div>)}
+        </div>
+        <span style={{ fontSize: 12, color: S.i3 }}>До плана пройдено {planEnd && base != null && now != null ? pct(now - base, planEnd - base) : 0}% пути · до потенциала {potential && base != null && now != null ? pct(now - base, potential - base) : 0}%. Цифры берутся из таблицы: TOTAL-SALES, PLAN SALES и Target (+) на листе Dashboard.</span>
+      </div>
+
+      <div style={card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, gap: 10, flexWrap: 'wrap' }}><span style={{ fontSize: 16, fontWeight: 600 }}>Продажи компании: факт, план и потенциал</span><span style={{ display: 'flex', gap: 14, fontSize: 12, color: S.i2, flexWrap: 'wrap' }}><span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: '#8CC63F', marginRight: 5 }} />факт</span><span><span style={{ display: 'inline-block', width: 12, height: 3, background: '#1761CB', marginRight: 5, verticalAlign: 'middle' }} />план (PLAN SALES)</span><span><span style={{ display: 'inline-block', width: 12, height: 0, borderTop: '2px dashed #3B6402', marginRight: 5, verticalAlign: 'middle' }} />потенциал мер</span></span></div>
+        <div style={{ overflowX: 'auto' }}><div style={{ display: 'grid', gridTemplateColumns: `repeat(${series.length},minmax(28px,1fr))`, gap: 5, alignItems: 'end', height: 210, minWidth: series.length * 33 }}>
+          {series.map((x, i) => <div key={i} title={`${mLbl(x.k)}: факт ${fmt(x.fact) || '—'} · план ${fmt(x.plan) || '—'} · потенциал ${fmt(x.pot) || '—'}`} style={{ position: 'relative', height: 210, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+            {x.pot != null && <span style={{ position: 'absolute', left: 0, right: 0, borderTop: '2px dashed #3B6402', bottom: Math.round(x.pot / maxC * 180) }} />}
+            {x.plan != null && <span style={{ position: 'absolute', left: 0, right: 0, height: 3, background: '#1761CB', bottom: Math.round(x.plan / maxC * 180) }} />}
+            <span style={{ fontSize: 9, color: S.i2, marginBottom: 3 }}>{fmt(x.fact)}</span>
+            <span style={{ width: '100%', maxWidth: 26, height: x.fact ? Math.round(x.fact / maxC * 180) : 0, background: i0 + i === iBase ? '#6E9B0E' : '#8CC63F', borderRadius: '5px 5px 2px 2px' }} />
+          </div>)}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${series.length},minmax(28px,1fr))`, gap: 5, minWidth: series.length * 33, marginTop: 6 }}>{series.map((x, i) => <span key={i} style={{ fontSize: 10, color: i0 + i === iBase ? '#3B6402' : S.i3, fontWeight: x.k.endsWith('-01') || i0 + i === iBase ? 600 : 400, textAlign: 'center' }}>{mLbl(x.k).split(' ')[0]}{x.k.endsWith('-01') ? ' ' + x.k.slice(2, 4) : ''}</span>)}</div></div>
+      </div>
+
+      <div style={{ ...card, padding: 0, overflowX: 'auto' }}><div style={{ minWidth: 760 }}>
+        <div style={{ padding: '14px 20px 6px', fontSize: 16, fontWeight: 600 }}>По направлениям</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(6,1fr) 1.2fr', gap: 10, padding: '8px 20px', borderBottom: `1px solid ${S.ln}` }}><span style={{ ...th2, textAlign: 'left' }}>Направление</span>{['Baseline', 'Сейчас', '+Expected', 'Цель 2027', 'Прирост', '% цели'].map((h) => <span key={h} style={th2}>{h}</span>)}<span style={th2}>Health</span></div>
+        {dirRows.map((r, i) => { const b = num(r[1]) || 0, n = num(r[2]), e = num(r[3]) || 0
+          return <div key={i} className="ws-row" style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(6,1fr) 1.2fr', gap: 10, padding: '11px 20px', fontSize: 14, borderBottom: '1px solid #F1F2F4', alignItems: 'center' }}>
+            <span style={{ fontWeight: 500 }}>{r[0]}</span><span style={{ textAlign: 'right' }}>{fmt(b)}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(n)}</span><span style={{ textAlign: 'right', color: '#3B6402' }}>+{fmt(e)}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(b + e)}</span><span style={{ textAlign: 'right' }}>{r[4] || '0'}</span><span style={{ textAlign: 'right' }}>{r[5]}</span><span style={{ textAlign: 'right' }}><span style={{ fontSize: 11, fontWeight: 600, color: S.i2, background: '#F1F2F4', borderRadius: 999, padding: '3px 9px', whiteSpace: 'nowrap' }}>{r[6]}</span></span>
           </div> })}
-      </div>
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ ...card, flex: '2 1 520px', minWidth: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, gap: 10, flexWrap: 'wrap' }}><span style={{ fontSize: 16, fontWeight: 600 }}>Продажи компании: факт и план</span><span style={{ display: 'flex', gap: 14, fontSize: 12, color: S.i2 }}><span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: '#8CC63F', marginRight: 5 }} />факт</span><span><span style={{ display: 'inline-block', width: 12, height: 3, background: '#1761CB', marginRight: 5, verticalAlign: 'middle' }} />план</span></span></div>
-          <div style={{ overflowX: 'auto' }}><div style={{ display: 'grid', gridTemplateColumns: `repeat(${D.chart.length},minmax(26px,1fr))`, gap: 5, alignItems: 'end', height: 190, minWidth: D.chart.length * 31 }}>
-            {D.chart.map((c, i) => <div key={i} title={`${c.m}: факт ${fmt(c.fact) || '—'}, план ${fmt(c.plan)}`} style={{ position: 'relative', height: 190, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-              {c.plan != null && <span style={{ position: 'absolute', left: 0, right: 0, height: 3, background: '#1761CB', bottom: Math.round(c.plan / maxC * 160) }} />}
-              <span style={{ fontSize: 9, color: S.i2, marginBottom: 3 }}>{fmt(c.fact)}</span>
-              <span style={{ width: '100%', maxWidth: 26, height: c.fact ? Math.round(c.fact / maxC * 160) : 0, background: '#8CC63F', borderRadius: '5px 5px 2px 2px' }} />
-            </div>)}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${D.chart.length},minmax(26px,1fr))`, gap: 5, minWidth: D.chart.length * 31, marginTop: 6 }}>{D.chart.map((c, i) => <span key={i} style={{ fontSize: 10, color: S.i3, textAlign: 'center' }}>{String(c.m || '').split(' ')[0]}</span>)}</div></div>
-        </div>
-        <div style={{ ...card, flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 600 }}>Срез по типу</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{['all', 'Channel', 'Funnel', 'SMM', 'Offline'].map((v) => <button key={v} onClick={() => setPtype(v)} style={{ ...chipStyle(ptype === v), padding: '5px 11px', minHeight: 30, fontSize: 12 }}>{v === 'all' ? 'Все типы' : v}</button>)}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
-            {[['Baseline (старт)', fmt(base)], [`Сейчас (${D.months[D.lastIdx] || '—'})`, fmt(now)], ['Цель: +продаж в мес', fmt(tgt)], ['Прирост · % плана', `${gr > 0 ? '+' : ''}${gr} · ${tgt ? (gr / tgt * 100).toFixed(1) : 0}%`]].map(([l, v], i) => <div key={i} style={{ background: S.bg, borderRadius: 12, padding: '12px 14px' }}><div style={{ fontSize: 12, color: S.i2 }}>{l}</div><div style={{ fontSize: 20, fontWeight: 600, color: i === 3 ? (gr < 0 ? '#A71F00' : '#3B6402') : S.ink }}>{v}</div></div>)}
-          </div>
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
-        {[['Ожидаемые продажи по типу', agg('type', ['Channel', 'Funnel', 'SMM', 'Offline'])], ['По результату', agg('outcome', ['Sales', 'Lead', 'Affiliate', 'Retention', 'Reach/Awareness'])]].map(([t, rows]) => <div key={t} style={card}><div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{t}</div>{rows.map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '7px 0', borderBottom: '1px solid #F1F2F4' }}><span>{l}</span><span style={{ fontWeight: 600 }}>{fmt(v)}</span></div>)}</div>)}
-        <div style={card}><div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Самый большой вклад</div>{top5.map((p) => <button key={p.id} onClick={() => { setDetail(p.id); setTab('plan'); setPopen({ ...popen, [p.id]: true }); setQ(p.id) }} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, width: '100%', fontSize: 14, padding: '7px 0', border: 'none', borderBottom: '1px solid #F1F2F4', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', color: S.ink }}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ color: S.i3, fontSize: 12 }}>{p.id}</span> {p.name}</span><span style={{ fontWeight: 600, color: '#3B6402', flexShrink: 0 }}>+{fmt(p.expTotal ?? p.exp)}</span></button>)}</div>
+      </div></div>
+
+      <div style={{ ...card, padding: 0 }}>
+        <div style={{ padding: '14px 20px 6px', display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}><span style={{ fontSize: 16, fontWeight: 600 }}>По мерам (проектам)</span><span style={{ fontSize: 12, color: S.i3 }}>отсортировано по ожидаемому вкладу · Сейчас = {mLbl(nowLbl)}</span></div>
+        <div className="ws-scroll" style={{ overflow: 'auto', maxHeight: 'calc(100vh - 220px)' }}><div style={{ minWidth: 820 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '70px minmax(260px,3fr) repeat(5,1fr) 1.4fr', gap: 10, padding: '8px 20px', borderBottom: `1px solid ${S.ln}`, position: 'sticky', top: 0, background: '#fff', zIndex: 2 }}><span style={{ ...th2, textAlign: 'left' }}>ID</span><span style={{ ...th2, textAlign: 'left' }}>Мера</span>{['Baseline', 'Сейчас', '+Expected', 'Цель 2027', 'Прирост'].map((h) => <span key={h} style={th2}>{h}</span>)}<span style={{ ...th2, textAlign: 'left' }}>Выполнение</span></div>
+          {projRows.map(({ t, exp, b, n, total, gr }) => { const done = exp > 0 && gr != null ? Math.max(0, Math.min(100, gr / exp * 100)) : 0
+            return <div key={t.id} className="ws-row" style={{ display: 'grid', gridTemplateColumns: '70px minmax(260px,3fr) repeat(5,1fr) 1.4fr', gap: 10, padding: '10px 20px', fontSize: 13, borderBottom: '1px solid #F1F2F4', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: S.i3 }}>{t.id}</span><span style={{ lineHeight: 1.35 }}>{t.name}<span style={{ display: 'block', fontSize: 11, color: S.i3 }}>{t.stage} · {t.status}</span></span>
+              <span style={{ textAlign: 'right' }}>{fmt(b)}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(n)}</span><span style={{ textAlign: 'right', color: '#3B6402' }}>{exp ? '+' + fmt(exp) : '—'}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(total)}</span>
+              <span style={{ textAlign: 'right', color: gr == null ? S.i3 : gr < 0 ? '#A71F00' : '#3B6402' }}>{gr == null ? '—' : (gr > 0 ? '+' : '') + fmt(gr)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{exp > 0 ? <><span style={{ flex: 1, height: 6, background: '#EEF0F2', borderRadius: 3 }}><span style={{ display: 'block', height: 6, width: done + '%', background: '#8CC63F', borderRadius: 3 }} /></span><span style={{ fontSize: 11, color: S.i2, width: 34, textAlign: 'right' }}>{Math.round(done)}%</span></> : <span style={{ fontSize: 11, color: S.i3 }}>без плана прироста</span>}</span>
+            </div> })}
+        </div></div>
       </div>
     </div>
   }
@@ -374,70 +404,6 @@ export default function Workshop({ ce }) {
     </>
   }
 
-  // ---------- Projects Plan ----------
-  const Plan = () => {
-    const tops = D.plan.filter((p) => !p.parent && inStage(p.stage) && matchTop(p.id)).sort((a, b) => (a.prio ?? 999) - (b.prio ?? 999))
-    const tpl = '44px 64px minmax(280px,3fr) 140px 130px 70px 84px 56px 60px 56px'
-    const allOpen = tops.length && tops.every((p) => popen[p.id])
-    const Line = ({ p, sub }) => { const isO = !!popen[p.id] || (filtering && sub); const kids = D.subs[p.id] ? subsShown(p.id) : []; const showKids = (popen[p.id] || filtering) && kids.length
-      return <div style={{ borderBottom: '1px solid #F1F2F4', background: sub ? '#FBFBFC' : '#fff' }}>
-        <div className="ws-row" style={{ display: 'grid', gridTemplateColumns: tpl, gap: 8, padding: '9px 14px', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: S.i2 }}>{sub ? '' : p.prio}</span><span style={{ fontSize: 12, color: S.i2 }}>{p.id}</span>
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, paddingLeft: sub ? 16 : 0, borderLeft: sub ? `2px solid ${S.ln}` : 'none' }}>
-            <button onClick={() => setPopen({ ...popen, [p.id]: !popen[p.id] })} style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', color: S.ink, fontSize: 13, fontWeight: 500, lineHeight: 1.35, fontFamily: 'inherit' }}>{popen[p.id] ? '▾' : '▸'} {p.name}{D.subs[p.id] ? <span style={{ color: S.i3, fontWeight: 400 }}> · {D.subs[p.id].length} подпр.</span> : ''}</button>
-            {p.budget && <span style={{ fontSize: 11, color: '#8A3500', background: '#FFF6E8', borderRadius: 6, padding: '2px 7px', alignSelf: 'flex-start' }}>Доп. бюджет: {p.budget}</span>}
-          </span>
-          <span style={{ fontSize: 12, color: S.i2 }}>{p.owner}</span><span style={{ fontSize: 12, color: S.i2 }}>{p.stage}</span><span style={{ fontSize: 12, color: S.i2 }}>{p.type}</span><span style={{ fontSize: 12, color: S.i2 }}>{p.outcome}</span>
-          <span style={{ fontSize: 13, textAlign: 'right' }}>{fmt(p.base)}</span><span style={{ fontSize: 13, textAlign: 'right', color: '#3B6402', fontWeight: 600 }}>{fmt(p.expTotal ?? p.exp)}</span><span style={{ fontSize: 12, textAlign: 'right', color: S.i2 }} title="Сложность · Импакт · Срочность">{[p.c, p.i, p.u].filter((x) => x !== '' && x != null).join(' · ')}</span>
-        </div>
-        {popen[p.id] && <div style={{ padding: '0 14px 14px 124px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {p.brief && <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'pre-wrap' }}>{p.brief}</span>}
-          {p.desc && <span style={{ fontSize: 13, color: S.i2, lineHeight: 1.55, whiteSpace: 'pre-wrap', maxWidth: 900 }}>{p.desc}</span>}
-          {(D.steps[p.id] || []).length > 0 && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>{D.steps[p.id].map((s, i) => <span key={i} style={{ fontSize: 11, borderRadius: 999, padding: '4px 10px', background: st(s.status).bg, color: st(s.status).tx }}>{s.n}. {s.name} · {dm(s.start)}–{dm(s.end)}</span>)}</div>}
-          {p.oldId && <span style={{ fontSize: 12, color: '#3B6402' }}>Old ID (2026): {p.oldId}</span>}
-        </div>}
-        {showKids ? kids.map((s) => <Fragment key={s.id}>{Line({ p: s, sub: true })}</Fragment>) : null}
-      </div> }
-    return <>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}><button onClick={() => { const o = {}; tops.forEach((p) => { o[p.id] = !allOpen }); setPopen({ ...popen, ...o }) }} style={{ ...chipStyle(false), padding: '5px 11px', minHeight: 30, fontSize: 12 }}>{allOpen ? 'Свернуть все' : 'Раскрыть все'}</button><span style={{ fontSize: 12, color: S.i3, alignSelf: 'center' }}>{tops.length} проектов · клик по названию — описание, этапы и подпроекты</span></div>
-      <div className="ws-scroll" style={scrollBox(0)}><div style={{ minWidth: 1100 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: tpl, gap: 8, padding: '10px 14px', borderBottom: `1px solid ${S.ln}`, ...th, fontSize: 11, position: 'sticky', top: 0, background: '#fff', zIndex: 3 }}>{['Пр.', 'ID', 'Проект', 'Владелец', 'Направление', 'Тип', 'Результат', 'База', '+План', 'С·И·С'].map((h, i) => <span key={h} style={{ textAlign: i >= 7 ? 'right' : 'left' }}>{h}</span>)}</div>
-        {tops.length === 0 && <div style={{ padding: 24, color: S.i3, fontSize: 14 }}>Ничего не найдено.</div>}
-        {tops.map((p) => <Fragment key={p.id}>{Line({ p })}</Fragment>)}
-      </div></div>
-    </>
-  }
-
-  // ---------- Timeline ----------
-  const Timeline = () => {
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const ids = Object.keys(D.steps).filter((id) => { const p = D.byId[id]; const stg = p?.stage || D.byId[p?.parent]?.stage || ''; return inStage(stg) && (selfMatch(id) || (p?.parent && selfMatch(p.parent))) })
-    const groups = ids.map((id) => [id, D.steps[id].filter((s) => (tlStatus === 'all' || s.status === tlStatus) && (!hideDone || s.end >= today))]).filter(([, ss]) => ss.length)
-      .sort((a, b) => Math.min(...a[1].map((s) => s.start)) - Math.min(...b[1].map((s) => s.start)))
-    const tpl = '110px 32px minmax(260px,3fr) 84px 50px 84px minmax(160px,1.4fr)'
-    const isNow = (s) => s.start <= today && s.end >= today
-    return <>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-        <span onClick={() => setHideDone(!hideDone)} style={toggleStyle()}><Box on={hideDone} />Скрыть завершённые этапы</span>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{[['all', 'Все статусы'], ['In progress', 'In progress'], ['Planned', 'Planned'], ['Wait', 'Wait'], ['At risk', 'At risk'], ['', 'Без статуса']].map(([v, l]) => <button key={l} onClick={() => setTlStatus(v)} style={{ ...chipStyle(tlStatus === v), padding: '5px 11px', minHeight: 30, fontSize: 12 }}>{l}</button>)}</div>
-        <span style={{ fontSize: 12, color: S.i3 }}>· жирным — этап, идущий сейчас</span>
-      </div>
-      <div className="ws-scroll" style={scrollBox(0)}><div style={{ minWidth: 900 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: tpl, gap: 10, padding: '10px 14px', borderBottom: `1px solid ${S.ln}`, ...th, fontSize: 11, position: 'sticky', top: 0, background: '#fff', zIndex: 4 }}>{['Статус', '#', 'Этап', 'Старт', 'Нед.', 'Конец', 'Заметка'].map((h) => <span key={h}>{h}</span>)}</div>
-        {groups.length === 0 && <div style={{ padding: 24, color: S.i3, fontSize: 14 }}>Ничего не найдено.</div>}
-        {groups.map(([id, ss]) => { const p = D.byId[id]
-          return <div key={id}>
-            <div style={{ padding: '9px 14px', background: ACC.soft, borderBottom: `1px solid ${S.ln}`, position: 'sticky', top: 37, zIndex: 3, fontSize: 13, fontWeight: 600, color: '#3B6402' }}>{id} · {p?.name || id}<span style={{ fontWeight: 400, color: S.i3 }}>{p?.parent ? ` · подпроект ${p.parent}` : ''}{p?.owner ? ` · ${p.owner}` : ''}</span></div>
-            {ss.map((s, i) => <div key={i} className="ws-row" style={{ display: 'grid', gridTemplateColumns: tpl, gap: 10, padding: '8px 14px', alignItems: 'center', borderBottom: '1px solid #F1F2F4', fontWeight: isNow(s) ? 600 : 400 }}>
-              <span><span style={{ fontSize: 11, fontWeight: 600, color: st(s.status).tx, background: st(s.status).bg, borderRadius: 999, padding: '3px 9px', whiteSpace: 'nowrap' }}>{s.status || '—'}</span></span>
-              <span style={{ fontSize: 12, color: S.i2 }}>{s.n}</span><span style={{ fontSize: 13 }}>{s.name}</span><span style={{ fontSize: 12 }}>{dmy(s.start)}</span><span style={{ fontSize: 12, color: S.i2 }}>{s.weeks}</span><span style={{ fontSize: 12 }}>{dmy(s.end)}</span>
-              <span style={{ fontSize: 12, color: S.i2, fontWeight: 400 }}>{s.note || s.wk.filter(Boolean).slice(-1)[0] || ''}</span>
-            </div>)}
-          </div> })}
-      </div></div>
-    </>
-  }
-
   return <>
     <style>{CSS}</style>
     {toolbar}
@@ -447,8 +413,6 @@ export default function Workshop({ ce }) {
       {tab === 'road' && Road()}
       {tab === 'monthly' && Monthly()}
       {tab === 'quarter' && Quarter()}
-      {tab === 'plan' && Plan()}
-      {tab === 'timeline' && Timeline()}
     </div>
     {Drawer()}
   </>

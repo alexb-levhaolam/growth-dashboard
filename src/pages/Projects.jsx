@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { weekEnd, S, PROJ_ST, Chip, Label, Linkify, Ed, EdDate, CItem, PROJ_CATS, catOf, chipStyle, pillSelect } from '../lib/ui'
 
@@ -8,17 +8,23 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   const[fPri,setFPri]=useState('all');const[fSt,setFSt]=useState('all')
   const[showNewP,setShowNewP]=useState(false);const[np,setNp]=useState({id:'',name:'',owner:'',priority:'current'})
   const[surveying,setSurveying]=useState(false)
+  const[syncing,setSyncing]=useState(false);const[syncMsg,setSyncMsg]=useState('')
+  const syncWorkshop=async(silent)=>{setSyncing(true);try{const{data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/workshop?action=sync',{method:'POST',headers:{Authorization:'Bearer '+(session?.access_token||'')}});const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||'Ошибка');try{localStorage.setItem('lh_ws_sync',String(Date.now()))}catch(e){}const parts=[d.created?.length&&`новых проектов: ${d.created.length}`,d.linked?.length&&`связано с 2026: ${d.linked.length}`,d.toProgress?.length&&`переведено «в работе»: ${d.toProgress.length}`,`комментариев недель: ${d.comments}`].filter(Boolean);setSyncMsg('Workshop синхронизирован · '+parts.join(' · '));await reload()}catch(e){if(!silent)alert('Синхронизация не удалась: '+e.message);setSyncMsg('Синхронизация не удалась: '+e.message)}finally{setSyncing(false)}}
+  useEffect(()=>{let last=0;try{last=+localStorage.getItem('lh_ws_sync')||0}catch(e){}if(Date.now()-last>30*60*1000)syncWorkshop(true)},[])
   const sendSurvey=async()=>{setSurveying(true);try{const ws=rep?.week_start||'';const wl=rep?.week_label||'';const r=await fetch(`/api/slack?action=send&weekStart=${ws}&weekLabel=${encodeURIComponent(wl)}`);const d=await r.json();if(d.ok){const sent=d.results?.filter(r=>r.sent).length||0;alert(`Опрос отправлен ${sent} сотрудникам за ${d.week}`)}else{alert('Ошибка: '+(d.error||'unknown'))}}catch(e){alert('Ошибка: '+e.message)}finally{setSurveying(false)}}
   const rep=reports[aIdx];const ws=rep?.week_start
-  const upProj=async(id,f,v)=>{setProjects(prev=>prev.map(p=>p.id===id?{...p,[f]:v}:p));const{error}=await supabase.from('projects').update({[f]:v}).eq('id',id);if(error)alert('Ошибка сохранения: '+error.message)}
+  const SYNCED=['name','owner','category','last_update','date_start','date_done','expected_sales','status']
+  const FLBL={name:'название',owner:'владелец',category:'категория',last_update:'описание',date_start:'дата начала',date_done:'дата завершения',expected_sales:'ожидаемые продажи',status:'статус'}
+  const upProj=async(id,f,v)=>{const cur=projects.find(p=>p.id===id);const patch={[f]:v};if(cur?.workshop_id&&SYNCED.includes(f))patch.manual_fields=[...new Set([...(cur.manual_fields||[]),f])];setProjects(prev=>prev.map(p=>p.id===id?{...p,...patch}:p));const{error}=await supabase.from('projects').update(patch).eq('id',id);if(error)alert('Ошибка сохранения: '+error.message)}
+  const resetManual=async(p)=>{if(!confirm('Вернуть значения из таблицы Workshop? Ручные правки этих полей будут перезаписаны.'))return;await supabase.from('projects').update({manual_fields:[]}).eq('id',p.id);await syncWorkshop(false)}
   const delProj=async(id,name)=>{if(!confirm(`Удалить проект "${name}"?`))return;setProjects(prev=>prev.filter(p=>p.id!==id));supabase.from('project_comments').delete().eq('project_id',id);supabase.from('projects').delete().eq('id',id)}
   const addProj=async()=>{if(!np.id.trim()||!np.name.trim())return;const maxSort=Math.max(0,...projects.map(p=>p.sort_order||0))+1;const obj={id:np.id.trim(),name:np.name.trim(),owner:np.owner.trim()||'—',priority:np.priority,status:'wait',sort_order:maxSort};setProjects(prev=>[...prev,obj]);setNp({id:'',name:'',owner:'',priority:'current'});setShowNewP(false);const{error}=await supabase.from('projects').insert(obj);if(error)alert('Ошибка: '+error.message)}
   const addC=async pid=>{const nc=ncRef.current;if(!nc.trim())return;setSav(true);const sum=nc.length>150?nc.slice(0,120).replace(/\s\S*$/,'')+'…':nc;const obj={project_id:pid,author:profile.name||profile.email,full_text:nc,summary:sum,week_start:ws||new Date().toISOString().slice(0,10)};const{data,error}=await supabase.from('project_comments').insert(obj).select().single();if(error){alert('Ошибка сохранения: '+error.message);setSav(false);return}setComments(prev=>[data,...prev]);ncRef.current='';const el=document.getElementById('nc-'+pid);if(el)el.value='';setSav(false)}
-  const delC=async(cid)=>{if(!confirm('Удалить комментарий?'))return;const{error}=await supabase.from('project_comments').delete().eq('id',cid);if(error){alert('Ошибка удаления: '+error.message);return}setComments(prev=>prev.filter(c=>c.id!==cid))}
+  const delC=async(cid,fromSheet)=>{if(!confirm(fromSheet?'Скрыть комментарий из таблицы? Синхронизация его больше не вернёт.':'Удалить комментарий?'))return;const{error}=fromSheet?await supabase.from('project_comments').update({hidden:true,manual:true}).eq('id',cid):await supabase.from('project_comments').delete().eq('id',cid);if(error){alert('Ошибка удаления: '+error.message);return}setComments(prev=>prev.filter(c=>c.id!==cid))}
   const getWC=pid=>comments.filter(c=>c.project_id===pid&&c.week_start===ws)
   const getPrev=pid=>{const s=comments.filter(c=>c.project_id===pid&&c.week_start<ws).sort((a,b)=>b.week_start.localeCompare(a.week_start));return s[0]||null}
   const sortP=(arr)=>[...arr].sort((a,b)=>{if(a.status==='blocked'&&b.status!=='blocked')return -1;if(b.status==='blocked'&&a.status!=='blocked')return 1;return(a.sort_order||0)-(b.sort_order||0)})
-  const setConstraints=async(pid,v)=>{setProjects(prev=>prev.map(p=>p.id===pid?{...p,constraints_text:v}:p));await supabase.from('projects').update({constraints_text:v}).eq('id',pid);const proj=projects.find(p=>p.id===pid);if(v&&v.trim()&&proj?.status!=='blocked'){if(confirm('Поставить статус "блокер"?')){setProjects(prev=>prev.map(p=>p.id===pid?{...p,status:'blocked'}:p));supabase.from('projects').update({status:'blocked'}).eq('id',pid)}}else if((!v||!v.trim())&&proj?.status==='blocked'){if(confirm('Снять статус "блокер"?')){setProjects(prev=>prev.map(p=>p.id===pid?{...p,status:'progress'}:p));supabase.from('projects').update({status:'progress'}).eq('id',pid)}}}
+  const setConstraints=async(pid,v)=>{setProjects(prev=>prev.map(p=>p.id===pid?{...p,constraints_text:v}:p));await supabase.from('projects').update({constraints_text:v}).eq('id',pid);const proj=projects.find(p=>p.id===pid);if(v&&v.trim()&&proj?.status!=='blocked'){if(confirm('Поставить статус "блокер"?')){upProj(pid,'status','blocked')}}else if((!v||!v.trim())&&proj?.status==='blocked'){if(confirm('Снять статус "блокер"?')){upProj(pid,'status','progress')}}}
   const fmtDate=(d)=>{if(!d)return null;const p=d.split('-');return`${p[2]}.${p[1]}`}
   const dates=(p)=>[p.date_start&&`с ${fmtDate(p.date_start)}`,p.date_test&&`тест ${fmtDate(p.date_test)}`,p.date_done&&` ${fmtDate(p.date_done)}`].filter(Boolean).join(' · ')
   // Separate active vs archive (done)
@@ -40,7 +46,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
           <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',fontSize:13,color:S.i3}}>
             <span>{p.id}</span><span>·</span>
             <span onClick={e=>e.stopPropagation()}><Ed value={p.owner} canEdit={ce} onSave={v=>upProj(p.id,'owner',v)} style={{fontSize:13,color:S.i3}} ph="Владелец"/></span>
-            {ds&&!isO&&<><span>·</span><span>{ds}</span></>}
+            {p.workshop_id&&p.workshop_id!==p.id&&<><span>·</span><span>{p.workshop_id}</span></>}{ds&&!isO&&<><span>·</span><span>{ds}</span></>}{p.expected_sales>0&&<><span>·</span><span style={{color:'#3B6402',fontWeight:500}}>+{p.expected_sales} продаж/мес</span></>}
           </div>
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}} onClick={e=>e.stopPropagation()}>
@@ -54,6 +60,8 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:10}}><div style={{fontSize:13,color:S.i3,marginBottom:4}}>Описание</div><Ed value={p.last_update||''} canEdit={ce} multi onSave={v=>upProj(p.id,'last_update',v)} ph="Что делаем и для чего..." style={{fontSize:14,color:S.i2,lineHeight:1.5}}/></div>}
       {!isO&&p.last_update&&<div style={{fontSize:14,color:S.i2,marginTop:8,lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{p.last_update}</div>}
 
+      {isO&&(p.workshop_subs||[]).length>0&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}><div style={{fontSize:13,color:S.i3,marginBottom:6}}>Подпроекты Workshop · {p.workshop_subs.length}</div><div style={{display:'flex',flexDirection:'column',gap:2}}>{p.workshop_subs.map(s=><div key={s.id} style={{display:'flex',justifyContent:'space-between',gap:10,fontSize:13,padding:'6px 10px',background:S.bg,borderRadius:8}}><span><span style={{color:S.i3}}>{s.id}</span> {s.name}<span style={{color:S.i3}}>{s.owner?' · '+s.owner:''}</span></span><span style={{color:'#3B6402',fontWeight:500,flexShrink:0}}>{s.exp?'+'+s.exp:''}</span></div>)}</div></div>}
+      {isO&&p.workshop_id&&(p.manual_fields||[]).length>0&&<div onClick={e=>e.stopPropagation()} style={{marginTop:10,fontSize:12,color:S.i2,background:'#FFF6E8',borderRadius:8,padding:'7px 10px',display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>Изменено в дашборде, таблица это не перезапишет: {p.manual_fields.map(f=>FLBL[f]||f).join(', ')}{ce&&<button onClick={()=>resetManual(p)} style={{fontSize:12,color:'#1761CB',background:'none',border:'none',cursor:'pointer',padding:0}}>вернуть из таблицы</button>}</div>}
       {/* 3. Ключевые даты (expanded) */}
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}><div style={{fontSize:13,color:S.i3,marginBottom:6}}>Ключевые даты</div><div className='lh-grid4' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>{[{l:'Начало',f:'date_start'},{l:'Тест',f:'date_test'},{l:'Результаты',f:'date_results'},{l:'Завершение',f:'date_done'}].map(d=><div key={d.f}><span style={{fontSize:12,color:S.i3,display:'block',marginBottom:2}}>{d.l}</span><EdDate value={p[d.f]} canEdit={ce} onSave={v=>upProj(p.id,d.f,v)}/></div>)}</div></div>}
       
@@ -64,7 +72,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       </div>}
       {isO&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12}}>
         <div style={{fontSize:13,color:S.i3,marginBottom:6}}>Комментарии</div>
-        {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id)}/>)}
+        {wcs.map(c=><CItem key={c.id} c={c} ce={ce} reload={reload} onDel={()=>delC(c.id,c.source==='sheet')}/>)}
         {wcs.length===0&&prev&&<div style={{padding:'10px 12px',background:S.bg,borderRadius:10}}><div style={{fontSize:12,color:S.i3,marginBottom:3}}>Прошлая неделя · <b style={{fontWeight:600,color:S.i2}}>{prev.author}</b> · {weekEnd(prev.week_start)}</div><div style={{fontSize:14,color:S.i2,whiteSpace:'pre-wrap',lineHeight:1.5}}><Linkify>{prev.full_text||prev.summary}</Linkify></div></div>}
         {wcs.length===0&&!prev&&<div style={{fontSize:13,color:S.i3}}>Комментариев пока нет.</div>}
       </div>}
@@ -86,10 +94,10 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:12,flexWrap:'wrap',marginBottom:14}}>
       <div style={{display:'flex',flexDirection:'column',gap:2}}>
         <span style={{fontSize:20,fontWeight:600}}>Проекты · неделя {rep?.week_label||'—'}</span>
-        <span style={{fontSize:13,color:S.i3}}>Показано {filtered.length} из {active.length} активных</span>
+        <span style={{fontSize:13,color:S.i3}}>Показано {filtered.length} из {active.length} активных{syncMsg?' · '+syncMsg:''}</span>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        {ce&&<button onClick={sendSurvey} disabled={surveying} title="Запустить бота для сбора апдейтов" style={{fontSize:14,color:'#2F5200',background:'#DDF0B5',border:'none',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{surveying?'Отправляю…':'Опросить команду в Slack'}</button>}
+        <button onClick={()=>syncWorkshop(false)} disabled={syncing} title="Подтянуть проекты и недельные комментарии из Growth Workshop 2027" style={{fontSize:14,color:'#2F5200',background:'#DDF0B5',border:'1px solid #B9DE73',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{syncing?'Синхронизирую…':'Обновить из Workshop'}</button>
         {ce&&<button onClick={()=>setShowNewP(!showNewP)} style={{fontSize:14,color:'#497B02',background:'#fff',border:'1px solid #6E9B0E',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{showNewP?'Закрыть':'+ Проект'}</button>}
       </div>
     </div>

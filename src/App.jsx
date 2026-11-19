@@ -26,7 +26,7 @@ function Main({profile}){
     const[r,p,c,tt,tp]=await Promise.all([supabase.from('weekly_reports').select('*').order('week_start'),supabase.from('projects').select('*').order('sort_order'),supabase.from('project_comments').select('*').order('created_at',{ascending:false}),supabase.from('tactical_tasks').select('*').order('sort_order'),supabase.from('tactical_progress').select('*').order('week_start')])
     try{const{data:mpd}=await supabase.from('monthly_plans').select('*').order('id');if(mpd)setMPlans(mpd)}catch(e){console.warn('monthly_plans:',e)}
     if(r.data){setReports(r.data);const max=r.data.length-1;setAIdx(prev=>{const isFirst=aIdxRef.current===-1;const safe=isFirst?max:(prev<=max?prev:max);aIdxRef.current=safe;return safe})}
-    if(p.data)setProjects(p.data);if(c.data)setComments(c.data);if(tt.data)setTTasks(tt.data);if(tp.data)setTProgress(tp.data)
+    if(p.data)setProjects(p.data);if(c.data){const vis=c.data.filter(x=>!x.hidden);const sk=new Set(vis.filter(x=>x.source==='sheet').map(x=>x.project_id+'|'+x.week_start));setComments(vis.filter(x=>x.source==='sheet'||!sk.has(x.project_id+'|'+x.week_start)))};if(tt.data)setTTasks(tt.data);if(tp.data)setTProgress(tp.data)
     if(profile.role==='admin'){const{data}=await supabase.from('profiles').select('*');if(data)setAllProfiles(data)}
   },[profile]);useEffect(()=>{load()},[load])
   const reload=useCallback(async()=>{const y=window.scrollY;await load();requestAnimationFrame(()=>window.scrollTo(0,y))},[load])
