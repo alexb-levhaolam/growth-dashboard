@@ -1,8 +1,9 @@
-// Vercel Serverless: Growth Workshop 2027 (Google Sheets) для раздела «Workshop 2027».
-// GET  /api/workshop            → значения листов Projects Plan, Timeline, Monthly Report, Dashboard, Chart Data
-// POST /api/workshop {id, step, week, text}  → пишет недельный комментарий в Timeline → «Week N» нужного этапа
-// POST /api/workshop?action=sync           → проекты Workshop → карточки «Проекты», комментарии недель → project_comments
-// Доступ: таблица должна быть расшарена на e-mail сервисного аккаунта (GOOGLE_SERVICE_ACCOUNT → client_email).
+// Vercel Serverless: Growth Workshop 2027 (Google Sheets) для раздела «Workshop 2027» и карточек «Проекты».
+// GET  /api/workshop                       → данные из кэша (Supabase workshop_cache), Google не трогаем
+// POST /api/workshop?action=refresh        → перечитать таблицу, обновить кэш и карточки проектов (кнопка «Обновить»)
+// GET  /api/workshop?action=cron           → то же по расписанию (Vercel Cron, полночь по Израилю)
+// POST /api/workshop {id, step, week, text} → недельный комментарий в Timeline → «Week N» этапа
+// Доступ: таблица расшарена на e-mail сервисного аккаунта (GOOGLE_SERVICE_ACCOUNT → client_email), роль «Редактор».
 import { google } from 'googleapis';
 import { createClient } from '@supabase/supabase-js';
 
@@ -42,9 +43,8 @@ const iso = (d) => d.toISOString().slice(0, 10);
 const monday = (d) => new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * DAY);
 const objs = (values) => { const h = (values?.[0] || []).map((x) => String(x || '').trim()); return (values || []).slice(1).map((r) => { const o = {}; h.forEach((k, i) => { if (k) o[k] = r[i] ?? ''; }); return o; }); };
 
-async function runSync(sheets, sb) {
-  const { data } = await sheets.spreadsheets.values.batchGet({ spreadsheetId: SHEET_ID, ranges: ['Projects Plan', 'Timeline', 'Monthly Report'].map(q), valueRenderOption: 'FORMATTED_VALUE' });
-  const [pv, tv, mv] = (data.valueRanges || []).map((x) => x.values || []);
+async function runSync(tabs, sb) {
+  const pv = tabs['Projects Plan'] || [], tv = tabs['Timeline'] || [], mv = tabs['Monthly Report'] || [];
   const plan = objs(pv).filter((o) => String(o.ID || '').trim()).map((o) => ({
     id: String(o.ID).trim(), name: String(o.Project || '').trim(), brief: o.Brief, desc: o.Description, owner: String(o.Owner || '').trim(), stage: o.Stage,
     exp: num(o['Expected Sales']), expTotal: num(o['Expected Sales (total)']), base: num(o.Baseline),
@@ -117,15 +117,37 @@ async function runSync(sheets, sb) {
   return res;
 }
 
+const sbAdmin = () => createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY);
+
+// Читаем таблицу целиком и кладём в кэш (Supabase → workshop_cache). Дашборд дальше читает кэш, а не Google.
+async function fetchSheet() {
+  const sheets = sheetsClient(false);
+  const { data } = await sheets.spreadsheets.values.batchGet({ spreadsheetId: SHEET_ID, ranges: TABS.map(q), valueRenderOption: 'FORMATTED_VALUE' });
+  const tabs = {}; (data.valueRanges || []).forEach((vr, i) => { tabs[TABS[i]] = vr.values || []; });
+  return tabs;
+}
+async function refreshAll(sb) {
+  const tabs = await fetchSheet(); const fetchedAt = new Date().toISOString();
+  const { error } = await sb.from('workshop_cache').upsert({ id: 'main', data: tabs, fetched_at: fetchedAt });
+  if (error) throw new Error('workshop_cache: ' + error.message);
+  const sync = await runSync(tabs, sb);
+  return { tabs, fetchedAt, sync };
+}
+const isCron = (req) => { const secret = process.env.CRON_SECRET; const auth = req.headers.authorization || ''; return secret ? auth === `Bearer ${secret}` : /vercel-cron/i.test(req.headers['user-agent'] || ''); };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   try {
-    if (req.method === 'POST' && req.query.action === 'sync') {
+    const sb = sbAdmin();
+    // Ежедневно в полночь по Израилю (Vercel Cron) и по кнопке «Обновить»: таблица → кэш + карточки проектов
+    if (req.query.action === 'cron') {
+      if (!isCron(req)) return res.status(401).json({ error: 'Unauthorized' });
+      const r = await refreshAll(sb); return res.json({ ok: true, fetchedAt: r.fetchedAt, ...r.sync });
+    }
+    if (req.method === 'POST' && (req.query.action === 'refresh' || req.query.action === 'sync')) {
       const user = await requireUser(req);
       if (!user) return res.status(401).json({ error: 'Нужно войти в дашборд' });
-      const sb = createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY);
-      const result = await runSync(sheetsClient(false), sb);
-      return res.json({ ok: true, ...result });
+      const r = await refreshAll(sb); return res.json({ ok: true, tabs: r.tabs, fetchedAt: r.fetchedAt, ...r.sync });
     }
     if (req.method === 'POST') {
       const user = await requireUser(req);
@@ -145,16 +167,14 @@ export default async function handler(req, res) {
       await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range, valueInputOption: 'RAW', requestBody: { values: [[String(text || '').slice(0, 2000)]] } });
       return res.json({ ok: true, range });
     }
-
-    const sheets = sheetsClient(false);
-    const { data } = await sheets.spreadsheets.values.batchGet({ spreadsheetId: SHEET_ID, ranges: TABS.map(q), valueRenderOption: 'FORMATTED_VALUE' });
-    const tabs = {};
-    (data.valueRanges || []).forEach((vr, i) => { tabs[TABS[i]] = vr.values || []; });
-    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120');
-    return res.json({ tabs, fetchedAt: new Date().toISOString() });
+    // GET: отдаём кэш; если кэша ещё нет — читаем таблицу один раз
+    const { data: cached } = await sb.from('workshop_cache').select('data,fetched_at').eq('id', 'main').maybeSingle();
+    if (cached?.data) return res.json({ tabs: cached.data, fetchedAt: cached.fetched_at, cached: true });
+    const r = await refreshAll(sb);
+    return res.json({ tabs: r.tabs, fetchedAt: r.fetchedAt, cached: false });
   } catch (e) {
     const email = creds().client_email || 'сервисный аккаунт';
     const denied = /permission|403|not have access/i.test(e.message || '');
-    return res.status(denied ? 403 : 500).json({ error: denied ? `Нет доступа к таблице. Откройте Growth Workshop 2027 для ${email} (${req.method === 'POST' ? 'редактор' : 'читатель'}).` : e.message });
+    return res.status(denied ? 403 : 500).json({ error: denied ? `Нет доступа к таблице. Откройте Growth Workshop 2027 для ${email} (редактор).` : e.message });
   }
 }

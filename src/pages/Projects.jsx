@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { weekEnd, S, PROJ_ST, Chip, Label, Linkify, Ed, EdDate, CItem, PROJ_CATS, catOf, chipStyle, pillSelect } from '../lib/ui'
 
@@ -9,8 +9,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   const[showNewP,setShowNewP]=useState(false);const[np,setNp]=useState({id:'',name:'',owner:'',priority:'current'})
   const[surveying,setSurveying]=useState(false)
   const[syncing,setSyncing]=useState(false);const[syncMsg,setSyncMsg]=useState('')
-  const syncWorkshop=async(silent)=>{setSyncing(true);try{const{data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/workshop?action=sync',{method:'POST',headers:{Authorization:'Bearer '+(session?.access_token||'')}});const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||'Ошибка');try{localStorage.setItem('lh_ws_sync',String(Date.now()))}catch(e){}const parts=[d.created?.length&&`новых проектов: ${d.created.length}`,d.linked?.length&&`связано с 2026: ${d.linked.length}`,d.toProgress?.length&&`переведено «в работе»: ${d.toProgress.length}`,`комментариев недель: ${d.comments}`].filter(Boolean);setSyncMsg('Workshop синхронизирован · '+parts.join(' · '));await reload()}catch(e){if(!silent)alert('Синхронизация не удалась: '+e.message);setSyncMsg('Синхронизация не удалась: '+e.message)}finally{setSyncing(false)}}
-  useEffect(()=>{let last=0;try{last=+localStorage.getItem('lh_ws_sync')||0}catch(e){}if(Date.now()-last>30*60*1000)syncWorkshop(true)},[])
+  const syncWorkshop=async(silent)=>{setSyncing(true);try{const{data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/workshop?action=refresh',{method:'POST',headers:{Authorization:'Bearer '+(session?.access_token||'')}});const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||'Ошибка');try{localStorage.setItem('lh_ws_sync',String(Date.now()))}catch(e){}const parts=[d.created?.length&&`новых проектов: ${d.created.length}`,d.linked?.length&&`связано с 2026: ${d.linked.length}`,d.toProgress?.length&&`переведено «в работе»: ${d.toProgress.length}`,`комментариев недель: ${d.comments}`].filter(Boolean);setSyncMsg('Workshop синхронизирован · '+parts.join(' · '));await reload()}catch(e){if(!silent)alert('Синхронизация не удалась: '+e.message);setSyncMsg('Синхронизация не удалась: '+e.message)}finally{setSyncing(false)}}
   const sendSurvey=async()=>{setSurveying(true);try{const ws=rep?.week_start||'';const wl=rep?.week_label||'';const r=await fetch(`/api/slack?action=send&weekStart=${ws}&weekLabel=${encodeURIComponent(wl)}`);const d=await r.json();if(d.ok){const sent=d.results?.filter(r=>r.sent).length||0;alert(`Опрос отправлен ${sent} сотрудникам за ${d.week}`)}else{alert('Ошибка: '+(d.error||'unknown'))}}catch(e){alert('Ошибка: '+e.message)}finally{setSurveying(false)}}
   const rep=reports[aIdx];const ws=rep?.week_start
   const SYNCED=['name','owner','category','last_update','date_start','date_done','expected_sales','status']
@@ -97,7 +96,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
         <span style={{fontSize:13,color:S.i3}}>Показано {filtered.length} из {active.length} активных{syncMsg?' · '+syncMsg:''}</span>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <button onClick={()=>syncWorkshop(false)} disabled={syncing} title="Подтянуть проекты и недельные комментарии из Growth Workshop 2027" style={{fontSize:14,color:'#2F5200',background:'#DDF0B5',border:'1px solid #B9DE73',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{syncing?'Синхронизирую…':'Обновить из Workshop'}</button>
+        <button onClick={()=>syncWorkshop(false)} disabled={syncing} title="Подтянуть проекты и недельные комментарии из Growth Workshop 2027. Автоматически — каждую ночь в 00:00 по Израилю" style={{fontSize:14,color:'#2F5200',background:'#DDF0B5',border:'1px solid #B9DE73',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{syncing?'Синхронизирую…':'Обновить из Workshop'}</button>
         {ce&&<button onClick={()=>setShowNewP(!showNewP)} style={{fontSize:14,color:'#497B02',background:'#fff',border:'1px solid #6E9B0E',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{showNewP?'Закрыть':'+ Проект'}</button>}
       </div>
     </div>

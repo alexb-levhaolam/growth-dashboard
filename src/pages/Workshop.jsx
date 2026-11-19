@@ -73,6 +73,8 @@ function parse(tabs) {
 const card = { background: S.sf, borderRadius: 14, boxShadow: S.sh, padding: '18px 20px' }
 const th = { fontSize: 12, fontWeight: 600, color: S.i3 }
 
+// данные держим в памяти: при переходе между вкладками дашборда ничего не перезагружается
+let WS_MEM = null
 const PREFS_KEY = 'lh_workshop_prefs'
 const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') } catch (e) { return {} } }
 const CSS = `
@@ -86,7 +88,7 @@ const Box = ({ on }) => <span style={{ width: 16, height: 16, borderRadius: 4, b
 
 export default function Workshop({ ce }) {
   const P0 = loadPrefs()
-  const [raw, setRaw] = useState(null); const [err, setErr] = useState(''); const [loading, setLoading] = useState(true)
+  const [raw, setRaw] = useState(WS_MEM); const [err, setErr] = useState(''); const [loading, setLoading] = useState(!WS_MEM); const [refreshing, setRefreshing] = useState(false); const [syncInfo, setSyncInfo] = useState('')
   const [tab, setTab] = useState(['dash', 'road', 'monthly', 'quarter'].includes(P0.tab) ? P0.tab : 'dash'); const [stage, setStage] = useState(P0.stage || 'all'); const [owner, setOwner] = useState(P0.owner || 'all')
   const [q, setQ] = useState(''); const [ptype, setPtype] = useState('all')
   const [hideNoDates, setHideNoDates] = useState(P0.hideNoDates ?? true); const [hideDone, setHideDone] = useState(P0.hideDone ?? true)
@@ -99,9 +101,20 @@ export default function Workshop({ ce }) {
   useEffect(() => { const onKey = (e) => { if (e.key === 'Escape') setCell(null) }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [])
   const load = async () => {
     setLoading(true); setErr('')
-    try { const r = await fetch('/api/workshop'); const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Ошибка загрузки'); setRaw(d) } catch (e) { setErr(e.message) } finally { setLoading(false) }
+    try { const r = await fetch('/api/workshop'); const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Ошибка загрузки'); WS_MEM = d; setRaw(d) } catch (e) { setErr(e.message) } finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [])
+  // «Обновить»: перечитать таблицу, обновить кэш и карточки проектов
+  const refresh = async (quiet) => {
+    setRefreshing(true); if (!quiet) setErr('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const r = await fetch('/api/workshop?action=refresh', { method: 'POST', headers: { Authorization: 'Bearer ' + (session?.access_token || '') } })
+      const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Ошибка обновления')
+      const next = { tabs: d.tabs, fetchedAt: d.fetchedAt }; WS_MEM = next; setRaw(next)
+      setSyncInfo([d.created?.length && `новых проектов: ${d.created.length}`, d.linked?.length && `связано с 2026: ${d.linked.length}`, d.toProgress?.length && `«в работе»: ${d.toProgress.length}`, `комментариев недель: ${d.comments ?? 0}`].filter(Boolean).join(' · '))
+    } catch (e) { if (!quiet) setErr(e.message) } finally { setRefreshing(false) }
+  }
+  useEffect(() => { if (!WS_MEM) load() }, [])
   const D = useMemo(() => (raw ? parse(raw.tabs) : null), [raw])
 
   if (loading && !D) return <div style={{ ...card, color: S.i3 }}>Загружаю Growth Workshop 2027…</div>
@@ -132,7 +145,7 @@ export default function Workshop({ ce }) {
       const r = await fetch('/api/workshop', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ id: s.id, step: s.n, week: n, text }) })
       const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Ошибка')
       s.wk[n - 1] = text; setDrafts((p) => { const x = { ...p }; delete x[key]; return x })
-      fetch('/api/workshop?action=sync', { method: 'POST', headers: { Authorization: 'Bearer ' + (session?.access_token || '') } }).catch(() => {})
+      refresh(true)
     } catch (e) { alert('Не сохранилось: ' + e.message) } finally { setSaving('') }
   }
 
@@ -144,13 +157,13 @@ export default function Workshop({ ce }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 22, fontWeight: 600 }}>Workshop 2027</span>
-        <span style={{ fontSize: 12, color: S.i3 }}>обновлено {raw?.fetchedAt ? new Date(raw.fetchedAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+        <span style={{ fontSize: 12, color: S.i3 }}>данные таблицы на {raw?.fetchedAt ? new Date(raw.fetchedAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}{syncInfo ? ' · ' + syncInfo : ''}</span>
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск: проект, ID, владелец" aria-label="Поиск" style={{ height: 36, width: 240, border: `1px solid ${S.ln}`, borderRadius: 10, padding: '0 12px', fontSize: 13, fontFamily: 'inherit', background: '#fff' }} />
         <select value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Владелец" style={{ height: 36, border: `1px solid ${S.ln}`, borderRadius: 10, padding: '0 10px', fontSize: 13, background: '#fff', fontFamily: 'inherit' }}><option value="all">Все владельцы</option>{owners.map((o) => <option key={o} value={o}>{o}</option>)}</select>
         <a href="https://docs.google.com/spreadsheets/d/1MtyFbfbESIxm8SRlDe6tRvQSwJ62-4Yaw8RfTa-dR4k/edit" target="_blank" rel="noreferrer" style={{ ...chipStyle(false), textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Таблица ↗</a>
-        <button onClick={load} disabled={loading} style={{ fontSize: 13, color: ACC.tx, background: ACC.bg, border: `1px solid ${ACC.bd}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 600, minHeight: 36 }}>{loading ? 'Обновляю…' : 'Обновить'}</button>
+        <button onClick={() => refresh(false)} disabled={refreshing} title="Перечитать таблицу и обновить карточки проектов. Автоматически — каждую ночь в 00:00 по Израилю" style={{ fontSize: 13, color: ACC.tx, background: ACC.bg, border: `1px solid ${ACC.bd}`, borderRadius: 10, padding: '7px 14px', cursor: refreshing ? 'wait' : 'pointer', fontWeight: 600, minHeight: 36 }}>{refreshing ? 'Обновляю из таблицы…' : 'Обновить из таблицы'}</button>
       </div>
     </div>
     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
