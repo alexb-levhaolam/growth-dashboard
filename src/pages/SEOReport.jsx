@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { S, pct, EdNum, LHLine } from '../lib/ui'
+import { S, pct, EdNum, LHLine, chipStyle } from '../lib/ui'
 
 // ═══ SEO REPORT ═══
 function SEOReport(){
@@ -39,7 +39,7 @@ function SEOReport(){
     
 
     <div style={{display:'flex',gap:6,marginBottom:16}}>
-      {[{id:'weekly',l:'Недельный'},{id:'monthly',l:'Месячный'}].map(t=><button key={t.id} onClick={()=>{setTab(t.id);setExpanded({})}} style={{padding:'10px 20px',borderRadius:8,border:'none',cursor:'pointer',fontSize:14,fontWeight:500,background:tab===t.id?S.gd:'#fff',color:tab===t.id?'#fff':S.i2,boxShadow:S.sh}}>{t.l}</button>)}
+      {[{id:'weekly',l:'Недельный'},{id:'monthly',l:'Месячный'}].map(t=><button key={t.id} onClick={()=>{setTab(t.id);setExpanded({})}} style={chipStyle(tab===t.id)}>{t.l}</button>)}
       <button onClick={()=>importData(tab)} disabled={importing} style={{marginLeft:'auto',padding:'10px 18px',borderRadius:8,border:'none',background:S.gm,color:'#fff',fontSize:14,fontWeight:500,cursor:'pointer',opacity:importing?.5:1}}>{importing?'Импорт...':'Импорт из Google Sheet'}</button>
     </div>
 

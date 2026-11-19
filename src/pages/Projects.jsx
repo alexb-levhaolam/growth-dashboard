@@ -78,7 +78,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       {isO&&ce&&currentRep&&<label onClick={e=>e.stopPropagation()} style={{display:'flex',alignItems:'center',gap:6,marginTop:10,cursor:'pointer',fontSize:13,color:S.i3,paddingTop:8,borderTop:`1px solid ${S.ln}`}}><input type="checkbox" checked={(currentRep.visible_overview_projects||[]).includes(p.id)} onChange={()=>{const vis=currentRep.visible_overview_projects||[];const next=vis.includes(p.id)?vis.filter(id=>id!==p.id):[...vis,p.id];upRep({visible_overview_projects:next})}}/> показывать в обзоре</label>}
       {/* 6. Новый комментарий (expanded) */}
       {isO&&ce&&<div onClick={e=>e.stopPropagation()} style={{marginTop:12,borderTop:`1px solid ${S.ln}`,paddingTop:10}}>
-        <div style={{display:'flex',gap:8}}><textarea id={"nc-"+p.id} defaultValue="" onChange={e=>{ncRef.current=e.target.value}} placeholder={`Комментарий за ${rep?.week_label||''}...`} rows={2} style={{flex:1,padding:'10px 12px',borderRadius:10,border:`1px solid ${S.ln}`,fontSize:14,resize:'vertical',outline:'none',fontFamily:'inherit',color:'#121416',background:'#fff'}}/><button onClick={()=>addC(p.id)} disabled={sav} style={{padding:'10px 18px',borderRadius:10,border:'none',background:'#497B02',color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',alignSelf:'flex-end',minHeight:40}}>{sav?'…':'Добавить'}</button></div>
+        <div style={{display:'flex',gap:8}}><textarea id={"nc-"+p.id} defaultValue="" onChange={e=>{ncRef.current=e.target.value}} placeholder={`Комментарий за ${rep?.week_label||''}...`} rows={2} style={{flex:1,padding:'10px 12px',borderRadius:10,border:`1px solid ${S.ln}`,fontSize:14,resize:'vertical',outline:'none',fontFamily:'inherit',color:'#121416',background:'#fff'}}/><button onClick={()=>addC(p.id)} disabled={sav} style={{padding:'10px 18px',borderRadius:10,border:'none',background:'#DDF0B5',color:'#2F5200',fontSize:14,fontWeight:600,cursor:'pointer',alignSelf:'flex-end',minHeight:40}}>{sav?'…':'Добавить'}</button></div>
       </div>}
     </div>}
 
@@ -89,7 +89,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
         <span style={{fontSize:13,color:S.i3}}>Показано {filtered.length} из {active.length} активных</span>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        {ce&&<button onClick={sendSurvey} disabled={surveying} title="Запустить бота для сбора апдейтов" style={{fontSize:14,color:'#fff',background:'#497B02',border:'none',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{surveying?'Отправляю…':'Опросить команду в Slack'}</button>}
+        {ce&&<button onClick={sendSurvey} disabled={surveying} title="Запустить бота для сбора апдейтов" style={{fontSize:14,color:'#2F5200',background:'#DDF0B5',border:'none',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{surveying?'Отправляю…':'Опросить команду в Slack'}</button>}
         {ce&&<button onClick={()=>setShowNewP(!showNewP)} style={{fontSize:14,color:'#497B02',background:'#fff',border:'1px solid #6E9B0E',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:600,minHeight:40}}>{showNewP?'Закрыть':'+ Проект'}</button>}
       </div>
     </div>
@@ -109,7 +109,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
         <input value={np.owner} onChange={e=>setNp({...np,owner:e.target.value})} placeholder="Владелец" style={{padding:'6px 10px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14,outline:'none'}}/>
         <select value={np.priority} onChange={e=>setNp({...np,priority:e.target.value})} style={{padding:'6px 10px',borderRadius:8,border:`1px solid ${S.ln}`,fontSize:14}}><option value="key"> Ключевой</option><option value="current"> Текущий</option></select>
       </div>
-      <button onClick={addProj} disabled={!np.id.trim()||!np.name.trim()} style={{padding:'10px 18px',borderRadius:8,border:'none',background:'#497B02',color:'#fff',fontSize:14,fontWeight:500,cursor:'pointer'}}>Создать</button>
+      <button onClick={addProj} disabled={!np.id.trim()||!np.name.trim()} style={{padding:'10px 18px',borderRadius:8,border:'none',background:'#DDF0B5',color:'#2F5200',fontSize:14,fontWeight:500,cursor:'pointer'}}>Создать</button>
     </div>}
     {secs.map(s=><div key={s.t}><Label>{s.t.trim()} · {s.items.length}</Label><div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:24}}>
       {s.items.map(p=><ProjCard key={p.id} p={p}/>)}</div></div>)}

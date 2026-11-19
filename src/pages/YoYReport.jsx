@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Tooltip } from 'recharts'
-import { S, pct, Ed, EdNum, LHLine } from '../lib/ui'
+import { S, pct, Ed, EdNum, LHLine, chipStyle } from '../lib/ui'
 
 // ═══ YOY REPORT ═══
 function YoYReport(){
@@ -86,7 +86,7 @@ function YoYReport(){
 
     {/* Mode selector */}
     <div style={{display:'flex',gap:6,marginBottom:22}}>
-      {[{id:'2025',l:'2025'},{id:'2026',l:'2026'},{id:'compare',l:'Сравнение'}].map(t=><button key={t.id} onClick={()=>{setMode(t.id);setExpanded({})}} style={{padding:'10px 20px',borderRadius:8,border:'none',cursor:'pointer',fontSize:14,fontWeight:500,background:mode===t.id?S.gd:'#fff',color:mode===t.id?'#fff':S.i2,boxShadow:S.sh}}>{t.l}</button>)}
+      {[{id:'2025',l:'2025'},{id:'2026',l:'2026'},{id:'compare',l:'Сравнение'}].map(t=><button key={t.id} onClick={()=>{setMode(t.id);setExpanded({})}} style={chipStyle(mode===t.id)}>{t.l}</button>)}
     </div>
 
     {/* ═══ SINGLE YEAR MODE ═══ */}

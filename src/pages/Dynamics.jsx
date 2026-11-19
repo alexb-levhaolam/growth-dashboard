@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { S, PROJ_ST, Chip, Label, Linkify } from '../lib/ui'
+import { S, PROJ_ST, Chip, Label, Linkify, chipStyle } from '../lib/ui'
 
 // ═══ DYNAMICS ═══
 function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[expanded,setExpanded]=useState(null);const[fSt,setFSt]=useState('all');const rep=reports[aIdx]
@@ -36,7 +36,7 @@ function Dynamics({projects,comments,reports,aIdx,ce,reload}){const[expanded,set
     {ce&&<button onClick={saveSnapshots} style={{fontSize:14,color:S.gd,background:S.gp,border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontWeight:500}}>Снимок · {rep?.week_label}</button>}
   </div>
   <div style={{display:'flex',gap:4,marginBottom:12,flexWrap:'wrap'}}>
-    {[{k:'all',l:'Все'},...Object.entries(PROJ_ST).map(([k,v])=>({k,l:v.l}))].map(f=><button key={f.k} onClick={()=>setFSt(f.k)} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:14,fontWeight:500,background:fSt===f.k?S.gd:'#F1EFE8',color:fSt===f.k?S.gp:S.i2}}>{f.l}</button>)}
+    {[{k:'all',l:'Все'},...Object.entries(PROJ_ST).map(([k,v])=>({k,l:v.l}))].map(f=><button key={f.k} onClick={()=>setFSt(f.k)} style={chipStyle(fSt===f.k)}>{f.l}</button>)}
   </div>
   {filtered.map(p=><TL key={p.id} proj={p}/>)}
   </>}

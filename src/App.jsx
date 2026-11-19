@@ -118,7 +118,7 @@ function Main({profile}){
         </div>
       </div>
       <div style={{display:'flex',gap:2,marginBottom:16,background:'#fff',borderRadius:12,padding:8,boxShadow:S.sh,overflowX:'auto'}} className="lh-tabs">
-        {weeklyTabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:'0 0 auto',padding:'8px 14px',border:'none',borderRadius:8,cursor:'pointer',fontSize:14,fontWeight:500,background:view===t.id?'#6E9B0E':'transparent',color:view===t.id?'#fff':'#585E65',whiteSpace:'nowrap'}}>{t.l}</button>)}
+        {weeklyTabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:'0 0 auto',padding:'8px 14px',border:'none',borderRadius:8,cursor:'pointer',fontSize:14,fontWeight:500,background:view===t.id?'#DDF0B5':'transparent',color:view===t.id?'#2F5200':'#585E65',whiteSpace:'nowrap'}}>{t.l}</button>)}
       </div>
       {view==='overview'&&rep&&<Overview rep={rep} reports={reports} projects={projects} comments={comments} ce={ce} up={upRep} tTasks={tTasks} tProgress={tProgress} print={printOverview} refreshDaily={refreshFromDaily} recalcAll={recalcAll} mPlans={mPlans} reload={reload}/>}
       {view==='projects'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload} rep={rep} upRep={upRep}/>}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { S, CC, EdNum } from '../lib/ui'
+import { S, CC, EdNum, chipStyle } from '../lib/ui'
 
 // ═══ PLAN ═══
 function Plan({plans,ce,reload}){
@@ -14,7 +14,7 @@ function Plan({plans,ce,reload}){
   const totalPlanSales=chDefs.reduce((s,c)=>s+(cp[c.k]?.planSales||0),0)
 
   return<><div style={{display:'flex',gap:4,marginBottom:16,flexWrap:'wrap'}}>
-    {plans.map(p=><button key={p.id} onClick={()=>setSel(p.id)} style={{padding:'10px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:14,fontWeight:500,background:sel===p.id?S.gd:'#F1EFE8',color:sel===p.id?S.gp:S.i2}}>{p.month_label}</button>)}
+    {plans.map(p=><button key={p.id} onClick={()=>setSel(p.id)} style={chipStyle(sel===p.id)}>{p.month_label}</button>)}
   </div>
 
   <CC title={<span>{plan.month_label||sel} · <EdNum value={plan.days_in_month||daysInMonth} canEdit={ce} onSave={v=>upP('days_in_month',v)} style={{fontSize:16,fontWeight:600}}/> дней</span>}>
