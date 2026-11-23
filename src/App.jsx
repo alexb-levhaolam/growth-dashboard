@@ -49,7 +49,7 @@ function Main({profile}){
     {sep:'Отчёты'},
     {id:'home',l:'Главная',ic:'home'},
     {id:'weekly',l:'Еженедельный',ic:'calendar'},
-    ...(isA?[{id:'monthly',l:'Ежемесячный',ic:'chart-bar'}]:[]),
+    ...(ce?[{id:'monthly',l:'Ежемесячный',ic:'chart-bar'}]:[]),
     {id:'yoy',l:'Годовой / YoY',ic:'trending-up'},{id:'workshop',l:'Workshop 2027',ic:'map'},{id:'seo',l:'SEO отчёт',ic:'target'},
     {sep:'Управление'},
     {id:'projects-all',l:'Проекты',ic:'layout-kanban'},
@@ -78,7 +78,7 @@ function Main({profile}){
     <button className='lh-burger' onClick={()=>setMenuOpen(!menuOpen)} style={{display:'none',position:'fixed',top:12,left:12,zIndex:1001,width:40,height:40,borderRadius:8,border:'none',background:S.gd,color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>☰</button>
 
     {/* HOME */}
-    {page==='home'&&<Home profile={profile} rep={rep} projects={projects} comments={comments} mPlans={mPlans} navTo={navTo} isA={isA}/>}
+    {page==='home'&&<Home profile={profile} rep={rep} projects={projects} comments={comments} mPlans={mPlans} navTo={navTo} isA={ce}/>}
 
     {/* WEEKLY */}
     {page==='weekly'&&!rep&&<div style={{padding:40,textAlign:'center',color:S.i3}}>Нет отчётов. Создайте первый отчёт.</div>}
@@ -112,7 +112,7 @@ function Main({profile}){
     </>}
 
     {/* MONTHLY */}
-    {page==='monthly'&&isA&&<MonthlyReport reports={reports} projects={projects} comments={comments} mPlans={mPlans} setMPlans={setMPlans} ce={ce} reload={reload}/>}
+    {page==='monthly'&&ce&&<MonthlyReport reports={reports} projects={projects} comments={comments} mPlans={mPlans} setMPlans={setMPlans} ce={ce} reload={reload}/>}
 
     {/* YOY */}
     {page==='yoy'&&<YoYReport/>}
