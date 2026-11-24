@@ -17,17 +17,18 @@ import SlackBotPage from './pages/SlackBotPage'
 import YoYReport from './pages/YoYReport'
 import Workshop from './pages/Workshop'
 import Home from './pages/Home'
+import ProjectArchive from './pages/ProjectArchive'
 
 export default function App(){const[session,setSession]=useState(null);const[profile,setProfile]=useState(null);const[loading,setLoading]=useState(true);useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setLoading(false)});const{data:{subscription}}=supabase.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe()},[]);useEffect(()=>{if(!session?.user)return setProfile(null);supabase.from('profiles').select('*').eq('id',session.user.id).single().then(({data})=>setProfile(data))},[session]);if(loading)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;if(!session)return<Login/>;if(!profile)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;return<Main profile={profile}/>}
 
 function Main({profile}){
-  const[view,setView]=useState('overview');const[reports,setReports]=useState([]);const[projects,setProjects]=useState([]);const[comments,setComments]=useState([]);const[aIdx,setAIdx]=useState(0);const[allProfiles,setAllProfiles]=useState([]);const[tTasks,setTTasks]=useState([]);const[tProgress,setTProgress]=useState([]);const[mPlans,setMPlans]=useState([])
+  const[view,setView]=useState('overview');const[reports,setReports]=useState([]);const[projects,setProjects]=useState([]);const[allProjects,setAllProjects]=useState([]);const[comments,setComments]=useState([]);const[aIdx,setAIdx]=useState(0);const[allProfiles,setAllProfiles]=useState([]);const[tTasks,setTTasks]=useState([]);const[tProgress,setTProgress]=useState([]);const[mPlans,setMPlans]=useState([])
   const aIdxRef=useRef(-1)
   const load=useCallback(async()=>{
     const[r,p,c,tt,tp]=await Promise.all([supabase.from('weekly_reports').select('*').order('week_start'),supabase.from('projects').select('*').order('sort_order'),supabase.from('project_comments').select('*').order('created_at',{ascending:false}),supabase.from('tactical_tasks').select('*').order('sort_order'),supabase.from('tactical_progress').select('*').order('week_start')])
     try{const{data:mpd}=await supabase.from('monthly_plans').select('*').order('id');if(mpd)setMPlans(mpd)}catch(e){console.warn('monthly_plans:',e)}
     if(r.data){setReports(r.data);const max=r.data.length-1;setAIdx(prev=>{const isFirst=aIdxRef.current===-1;const safe=isFirst?max:(prev<=max?prev:max);aIdxRef.current=safe;return safe})}
-    if(p.data)setProjects(p.data);if(c.data){const vis=c.data.filter(x=>!x.hidden);const sk=new Set(vis.filter(x=>x.source==='sheet').map(x=>x.project_id+'|'+x.week_start));setComments(vis.filter(x=>x.source==='sheet'||!sk.has(x.project_id+'|'+x.week_start)))};if(tt.data)setTTasks(tt.data);if(tp.data)setTProgress(tp.data)
+    if(p.data){setAllProjects(p.data);setProjects(p.data.filter(x=>!x.archived_at))};const mg={};(p.data||[]).forEach(x=>{if(x.merged_into)mg[x.id]=x.merged_into});const res=(id)=>{let k=id,n=0;while(mg[k]&&n<10){k=mg[k];n++}return k};if(c.data){const vis=c.data.filter(x=>!x.hidden).map(x=>mg[x.project_id]?{...x,orig_project_id:x.project_id,project_id:res(x.project_id)}:x);const sk=new Set(vis.filter(x=>x.source==='sheet').map(x=>x.project_id+'|'+x.week_start));setComments(vis.filter(x=>x.source==='sheet'||!sk.has(x.project_id+'|'+x.week_start)))};if(tt.data)setTTasks(tt.data);if(tp.data)setTProgress(tp.data)
     if(profile.role==='admin'){const{data}=await supabase.from('profiles').select('*');if(data)setAllProfiles(data)}
   },[profile]);useEffect(()=>{load()},[load])
   const reload=useCallback(async()=>{const y=window.scrollY;await load();requestAnimationFrame(()=>window.scrollTo(0,y))},[load])
@@ -52,7 +53,7 @@ function Main({profile}){
     ...(ce?[{id:'monthly',l:'Ежемесячный',ic:'chart-bar'}]:[]),
     {id:'yoy',l:'Годовой / YoY',ic:'trending-up'},{id:'workshop',l:'Workshop 2027',ic:'map'},{id:'seo',l:'SEO отчёт',ic:'target'},
     {sep:'Управление'},
-    {id:'projects-all',l:'Проекты',ic:'layout-kanban'},
+    {id:'projects-all',l:'Проекты',ic:'layout-kanban'},{id:'archive',l:'Архив проектов',ic:'archive'},
     {id:'tactical-all',l:'Тактические цели',ic:'target'},
     ...(isA?[{id:'team',l:'Команда',ic:'users'},{id:'export',l:'Выгрузка',ic:'target'}]:[]),
     {sep:'Настройки'},
@@ -63,7 +64,7 @@ function Main({profile}){
     {/* ═══ SIDEBAR ═══ */}
     <div className={'lh-sidebar'+(menuOpen?' open':'')} style={{background:S.sf,borderRight:`1px solid ${S.ln}`,padding:'20px 10px',display:'flex',flexDirection:'column',gap:1,position:'sticky',top:0,height:'100vh',overflowY:'auto'}}>
       <div style={{padding:'8px 14px 24px',display:'flex',flexDirection:'column',gap:2,lineHeight:1.1}}><span style={{font:'500 12px/1.2 Poppins,sans-serif',color:S.i3,letterSpacing:'.04em'}}>Lev Haolam</span><span style={{font:'700 20px/1.1 Poppins,sans-serif',color:S.gd}}>Growth</span></div>
-      {NAV.map((n,i)=>n.sep?<div key={i} style={{font:'600 12px/1 Poppins,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',padding:'18px 14px 6px'}}>{n.sep}</div>:<button key={n.id} onClick={()=>navTo(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:8,font:'500 14px/1.3 Poppins,sans-serif',color:page===n.id?S.gm:S.i2,cursor:'pointer',border:'none',background:page===n.id?S.gp:'transparent',width:'100%',textAlign:'left',fontWeight:page===n.id?600:500}}><span style={{fontSize:18,width:20,textAlign:'center'}}>{n.ic==='home'?'⌂':n.ic==='map'?'▦':n.ic==='calendar'?'☰':n.ic==='chart-bar'?'▣':n.ic==='trending-up'?'↗':n.ic==='layout-kanban'?'▤':n.ic==='target'?'◎':n.ic==='users'?'⊛':n.ic==='adjustments'?'⚙':n.ic==='plug'?'⚡':n.ic==='robot'?'⊞':n.ic==='settings'?'⋮':'·'}</span>{n.l}</button>)}
+      {NAV.map((n,i)=>n.sep?<div key={i} style={{font:'600 12px/1 Poppins,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',padding:'18px 14px 6px'}}>{n.sep}</div>:<button key={n.id} onClick={()=>navTo(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:8,font:'500 14px/1.3 Poppins,sans-serif',color:page===n.id?S.gm:S.i2,cursor:'pointer',border:'none',background:page===n.id?S.gp:'transparent',width:'100%',textAlign:'left',fontWeight:page===n.id?600:500}}><span style={{fontSize:18,width:20,textAlign:'center'}}>{n.ic==='home'?'⌂':n.ic==='map'?'▦':n.ic==='archive'?'⊟':n.ic==='calendar'?'☰':n.ic==='chart-bar'?'▣':n.ic==='trending-up'?'↗':n.ic==='layout-kanban'?'▤':n.ic==='target'?'◎':n.ic==='users'?'⊛':n.ic==='adjustments'?'⚙':n.ic==='plug'?'⚡':n.ic==='robot'?'⊞':n.ic==='settings'?'⋮':'·'}</span>{n.l}</button>)}
       <div style={{marginTop:'auto',padding:'14px 10px',borderTop:`1px solid ${S.ln}`}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <div style={{width:34,height:34,borderRadius:'50%',background:S.gm,display:'flex',alignItems:'center',justifyContent:'center',font:'600 13px/1 Poppins',color:'#fff'}}>{(profile.name||'?')[0]?.toUpperCase()}</div>
@@ -117,6 +118,7 @@ function Main({profile}){
     {/* YOY */}
     {page==='yoy'&&<YoYReport/>}
       {page==='workshop'&&<Workshop ce={ce}/>}
+      {page==='archive'&&<ProjectArchive allProjects={allProjects} comments={comments} ce={ce} reload={reload}/>}
 
     {/* PROJECTS STANDALONE */}
     {page==='projects-all'&&<Projects projects={projects} setProjects={setProjects} comments={comments} setComments={setComments} ce={ce} reports={reports} aIdx={aIdx} profile={profile} reload={reload} rep={rep} upRep={upRep}/>}
