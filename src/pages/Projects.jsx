@@ -1,10 +1,14 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useLayoutEffect, Fragment } from 'react'
 import { supabase } from '../lib/supabase'
 import { weekEnd, S, PROJ_ST, Chip, Label, Linkify, Ed, EdDate, CItem, PROJ_CATS, catOf, chipStyle, pillSelect } from '../lib/ui'
 
 // ═══ PROJECTS ═══
 function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,profile,reload,rep:currentRep,upRep}){
-  const[exp,setExp]=useState(null);const ncRef=useRef('');const[sav,setSav]=useState(false)
+  const[exp,setExp0]=useState(null)
+  // при раскрытии/сворачивании карточка остаётся на том же месте экрана
+  const anchor=useRef(null)
+  const setExp=(id)=>{const key=id??exp;const el=key?document.querySelector(`[data-pid="${key}"]`):null;anchor.current=el?{id:key,top:el.getBoundingClientRect().top}:null;setExp0(id)}
+  useLayoutEffect(()=>{const a=anchor.current;if(!a)return;anchor.current=null;const el=document.querySelector(`[data-pid="${a.id}"]`);if(el){const d=el.getBoundingClientRect().top-a.top;if(Math.abs(d)>1)window.scrollBy(0,d)}},[exp]);const ncRef=useRef('');const[sav,setSav]=useState(false)
   const[fPri,setFPri]=useState('all');const[fSt,setFSt]=useState('all')
   const[showNewP,setShowNewP]=useState(false);const[np,setNp]=useState({id:'',name:'',owner:'',priority:'current'})
   const[surveying,setSurveying]=useState(false)
@@ -39,7 +43,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
   const secs=fPri==='all'?[{t:' Ключевые',items:keyP},{t:' Текущие',items:curP}]:fPri==='key'?[{t:' Ключевые',items:keyP}]:[{t:' Текущие',items:curP}]
 
   const ProjCard=({p})=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const wcs=getWC(p.id);const prev=getPrev(p.id);const isO=exp===p.id;const isBlocked=p.status==='blocked';const hasBlock=p.constraints_text&&p.constraints_text.trim();const ds=dates(p);const lastC=wcs[0]||prev
-    return<div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'18px 20px',borderLeft:isBlocked?'3px solid #DD2A02':'3px solid transparent'}}>
+    return<div data-pid={p.id} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'18px 20px',borderLeft:isBlocked?'3px solid #DD2A02':'3px solid transparent'}}>
       {/* 1. Название, мета-строка, статус */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,cursor:'pointer'}} onClick={()=>setExp(isO?null:p.id)}>
         <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:4}}>
@@ -126,7 +130,7 @@ function Projects({projects,setProjects,comments,setComments,ce,reports,aIdx,pro
       <button onClick={addProj} disabled={!np.id.trim()||!np.name.trim()} style={{padding:'10px 18px',borderRadius:8,border:'none',background:'#DDF0B5',color:'#2F5200',fontSize:14,fontWeight:500,cursor:'pointer'}}>Создать</button>
     </div>}
     {secs.map(s=><div key={s.t}><Label>{s.t.trim()} · {s.items.length}</Label><div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:24}}>
-      {s.items.map(p=><ProjCard key={p.id} p={p}/>)}</div></div>)}
+      {s.items.map(p=><Fragment key={p.id}>{ProjCard({p})}</Fragment>)}</div></div>)}
     {archive.length>0&&<div style={{marginTop:24,borderTop:`2px solid ${S.ln}`,paddingTop:16,fontSize:13,color:S.i3}}>Завершённых проектов: {archive.length}. Они и проекты, убранные в архив, — в разделе меню «Архив проектов».</div>}
   </>
 }
