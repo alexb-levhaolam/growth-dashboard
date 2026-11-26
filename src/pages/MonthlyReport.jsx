@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { S, PROJ_ST, Chip, pct, Label, Ed, EdNum, EList, CItem, AddComment, cpoAdsOf, cpoTotalOf, PROJ_CATS, catOf, DECISIONS, ImageUpload, pillSelect, chipStyle } from '../lib/ui'
 import TunePanel from '../pm/TunePanel'
+import { MonthSalesTable } from '../pm/ProjectSales'
 import { HEALTH, DIR_COLORS, isMe, weekLabel } from '../pm/pmlib'
 
-function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){const[tune,setTune]=useState(false);const fdm=(d)=>{if(!d)return'';const p=String(d).split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0].slice(2)}`:d};
+function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload,projSales,isA,onOpen}){const[tune,setTune]=useState(false);const fdm=(d)=>{if(!d)return'';const p=String(d).split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0].slice(2)}`:d};
   const[year,setYear]=useState(2026);const[month,setMonth]=useState(null);const[compare,setCompare]=useState(null)
   const[mData,setMData]=useState({});const[loading,setLoading]=useState(false);const[churnCmp,setChurnCmp]=useState(null);const[expandedWeekly,setExpandedWeekly]=useState({});const[metricsCmp,setMetricsCmp]=useState(null);const[localStatus,setLocalStatus]=useState(null);const[catFilter,setCatFilter]=useState(()=>{try{return localStorage.getItem('lh_monthly_cat')||'all'}catch(e){return'all'}})
   const months=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
@@ -122,6 +123,7 @@ function MonthlyReport({reports,projects,comments,mPlans,setMPlans,ce,reload}){c
     </div>
 
     {/* ═══ 5. KEY PROJECTS — add/remove + structured ═══ */}
+    <MonthSalesTable projects={keyProjects.filter(p=>isShownM(p))} sales={projSales||[]} month={sel.key} isA={isA} reload={reload} onOpen={onOpen}/>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:12}}>
       <span style={{fontSize:12,fontWeight:600,color:S.i3,letterSpacing:'.07em',textTransform:'uppercase',whiteSpace:'nowrap'}}>Проекты · месячный итог</span>
       {ce&&<div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>

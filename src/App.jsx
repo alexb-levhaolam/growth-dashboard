@@ -28,7 +28,7 @@ import WeekPicker from './pm/WeekPicker'
 export default function App(){const[session,setSession]=useState(null);const[profile,setProfile]=useState(null);const[loading,setLoading]=useState(true);useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setLoading(false)});const{data:{subscription}}=supabase.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe()},[]);useEffect(()=>{if(!session?.user)return setProfile(null);supabase.from('profiles').select('*').eq('id',session.user.id).single().then(({data})=>setProfile(data))},[session]);if(loading)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;if(!session)return<Login/>;if(!profile)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;return<Main profile={profile}/>}
 
 function Main({profile}){
-  const[view,setView]=useState('overview');const[reports,setReports]=useState([]);const[projects,setProjects]=useState([]);const[allProjects,setAllProjects]=useState([]);const[comments,setComments]=useState([]);const[aIdx,setAIdx]=useState(0);const[allProfiles,setAllProfiles]=useState([]);const[tTasks,setTTasks]=useState([]);const[tProgress,setTProgress]=useState([]);const[mPlans,setMPlans]=useState([]);const[steps,setSteps]=useState([]);const[team,setTeam]=useState([]);const[pmOpen,setPmOpen]=useState(null);const[pmNew,setPmNew]=useState(null);const[pmTab,setPmTab]=useState(null)
+  const[view,setView]=useState('overview');const[reports,setReports]=useState([]);const[projects,setProjects]=useState([]);const[allProjects,setAllProjects]=useState([]);const[comments,setComments]=useState([]);const[aIdx,setAIdx]=useState(0);const[allProfiles,setAllProfiles]=useState([]);const[tTasks,setTTasks]=useState([]);const[tProgress,setTProgress]=useState([]);const[mPlans,setMPlans]=useState([]);const[steps,setSteps]=useState([]);const[team,setTeam]=useState([]);const[pmOpen,setPmOpen]=useState(null);const[pmNew,setPmNew]=useState(null);const[pmTab,setPmTab]=useState(null);const[projSales,setProjSales]=useState([])
   const aIdxRef=useRef(-1)
   const load=useCallback(async()=>{
     const[r,p,c,tt,tp]=await Promise.all([supabase.from('weekly_reports').select('*').order('week_start'),supabase.from('projects').select('*').order('sort_order'),supabase.from('project_comments').select('*').order('created_at',{ascending:false}),supabase.from('tactical_tasks').select('*').order('sort_order'),supabase.from('tactical_progress').select('*').order('week_start')])
@@ -36,6 +36,7 @@ function Main({profile}){
     // новая система: этапы проектов и команда (если миграция ещё не выполнена — просто пусто)
     try{const{data:sd,error:se}=await supabase.from('project_steps').select('*').order('start_date');if(!se&&sd)setSteps(sd.filter(x=>!x.hidden))}catch(e){console.warn('project_steps:',e)}
     try{const{data:tm}=await supabase.from('team_members').select('*').order('name');if(tm)setTeam(tm)}catch(e){console.warn('team_members:',e)}
+    try{const{data:ps,error:pe}=await supabase.from('project_sales').select('*');if(!pe&&ps)setProjSales(ps)}catch(e){console.warn('project_sales:',e)}
     if(r.data){setReports(r.data);const max=r.data.length-1;setAIdx(prev=>{const isFirst=aIdxRef.current===-1;const safe=isFirst?max:(prev<=max?prev:max);aIdxRef.current=safe;return safe})}
     if(p.data){setAllProjects(p.data);setProjects(p.data.filter(x=>!x.archived_at))};const mg={};(p.data||[]).forEach(x=>{if(x.merged_into)mg[x.id]=x.merged_into});const res=(id)=>{let k=id,n=0;while(mg[k]&&n<10){k=mg[k];n++}return k};if(c.data){const vis=c.data.filter(x=>!x.hidden).map(x=>mg[x.project_id]?{...x,orig_project_id:x.project_id,project_id:res(x.project_id)}:x);const sk=new Set(vis.filter(x=>x.source==='sheet').map(x=>x.project_id+'|'+x.week_start));setComments(vis.filter(x=>x.source==='sheet'||x.health||!sk.has(x.project_id+'|'+x.week_start)))};if(tt.data)setTTasks(tt.data);if(tp.data)setTProgress(tp.data)
     if(profile.role==='admin'){const{data}=await supabase.from('profiles').select('*');if(data)setAllProfiles(data)}
@@ -52,7 +53,7 @@ function Main({profile}){
   const deleteWeek=async()=>{if(!rep)return;if(!confirm(`Удалить отчёт "${rep.week_label}"? Это действие необратимо.`))return;await supabase.from('weekly_reports').delete().eq('id',rep.id);const{data:fresh}=await supabase.from('weekly_reports').select('*').order('week_start');if(fresh){setReports(fresh);setWeek(Math.max(0,fresh.length-1))}}
 
   const[page,setPage]=useState('home');const[menuOpen,setMenuOpen]=useState(false)
-  const weeklyTabs=[{id:'overview',l:'Обзор'},{id:'projects',l:'Проекты'},{id:'tactical',l:'Тактические'},{id:'plan',l:'План'},{id:'dynamics',l:'История'},{id:'trends',l:'Тренды'}]
+  const weeklyTabs=[{id:'overview',l:'Обзор'},{id:'projects',l:'Проекты'},{id:'tactical',l:'Тактические'},{id:'plan',l:'План'},{id:'trends',l:'Тренды'}]
   const printOverview=()=>{const el=document.getElementById('overview-print');if(!el)return;const w=window.open('','','width=900,height=700');w.document.write('<html><head><title>Growth Report '+rep?.week_label+'</title><style>body{font-family:-apple-system,sans-serif;padding:20px;color:#2C2C2A}table{border-collapse:collapse;width:100%}td,th{padding:6px 10px;border:1px solid #E3E1D8;font-size:13px}</style></head><body>');w.document.write(el.innerHTML);w.document.write('</body></html>');w.document.close();w.print()}
 
   const people=Array.from(new Set([...team.filter(m=>m.active!==false).map(m=>m.name),...allProfiles.map(p=>p.name)].filter(Boolean))).sort()
@@ -125,7 +126,7 @@ function Main({profile}){
     </>}
 
     {/* MONTHLY */}
-    {page==='monthly'&&ce&&<MonthlyReport reports={reports} projects={projects} comments={comments} mPlans={mPlans} setMPlans={setMPlans} ce={ce} reload={reload}/>}
+    {page==='monthly'&&ce&&<MonthlyReport reports={reports} projects={projects} comments={comments} mPlans={mPlans} setMPlans={setMPlans} ce={ce} reload={reload} projSales={projSales} isA={isA} onOpen={(id)=>{setPmTab('sales');setPmOpen(id)}}/>}
 
     {/* YOY */}
     {page==='yoy'&&<YoYReport/>}
@@ -172,7 +173,7 @@ function Main({profile}){
       <div role="group" aria-label="Language" style={{display:'flex',gap:2,background:'#fff',border:'1px solid #E4E6E9',borderRadius:9,padding:3,boxShadow:'0 1px 3px rgba(16,24,40,.06)'}}>{['ru','en'].map(l=><button key={l} onClick={()=>getLang()!==l&&setLang(l)} aria-pressed={getLang()===l} style={{height:26,minWidth:34,border:getLang()===l?'1px solid #B9DE73':'1px solid transparent',borderRadius:7,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit',background:getLang()===l?'#DDF0B5':'transparent',color:getLang()===l?'#2F5200':'#6B717A'}}>{l.toUpperCase()}</button>)}</div>
     </div>
     {/* карточка проекта и создание проекта (новая система) */}
-    {pmOpen&&allProjects.find(x=>x.id===pmOpen)&&<ProjectModal key={pmOpen} initialTab={pmTab} project={allProjects.find(x=>x.id===pmOpen)} allProjects={allProjects} steps={steps} comments={comments} profile={profile} ce={ce} people={people} onClose={()=>{setPmOpen(null);setPmTab(null)}} onOpen={(id)=>{setPmTab(null);setPmOpen(id)}} onNewSub={(pid)=>setPmNew(pid)} reload={reload}/>}
+    {pmOpen&&allProjects.find(x=>x.id===pmOpen)&&<ProjectModal key={pmOpen} sales={projSales} initialTab={pmTab} project={allProjects.find(x=>x.id===pmOpen)} allProjects={allProjects} steps={steps} comments={comments} profile={profile} ce={ce} people={people} onClose={()=>{setPmOpen(null);setPmTab(null)}} onOpen={(id)=>{setPmTab(null);setPmOpen(id)}} onNewSub={(pid)=>setPmNew(pid)} reload={reload}/>}
     {pmNew!==null&&<NewProjectModal parentId={pmNew} allProjects={allProjects} people={people} profile={profile} onClose={()=>setPmNew(null)} onCreated={(id)=>{setPmNew(null);setPmOpen(id)}} reload={reload}/>}
   </div>
 }

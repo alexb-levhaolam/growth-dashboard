@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { T, L } from './i18n'
 import { supabase } from '../lib/supabase'
 import Gantt, { ganttStart } from './Gantt'
+import { SalesTab } from './ProjectSales'
 import { monday, C, PST, SST, HEALTH, DIR_COLORS, PROJ_CATS, catOf, dirLabel, iso, parse, addDays, weekLabel, dm, recentWeeks, Avatar, Pill, Dot, btn, input, label, Modal, HealthPick, PhotoAttach, Chips, saveReport } from './pmlib'
 
 // ═══ КАРТОЧКА ПРОЕКТА: отчёты по неделям · план и этапы · детали ═══
-export default function ProjectModal({ project: p, allProjects, steps, comments, profile, ce, people, onClose, onOpen, onNewSub, reload, initialTab }) {
+export default function ProjectModal({ project: p, allProjects, steps, comments, profile, ce, people, onClose, onOpen, onNewSub, reload, initialTab, sales }) {
   const [tab, setTab] = useState(initialTab || 'reports')
   const [se, setSe] = useState(null)
   const subs = allProjects.filter((x) => x.parent_id === p.id && !x.archived_at)
@@ -23,7 +24,7 @@ export default function ProjectModal({ project: p, allProjects, steps, comments,
     if (error) alert(T('Ошибка: ') + error.message); else reload()
   }
 
-  const tabs = [['reports', T('Отчёты по неделям') + (famComments.length ? ' · ' + famComments.length : '')], ['plan', T('План и этапы') + (mySteps.length ? ' · ' + mySteps.length : '')], ['info', T('Детали')]]
+  const tabs = [['reports', T('Отчёты по неделям') + (famComments.length ? ' · ' + famComments.length : '')], ['plan', T('План и этапы') + (mySteps.length ? ' · ' + mySteps.length : '')], ['sales', T('Продажи')], ['info', T('Детали')]]
   return <>
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,.34)', zIndex: 1000 }} />
     <div role="dialog" aria-label={p.name} style={{ position: 'fixed', top: 28, bottom: 28, left: '50%', transform: 'translateX(-50%)', width: 'min(1120px, 96vw)', background: '#fff', borderRadius: 20, zIndex: 1001, boxShadow: '0 24px 64px rgba(16,24,40,.22)', display: 'flex', flexDirection: 'column', overflow: 'hidden', color: C.ink }}>
@@ -49,6 +50,7 @@ export default function ProjectModal({ project: p, allProjects, steps, comments,
       <div style={{ flex: 1, overflow: 'auto', padding: '22px 28px' }}>
         {tab === 'reports' && <Reports p={p} fam={fam} famComments={famComments} steps={steps} profile={profile} ce={ce} reload={reload} onOpen={onOpen} />}
         {tab === 'plan' && <Plan p={p} mySteps={mySteps} subs={subs} steps={steps} comments={comments} ce={ce} onEdit={setSe} onOpen={onOpen} onNewSub={onNewSub} reload={reload} />}
+        {tab === 'sales' && <SalesTab p={p} sales={sales || []} isA={profile.role === 'admin'} reload={reload} />}
         {tab === 'info' && <Info p={p} subs={subs} ce={ce} isA={profile.role === 'admin'} people={people} upProj={upProj} onOpen={onOpen} allProjects={allProjects} comments={comments} onClose={onClose} reload={reload} />}
       </div>
     </div>

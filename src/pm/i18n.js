@@ -4,6 +4,20 @@ try { LANG = localStorage.getItem('lh_lang') || 'ru' } catch (e) {}
 export const getLang = () => LANG
 export const setLang = (l) => { try { localStorage.setItem('lh_lang', l) } catch (e) {} window.location.reload() }
 const EN = {
+"Продажи": "Sales",
+"Цель": "Target",
+"Продажи вносят администраторы": "Sales are entered by admins",
+"Ты можешь вносить продажи": "You can enter sales",
+"Заполни «Было (до проекта)» во вкладке «Детали», чтобы считались изменение и выполнение цели.": "Fill in “Before (baseline)” in Details so change and target completion are calculated.",
+"Продажи проектов за месяц": "Project sales this month",
+"внесено по": "entered for",
+"продажи": "sales",
+"к «было»": "vs before",
+"Проект": "Project",
+"Было": "Before",
+"Изменение": "Change",
+"Выполнение цели": "Target completion",
+
 "Предыдущая неделя": "Previous week",
 "Следующая неделя": "Next week",
 "+ новая неделя": "+ new week",
