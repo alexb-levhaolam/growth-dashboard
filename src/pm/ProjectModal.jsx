@@ -59,11 +59,11 @@ function Reports({ p, fam, famComments, profile, ce, reload, onOpen }) {
   const weeks = recentWeeks(3)
   const mineFor = (ws) => famComments.find((c) => c.project_id === p.id && c.week_start === ws && c.author === profile.name && c.source !== 'sheet')
   const fromC = (c) => ({ text: c?.full_text || '', link: c?.link || '', clickup: c?.clickup_url || '', images: c?.images || [], health: c?.health || 'green' })
-  const [wk, setWk] = useState(weeks[0]); const [f, setF] = useState(fromC(mineFor(weeks[0]))); const [busy, setBusy] = useState(false)
+  const [wk, setWk] = useState(weeks[0]); const [f, setF] = useState(fromC(mineFor(weeks[0]))); const [busy, setBusy] = useState(false); const [ok, setOk] = useState(false)
   const pickWeek = (ws) => { setWk(ws); setF(fromC(mineFor(ws))) }
   const save = async () => { if (!f.text.trim()) { alert('Напиши, что сделано за неделю'); return } setBusy(true)
     const { error } = await saveReport({ existing: mineFor(wk), projectId: p.id, weekStart: wk, author: profile.name, f }); setBusy(false)
-    if (error) alert('Ошибка: ' + error.message); else reload() }
+    if (error) alert('Отчёт не сохранён: ' + error.message); else { setOk(true); setTimeout(() => setOk(false), 3000); reload() } }
   const byWeek = {}; famComments.forEach((c) => { (byWeek[c.week_start] = byWeek[c.week_start] || []).push(c) })
   const wkKeys = Object.keys(byWeek).sort((a, b) => b.localeCompare(a))
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 840 }}>
@@ -82,7 +82,7 @@ function Reports({ p, fam, famComments, profile, ce, reload, onOpen }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <PhotoAttach folder={`projects/${p.id}/${wk}`} images={f.images} onChange={(images) => setF({ ...f, images })} />
-        <button onClick={save} disabled={busy} style={btn(true)}>{busy ? 'Сохраняю…' : mineFor(wk) ? 'Сохранить изменения' : 'Сохранить отчёт'}</button>
+        <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>{ok && <span style={{ fontSize: 13, color: '#2C6B21', fontWeight: 600 }}>✓ Сохранено</span>}<button onClick={save} disabled={busy} style={btn(true)}>{busy ? 'Сохраняю…' : mineFor(wk) ? 'Сохранить изменения' : 'Сохранить отчёт'}</button></span>
       </div>
     </div>}
     {!wkKeys.length && <span style={{ fontSize: 14, color: C.ink4 }}>Отчётов пока нет.</span>}

@@ -36,30 +36,31 @@ export default function MyReport({ projects, steps, comments, profile, ce, onOpe
 function ReportCard({ p, ws, step, existing, profile, ce, onOpen, reload }) {
   const [edit, setEdit] = useState(!existing)
   const [f, setF] = useState({ text: existing?.full_text || '', link: existing?.link || '', clickup: existing?.clickup_url || '', images: existing?.images || [], health: existing?.health || 'green', stepDone: false })
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(false); const [saved, setSaved] = useState(null)
+  const shown = saved || existing
   const save = async () => {
     if (!f.text.trim()) { alert('Напиши, что сделано за неделю'); return }
     setBusy(true)
     const { error } = await saveReport({ existing, projectId: p.id, weekStart: ws, author: profile.name, f })
     if (!error && step && step.status !== 'done') { const st = f.stepDone ? 'done' : f.health === 'green' ? 'doing' : 'risk'; if (st !== step.status) await supabase.from('project_steps').update({ status: st, updated_at: new Date().toISOString() }).eq('id', step.id) }
     setBusy(false)
-    if (error) { alert('Ошибка: ' + error.message); return }
-    setEdit(false); reload()
+    if (error) { alert('Отчёт не сохранён: ' + error.message); return }
+    setSaved({ ...(existing || {}), full_text: f.text.trim(), link: f.link, clickup_url: f.clickup, images: f.images, health: f.health }); setEdit(false); reload()
   }
-  return <div style={{ background: '#fff', border: `1px solid ${C.line}`, borderRadius: 16, padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14, boxShadow: `inset 4px 0 0 ${existing ? '#6DBB5A' : '#F79009'}` }}>
+  return <div style={{ background: '#fff', border: `1px solid ${C.line}`, borderRadius: 16, padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14, boxShadow: `inset 4px 0 0 ${shown ? '#6DBB5A' : '#F79009'}` }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.ink4 }}><Dot color={DIR_COLORS[catOf(p)]} />{p.id} · {dirLabel(p)}</span>
         <button onClick={() => onOpen(p.id)} style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontSize: 17, fontWeight: 600, color: C.ink, cursor: 'pointer', fontFamily: 'inherit' }}>{p.name}</button>
         <span style={{ fontSize: 13, color: C.ink3 }}>{step ? `Этап в эти даты: ${step.name} (${dm(step.start_date)} – ${dm(step.end_date)})` : 'Этапы не заданы'}</span>
       </div>
-      {existing ? <Pill cfg={['Отчёт готов', '#DFF1D8', '#2C6B21']} /> : <Pill cfg={['Нужен отчёт', '#FEF0C7', '#B54708']} />}
+      {shown ? <Pill cfg={['Отчёт готов', '#DFF1D8', '#2C6B21']} /> : <Pill cfg={['Нужен отчёт', '#FEF0C7', '#B54708']} />}
     </div>
-    {!edit && existing && <div style={{ background: '#F7F9FA', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {existing.health && <span><Pill cfg={HEALTH[existing.health]} small /></span>}
-      <span style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{existing.full_text}</span>
-      <Chips c={existing} />
-      {(existing.images || []).length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{existing.images.map((im, i) => <img key={i} src={im.url} alt={im.name || ''} style={{ width: 120, height: 84, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.line}` }} />)}</div>}
+    {!edit && shown && <div style={{ background: '#F7F9FA', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{shown.health && <Pill cfg={HEALTH[shown.health]} small />}{saved && <span style={{ fontSize: 12, color: '#2C6B21', fontWeight: 600 }}>✓ Сохранено</span>}</span>
+      <span style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{shown.full_text}</span>
+      <Chips c={shown} />
+      {(shown.images || []).length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{shown.images.map((im, i) => <img key={i} src={im.url} alt={im.name || ''} style={{ width: 120, height: 84, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.line}` }} />)}</div>}
       {ce && <button onClick={() => setEdit(true)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, color: C.blue, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Изменить отчёт</button>}
     </div>}
     {edit && ce && <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

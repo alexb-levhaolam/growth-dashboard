@@ -104,6 +104,10 @@ export function Chips({ c }) {
 export async function saveReport({ existing, projectId, weekStart, author, f }) {
   const text = f.text.trim()
   const row = { full_text: text, summary: text.length > 120 ? text.slice(0, 117) + '…' : text, health: f.health || 'green', link: (f.link || '').trim(), clickup_url: (f.clickup || '').trim(), images: f.images || [], updated_at: new Date().toISOString() }
-  if (existing) return supabase.from('project_comments').update({ ...row, manual: true }).eq('id', existing.id)
-  return supabase.from('project_comments').insert({ ...row, project_id: projectId, author, week_start: weekStart })
+  const res = existing
+    ? await supabase.from('project_comments').update(row).eq('id', existing.id).select('id')
+    : await supabase.from('project_comments').insert({ ...row, project_id: projectId, author, week_start: weekStart }).select('id')
+  if (res.error) return { error: res.error }
+  if (!res.data || !res.data.length) return { error: { message: 'запись не сохранилась — у твоей роли нет прав на запись в project_comments (RLS). Напиши Alex.' } }
+  return { error: null, id: res.data[0].id }
 }
