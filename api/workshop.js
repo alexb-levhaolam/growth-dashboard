@@ -75,7 +75,7 @@ async function runSync(tabs, sb) {
       workshop_id: T, name: p.name, owner: p.owner || '—', category: CAT[String(p.stage || '').split(',')[0].trim()] || 'other',
       last_update: String(p.brief || '').trim() || String(p.desc || '').trim().slice(0, 400),
       date_start: starts[0] ? iso(starts[0]) : null, date_done: ends.length ? iso(ends[ends.length - 1]) : null,
-      expected_sales: p.expTotal ?? p.exp ?? 0,
+      expected_sales: p.expTotal ?? p.exp ?? 0, baseline: p.base ?? null,
       workshop_subs: subs.map((s) => ({ id: s.id, name: s.name, owner: s.owner, exp: s.exp ?? 0 })),
       workshop_synced_at: now,
     };
@@ -116,7 +116,7 @@ async function runSync(tabs, sb) {
     for (const s of subs) {
       const sSteps = steps[s.id] || []; const ss = sSteps.map((x) => x.start).sort((a, b) => a - b), se = sSteps.map((x) => x.end).sort((a, b) => a - b);
       const sf = { workshop_id: s.id, name: s.name || s.id, owner: s.owner || row.owner || '—', parent_id: row.id, category: CAT[String(s.stage || '').split(',')[0].trim()] || row.category || 'other',
-        description: String(s.desc || s.brief || '').trim().slice(0, 2000), expected_sales: s.exp ?? null, date_start: ss[0] ? iso(ss[0]) : null, date_done: se.length ? iso(se[se.length - 1]) : null, workshop_synced_at: now };
+        description: String(s.desc || s.brief || '').trim().slice(0, 2000), expected_sales: s.exp ?? null, baseline: byPid[s.id]?.base ?? null, date_start: ss[0] ? iso(ss[0]) : null, date_done: se.length ? iso(se[se.length - 1]) : null, workshop_synced_at: now };
       let sr = byWs[s.id] || byId[s.id] || s.oldIds.map((o) => byId[o]).find(Boolean);
       if (sr) { const man = new Set(Array.isArray(sr.manual_fields) ? sr.manual_fields : []); const upd = {}; Object.keys(sf).forEach((k) => { if (!man.has(k)) upd[k] = sf[k]; });
         const { error } = await sb.from('projects').update(upd).eq('id', sr.id); if (error) throw new Error(`${s.id}: ${error.message}`); sr = { ...sr, ...upd }; }
@@ -142,6 +142,21 @@ async function runSync(tabs, sb) {
   }
   const sheetIds = new Set(topIds);
   plan.forEach((p) => { if (p.parent) sheetIds.add(p.id); });
+  // продажи проектов по месяцам из Monthly Report → project_sales (значения, внесённые в дашборде вручную, не трогаем)
+  try {
+    const monthIdx = mrHead.map((h, i) => [h, i]).filter(([h]) => /^\d{4}-\d{2}$/.test(h));
+    const { data: allp } = await sb.from('projects').select('id,workshop_id');
+    const pidOf = {}; (allp || []).forEach((p) => { if (p.workshop_id) pidOf[p.workshop_id] = p.id; pidOf[p.id] = pidOf[p.id] || p.id; });
+    const want = [];
+    mv.slice(1).forEach((r) => { const wid = String(r[iId] || '').trim(); const pid = pidOf[wid]; if (!wid || !pid || /^(TOTAL|PLAN)/.test(String(r[iProj] || ''))) return;
+      monthIdx.forEach(([m, i]) => { const v = num(r[i]); if (v != null) want.push({ project_id: pid, month: m, sales: Math.round(v), updated_at: now }); }); });
+    const { data: oldS, error: ose } = await sb.from('project_sales').select('project_id,month,manual');
+    if (ose) throw new Error(ose.message);
+    const locked = new Set((oldS || []).filter((o) => o.manual).map((o) => o.project_id + '|' + o.month));
+    const toWrite = want.filter((w) => !locked.has(w.project_id + '|' + w.month));
+    for (let k = 0; k < toWrite.length; k += 500) { const { error } = await sb.from('project_sales').upsert(toWrite.slice(k, k + 500), { onConflict: 'project_id,month' }); if (error) throw new Error(error.message); }
+    res.sales = toWrite.length;
+  } catch (e) { res.salesError = String(e.message || e); }
   res.notInSheet = (projects || []).filter((p) => p.workshop_id && !sheetIds.has(p.workshop_id)).map((p) => p.workshop_id);
   return res;
 }
