@@ -56,14 +56,15 @@ async function runSync(tabs, sb) {
   const topIds = mv.slice(1).map((r) => String(r[iId] || '').trim()).filter((id, i) => id && !/^(TOTAL|PLAN)/.test(String(mv[i + 1][iProj] || '')));
   const steps = {};
   objs(tv).forEach((o) => { const id = String(o.ID || '').trim(); const start = parseDate(o.Start), end = parseDate(o.End); if (!id || !o.Step || !start) return;
-    (steps[id] = steps[id] || []).push({ id, n: String(o['Step #'] || '').trim(), name: String(o.Step).trim(), start, end: end || start, owner: String(o.Owner || '').trim(), wk: Array.from({ length: 10 }, (_, i) => String(o['Week ' + (i + 1)] || '').trim()) }); });
+    (steps[id] = steps[id] || []).push({ id, n: String(o['Step #'] || '').trim(), name: String(o.Step).trim(), start, end: end || start, owner: String(o.Owner || '').trim(), status: String(o.Status || '').trim(), notes: String(o.Notes || '').trim(), wk: Array.from({ length: 10 }, (_, i) => String(o['Week ' + (i + 1)] || '').trim()) }); });
 
   const { data: projects, error: pe } = await sb.from('projects').select('*');
   if (pe) throw new Error('projects: ' + pe.message);
   const byId = {}, byWs = {}; (projects || []).forEach((p) => { byId[p.id] = p; if (p.workshop_id) byWs[p.workshop_id] = p; });
   let maxSort = Math.max(0, ...(projects || []).map((p) => p.sort_order || 0));
   const today = iso(new Date()); const now = new Date().toISOString();
-  const res = { created: [], linked: [], updated: 0, comments: 0, removedComments: 0, toProgress: [], notInSheet: [] };
+  const res = { created: [], linked: [], updated: 0, comments: 0, removedComments: 0, toProgress: [], notInSheet: [], subsCreated: [], steps: 0, removedSteps: 0 };
+  const STEP_ST = (s) => { const v = s.toLowerCase(); if (/cancel/.test(v)) return null; if (/done|готов/.test(v)) return 'done'; if (/risk|риск|block/.test(v)) return 'risk'; if (/progress|работ/.test(v)) return 'doing'; return 'todo'; };
 
   for (const T of topIds) {
     const p = byPid[T]; if (!p) continue;
@@ -109,10 +110,36 @@ async function runSync(tabs, sb) {
     if (toWrite.length) { const { error } = await sb.from('project_comments').upsert(toWrite, { onConflict: 'ext_key' }); if (error) throw new Error(`comments ${T}: ${error.message}`); res.comments += toWrite.length; }
     const keep = new Set(want.map((w) => w.ext_key)); const stale = (old || []).filter((o) => !o.manual && !keep.has(o.ext_key)).map((o) => o.id);
     if (stale.length) { await sb.from('project_comments').delete().in('id', stale); res.removedComments += stale.length; }
+    // подпроекты из таблицы → отдельные проекты с parent_id (ручные правки в дашборде не трогаем)
+    const rowOf = { [T]: row };
+    for (const s of subs) {
+      const sSteps = steps[s.id] || []; const ss = sSteps.map((x) => x.start).sort((a, b) => a - b), se = sSteps.map((x) => x.end).sort((a, b) => a - b);
+      const sf = { workshop_id: s.id, name: s.name || s.id, owner: s.owner || row.owner || '—', parent_id: row.id, category: CAT[String(s.stage || '').split(',')[0].trim()] || row.category || 'other',
+        description: String(s.desc || s.brief || '').trim().slice(0, 2000), expected_sales: s.exp ?? null, date_start: ss[0] ? iso(ss[0]) : null, date_done: se.length ? iso(se[se.length - 1]) : null, workshop_synced_at: now };
+      let sr = byWs[s.id] || byId[s.id] || s.oldIds.map((o) => byId[o]).find(Boolean);
+      if (sr) { const man = new Set(Array.isArray(sr.manual_fields) ? sr.manual_fields : []); const upd = {}; Object.keys(sf).forEach((k) => { if (!man.has(k)) upd[k] = sf[k]; });
+        const { error } = await sb.from('projects').update(upd).eq('id', sr.id); if (error) throw new Error(`${s.id}: ${error.message}`); sr = { ...sr, ...upd }; }
+      else { sr = { id: s.id, ...sf, status: sSteps.some((x) => STEP_ST(x.status) === 'doing') ? 'progress' : 'wait', priority: 'current', sort_order: ++maxSort };
+        const { error } = await sb.from('projects').insert(sr); if (error) throw new Error(`${s.id}: ${error.message}`); res.subsCreated.push(s.id); byId[s.id] = sr; byWs[s.id] = sr; }
+      rowOf[s.id] = sr;
+    }
+    // этапы из Timeline → project_steps (этапы, изменённые или удалённые в дашборде, не трогаем)
+    const wantSteps = [];
+    for (const id of [T, ...subs.map((s) => s.id)]) for (const s of steps[id] || []) { const st = STEP_ST(s.status); if (!st) continue;
+      wantSteps.push({ project_id: rowOf[id].id, name: s.name, description: s.notes || '', start_date: iso(s.start), end_date: iso(s.end < s.start ? s.start : s.end), owner: s.owner || byPid[id]?.owner || '', status: st, sort_order: parseInt(s.n, 10) || 0, source: 'sheet', ext_key: `st|${id}|${s.n}`, updated_at: now }); }
+    const famIds = Object.values(rowOf).map((r) => r.id);
+    const { data: oldSteps, error: ose } = await sb.from('project_steps').select('id,ext_key,manual,hidden').in('project_id', famIds).eq('source', 'sheet');
+    if (ose) throw new Error('project_steps: ' + ose.message + ' — выполни SQL для шага 2');
+    const lockedSteps = new Set((oldSteps || []).filter((o) => o.manual || o.hidden).map((o) => o.ext_key));
+    const stepsToWrite = wantSteps.filter((w) => !lockedSteps.has(w.ext_key));
+    if (stepsToWrite.length) { const { error } = await sb.from('project_steps').upsert(stepsToWrite, { onConflict: 'ext_key' }); if (error) throw new Error(`steps ${T}: ${error.message}`); res.steps += stepsToWrite.length; }
+    const keepSteps = new Set(wantSteps.map((w) => w.ext_key)); const staleSteps = (oldSteps || []).filter((o) => !o.manual && !o.hidden && !keepSteps.has(o.ext_key)).map((o) => o.id);
+    if (staleSteps.length) { await sb.from('project_steps').delete().in('id', staleSteps); res.removedSteps += staleSteps.length; }
     // автостатус: только «ожидание» → «в работе», при первом комментарии
     if ((row.status || 'wait') === 'wait' && !(row.manual_fields || []).includes('status') && want.some((w) => w.week_start <= today)) { await sb.from('projects').update({ status: 'progress' }).eq('id', row.id); res.toProgress.push(T); }
   }
   const sheetIds = new Set(topIds);
+  plan.forEach((p) => { if (p.parent) sheetIds.add(p.id); });
   res.notInSheet = (projects || []).filter((p) => p.workshop_id && !sheetIds.has(p.workshop_id)).map((p) => p.workshop_id);
   return res;
 }
