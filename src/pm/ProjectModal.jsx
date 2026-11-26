@@ -110,13 +110,13 @@ function Plan({ p, mySteps, subs, steps, ce, onEdit, onOpen, onNewSub, reload })
   const span = a ? Math.max(1, (parse(b) - parse(a)) / 864e5 + 1) : 1
   const pos = (s) => ({ left: ((parse(s.start_date) - parse(a)) / 864e5 / span * 100) + '%', width: Math.max(1.5, ((parse(s.end_date) - parse(s.start_date)) / 864e5 + 1) / span * 100) + '%' })
   const today = new Date(); const todayPos = a && today >= parse(a) && today <= parse(b) ? ((today - parse(a)) / 864e5 / span * 100) + '%' : null
-  const del = async (s) => { if (!confirm(`Удалить этап «${s.name}»? Он пропадёт из плана и отчётов. Отчёты проекта останутся.`)) return; const { error } = await supabase.from('project_steps').delete().eq('id', s.id); if (error) alert('Ошибка: ' + error.message); else reload() }
+  const del = async (s) => { if (!confirm(`Удалить этап «${s.name}»? Он пропадёт из плана и отчётов. Отчёты проекта останутся.`)) return; const { error } = s.source === 'sheet' ? await supabase.from('project_steps').update({ hidden: true, manual: true }).eq('id', s.id) : await supabase.from('project_steps').delete().eq('id', s.id); if (error) alert('Ошибка: ' + error.message); else reload() }
   const lastEnd = mySteps.length ? mySteps[mySteps.length - 1].end_date : iso(new Date())
   const newStep = () => onEdit({ project_id: p.id, name: '', description: '', start_date: iso(addDays(parse(lastEnd), 1)), end_date: iso(addDays(parse(lastEnd), 14)), owner: p.owner, status: 'todo' })
   const Row = ({ s, editable }) => { const c = SST[s.status] || SST.todo
     return <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 70px', gap: 12, alignItems: 'center', padding: '8px 0', borderBottom: `1px solid #F3F4F6` }}>
       <button onClick={() => editable && onEdit(s)} style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: editable ? 'pointer' : 'default', fontFamily: 'inherit', color: C.ink, minWidth: 0 }}>
-        <Dot color={c[3]} /><span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}><span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span><span style={{ fontSize: 11, color: C.ink4 }}>{dm(s.start_date)} – {dm(s.end_date)} · {s.owner || '—'} · {c[0]}</span></span>
+        <Dot color={c[3]} /><span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}><span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span><span style={{ fontSize: 11, color: C.ink4 }}>{dm(s.start_date)} – {dm(s.end_date)} · {s.owner || '—'} · {c[0]}{s.source === 'sheet' ? (s.manual ? ' · изменён в дашборде' : ' · из Workshop') : ''}</span></span>
       </button>
       <div style={{ position: 'relative', height: 22, background: '#F7F8F9', borderRadius: 6 }}>
         {todayPos && <span style={{ position: 'absolute', top: -2, bottom: -2, left: todayPos, width: 2, background: '#E5484D', opacity: 0.5 }} />}
@@ -188,9 +188,9 @@ export function StepEditor({ init, people, onClose, reload }) {
   const days = s.start_date && s.end_date ? (parse(s.end_date) - parse(s.start_date)) / 864e5 + 1 : 0
   const save = async () => { if (!s.name.trim()) { alert('Назови этап'); return } if (days < 1) { alert('Окончание раньше начала'); return } setBusy(true)
     const row = { name: s.name.trim(), description: s.description || '', start_date: s.start_date, end_date: s.end_date, owner: s.owner || '', status: s.status, updated_at: new Date().toISOString() }
-    const { error } = s.id ? await supabase.from('project_steps').update(row).eq('id', s.id) : await supabase.from('project_steps').insert({ ...row, project_id: s.project_id })
+    const { error } = s.id ? await supabase.from('project_steps').update(s.source === 'sheet' ? { ...row, manual: true } : row).eq('id', s.id) : await supabase.from('project_steps').insert({ ...row, project_id: s.project_id })
     setBusy(false); if (error) alert('Ошибка: ' + error.message); else { onClose(); reload() } }
-  const del = async () => { if (!confirm(`Удалить этап «${s.name}»?`)) return; const { error } = await supabase.from('project_steps').delete().eq('id', s.id); if (error) alert('Ошибка: ' + error.message); else { onClose(); reload() } }
+  const del = async () => { if (!confirm(`Удалить этап «${s.name}»?`)) return; const { error } = s.source === 'sheet' ? await supabase.from('project_steps').update({ hidden: true, manual: true }).eq('id', s.id) : await supabase.from('project_steps').delete().eq('id', s.id); if (error) alert('Ошибка: ' + error.message); else { onClose(); reload() } }
   const ownerOpts = Array.from(new Set([...people, s.owner].filter(Boolean)))
   return <Modal title={s.id ? 'Этап' : 'Новый этап'} width={540} onClose={onClose} footer={<>{s.id && <button onClick={del} style={{ ...btn(false), color: '#B42318', borderColor: '#FBD3CC', marginRight: 'auto' }}>Удалить этап</button>}<button onClick={onClose} style={btn(false)}>Отмена</button><button onClick={save} disabled={busy} style={btn(true)}>{busy ? 'Сохраняю…' : 'Сохранить'}</button></>}>
     <label style={label}>Название<input value={s.name} onChange={(e) => setS({ ...s, name: e.target.value })} placeholder="Например: Запуск теста" style={input} autoFocus /></label>

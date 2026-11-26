@@ -42,7 +42,7 @@ function ReportCard({ p, ws, step, existing, profile, ce, onOpen, reload }) {
     if (!f.text.trim()) { alert('Напиши, что сделано за неделю'); return }
     setBusy(true)
     const { error } = await saveReport({ existing, projectId: p.id, weekStart: ws, author: profile.name, f })
-    if (!error && step && step.status !== 'done') { const st = f.stepDone ? 'done' : f.health === 'green' ? 'doing' : 'risk'; if (st !== step.status) await supabase.from('project_steps').update({ status: st, updated_at: new Date().toISOString() }).eq('id', step.id) }
+    if (!error && step && step.status !== 'done') { const st = f.stepDone ? 'done' : f.health === 'green' ? 'doing' : 'risk'; if (st !== step.status) await supabase.from('project_steps').update({ status: st, updated_at: new Date().toISOString(), ...(step.source === 'sheet' ? { manual: true } : {}) }).eq('id', step.id) }
     setBusy(false)
     if (error) { alert('Отчёт не сохранён: ' + error.message); return }
     setSaved({ ...(existing || {}), full_text: f.text.trim(), link: f.link, clickup_url: f.clickup, images: f.images, health: f.health }); setEdit(false); reload()
