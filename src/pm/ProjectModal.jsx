@@ -17,7 +17,7 @@ export default function ProjectModal({ project: p, allProjects, steps, comments,
   const st = PST[p.status] || PST.wait
 
   // поля проекта; для проектов из Workshop отмечаем ручную правку, чтобы ночная синхронизация её не перезаписала
-  const SYNCED = ['name', 'owner', 'category', 'last_update', 'expected_sales', 'status']
+  const SYNCED = ['name', 'owner', 'category', 'last_update', 'expected_sales', 'status', 'baseline', 'description']
   const upProj = async (patch) => {
     const extra = p.workshop_id ? { manual_fields: Array.from(new Set([...(p.manual_fields || []), ...Object.keys(patch).filter((k) => SYNCED.includes(k))])) } : {}
     const { error } = await supabase.from('projects').update({ ...patch, ...extra }).eq('id', p.id)

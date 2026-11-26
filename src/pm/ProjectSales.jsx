@@ -9,7 +9,7 @@ const monthsBack = (n) => { const d = new Date(); return Array.from({ length: n 
 export const salesOf = (sales, pid, month) => { const r = sales.find((s) => s.project_id === pid && s.month === month); return r && r.sales != null ? r.sales : null }
 export async function saveSale(pid, month, val) {
   const v = String(val).replace(/\D/g, '')
-  const { error } = await supabase.from('project_sales').upsert({ project_id: pid, month, sales: v === '' ? null : +v, updated_at: new Date().toISOString() }, { onConflict: 'project_id,month' })
+  const { error } = await supabase.from('project_sales').upsert({ project_id: pid, month, sales: v === '' ? null : +v, manual: true, updated_at: new Date().toISOString() }, { onConflict: 'project_id,month' })
   if (error) alert(T('Не сохранилось: ') + error.message)
   return !error
 }
