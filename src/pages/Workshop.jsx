@@ -91,6 +91,7 @@ export default function Workshop({ ce }) {
   const [raw, setRaw] = useState(WS_MEM); const [err, setErr] = useState(''); const [loading, setLoading] = useState(!WS_MEM); const [refreshing, setRefreshing] = useState(false); const [syncInfo, setSyncInfo] = useState('')
   const [tab, setTab] = useState(['dash', 'road', 'monthly', 'quarter'].includes(P0.tab) ? P0.tab : 'dash'); const [stage, setStage] = useState(P0.stage || 'all'); const [owner, setOwner] = useState(P0.owner || 'all')
   const [q, setQ] = useState(''); const [ptype, setPtype] = useState('all')
+  const [mf, setMf] = useState({ st: [], growth: '', sort: 'exp' })
   const [hideNoDates, setHideNoDates] = useState(P0.hideNoDates ?? true); const [hideDone, setHideDone] = useState(P0.hideDone ?? true)
   const [details, setDetails] = useState(P0.details ?? false); const [hideEmpty, setHideEmpty] = useState(P0.hideEmpty ?? false)
   const [open, setOpen] = useState({}); const [closedGroups, setClosedGroups] = useState({}); const [popen, setPopen] = useState({}); const [cell, setCell] = useState(null)
@@ -111,7 +112,7 @@ export default function Workshop({ ce }) {
       const r = await fetch('/api/workshop?action=refresh', { method: 'POST', headers: { Authorization: 'Bearer ' + (session?.access_token || '') } })
       const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Ошибка обновления')
       const next = { tabs: d.tabs, fetchedAt: d.fetchedAt }; WS_MEM = next; setRaw(next)
-      setSyncInfo([d.created?.length && `новых проектов: ${d.created.length}`, d.linked?.length && `связано с 2026: ${d.linked.length}`, d.toProgress?.length && `«в работе»: ${d.toProgress.length}`, `комментариев недель: ${d.comments ?? 0}`, `этапов: ${d.steps ?? 0}`, d.subsCreated?.length && `новых подпроектов: ${d.subsCreated.length}`, d.stepsError && `⚠ этапы не перенесены: ${d.stepsError}`].filter(Boolean).join(' · '))
+      setSyncInfo([d.created?.length && `новых проектов: ${d.created.length}`, d.linked?.length && `связано с 2026: ${d.linked.length}`, d.toProgress?.length && `«в работе»: ${d.toProgress.length}`, `комментариев недель: ${d.comments ?? 0}`, `этапов: ${d.steps ?? 0}`, d.subsCreated?.length && `новых подпроектов: ${d.subsCreated.length}`, d.stepsError && `⚠ этапы не перенесены: ${d.stepsError}`, d.sales != null && `продаж по месяцам: ${d.sales}`, d.salesError && `⚠ продажи не перенесены: ${d.salesError}`].filter(Boolean).join(' · '))
     } catch (e) { if (!quiet) setErr(e.message) } finally { setRefreshing(false) }
   }
   useEffect(() => { if (!WS_MEM) load() }, [])
@@ -189,8 +190,14 @@ export default function Workshop({ ce }) {
     const i0 = Math.max(0, mi('2026-01')); const iEnd = mi('2027-12'); const iStart = iBase
     const series = D.months.slice(i0, iEnd + 1).map((k, j) => { const i = i0 + j; const pot = base != null && i >= iStart ? base + (potential - base) * (i - iStart) / Math.max(1, iEnd - iStart) : null; return { k, fact: TS[i], plan: PS[i], pot } })
     const maxC = Math.max(1, ...series.map((x) => Math.max(x.fact || 0, x.plan || 0, x.pot || 0))) * 1.05
-    const dirRows = D.pva.filter((r) => !/^Total/.test(r[0]) && (stage === 'all' || r[0] === stage))
-    const projRows = D.top.filter((t) => inStage(t.stage) && matchTop(t.id)).map((t) => { const p = D.byId[t.id] || {}; const exp = (p.expTotal ?? p.exp ?? t.exp) || 0; const b = t.base ?? p.base; const n = t.months[D.lastIdx]; return { t, exp, b, n, total: (b || 0) + exp, gr: b != null && n != null ? n - b : null } }).sort((a, b) => b.exp - a.exp)
+    const dirRows = D.pva.filter((r) => !/^Total/.test(r[0]))
+    const allRows = D.top.filter((t) => inStage(t.stage) && matchTop(t.id)).map((t) => { const p = D.byId[t.id] || {}; const exp = (p.expTotal ?? p.exp ?? t.exp) || 0; const b = t.base ?? p.base; const n = t.months[D.lastIdx]; const gr = b != null && n != null ? n - b : null; return { t, exp, b, n, total: (b || 0) + exp, gr, done: exp > 0 && gr != null ? Math.max(0, Math.min(100, gr / exp * 100)) : 0 } })
+    const statuses = Array.from(new Set(D.top.map((t) => String(t.status || '').trim()).filter(Boolean)))
+    const projRows = allRows.filter((r) => (!mf.st.length || mf.st.includes(String(r.t.status || '').trim())) && (!mf.growth || (mf.growth === 'up' ? r.gr > 0 : mf.growth === 'down' ? r.gr < 0 : !r.gr)))
+      .sort((a, b) => mf.sort === 'growth' ? (b.gr ?? -1e9) - (a.gr ?? -1e9) : mf.sort === 'done' ? b.done - a.done : mf.sort === 'base' ? (b.b || 0) - (a.b || 0) : b.exp - a.exp)
+    const sumExp = projRows.reduce((s, r) => s + r.exp, 0), sumGr = projRows.reduce((s, r) => s + (r.gr || 0), 0)
+    const hasF = mf.st.length || mf.growth || stage !== 'all' || owner !== 'all' || q
+    const fsel = { height: 32, border: `1px solid ${S.ln}`, borderRadius: 9, padding: '0 8px', fontSize: 13, background: '#fff', fontFamily: 'inherit' }
     const Big = ({ l, v, sub, color }) => <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 130 }}><span style={{ fontSize: 12, color: S.i3 }}>{l}</span><span style={{ fontSize: 28, fontWeight: 600, color: color || S.ink, lineHeight: 1.15 }}>{v}</span>{sub && <span style={{ fontSize: 12, color: S.i3 }}>{sub}</span>}</div>
     const th2 = { fontSize: 11, fontWeight: 600, color: S.i3, textAlign: 'right' }
     return <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -227,16 +234,24 @@ export default function Workshop({ ce }) {
         <div style={{ padding: '14px 20px 6px', fontSize: 16, fontWeight: 600 }}>По направлениям</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(6,1fr) 1.2fr', gap: 10, padding: '8px 20px', borderBottom: `1px solid ${S.ln}` }}><span style={{ ...th2, textAlign: 'left' }}>Направление</span>{['Baseline', 'Сейчас', '+Expected', 'Цель 2027', 'Прирост', '% цели'].map((h) => <span key={h} style={th2}>{h}</span>)}<span style={th2}>Health</span></div>
         {dirRows.map((r, i) => { const b = num(r[1]) || 0, n = num(r[2]), e = num(r[3]) || 0
-          return <div key={i} className="ws-row" style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(6,1fr) 1.2fr', gap: 10, padding: '11px 20px', fontSize: 14, borderBottom: '1px solid #F1F2F4', alignItems: 'center' }}>
+          return <div key={i} className="ws-row" onClick={() => setStage(stage === r[0] ? 'all' : r[0])} title="Показать меры этого направления" style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(6,1fr) 1.2fr', gap: 10, padding: '11px 20px', fontSize: 14, borderBottom: '1px solid #F1F2F4', alignItems: 'center', cursor: 'pointer', background: stage === r[0] ? '#F4FAF1' : undefined }}>
             <span style={{ fontWeight: 500 }}>{r[0]}</span><span style={{ textAlign: 'right' }}>{fmt(b)}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(n)}</span><span style={{ textAlign: 'right', color: '#3B6402' }}>+{fmt(e)}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(b + e)}</span><span style={{ textAlign: 'right' }}>{r[4] || '0'}</span><span style={{ textAlign: 'right' }}>{r[5]}</span><span style={{ textAlign: 'right' }}><span style={{ fontSize: 11, fontWeight: 600, color: S.i2, background: '#F1F2F4', borderRadius: 999, padding: '3px 9px', whiteSpace: 'nowrap' }}>{r[6]}</span></span>
           </div> })}
       </div></div>
 
       <div style={{ ...card, padding: 0 }}>
-        <div style={{ padding: '14px 20px 6px', display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}><span style={{ fontSize: 16, fontWeight: 600 }}>По мерам (проектам)</span><span style={{ fontSize: 12, color: S.i3 }}>отсортировано по ожидаемому вкладу · Сейчас = {mLbl(nowLbl)}</span></div>
+        <div style={{ padding: '14px 20px 6px', display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}><span style={{ fontSize: 16, fontWeight: 600 }}>По мерам (проектам)</span><span style={{ fontSize: 12, color: S.i3 }}>Показано {projRows.length} из {D.top.length} · ожидаемый вклад +{fmt(sumExp)} · фактический прирост {sumGr > 0 ? '+' : ''}{fmt(sumGr)} · Сейчас = {mLbl(nowLbl)}</span></div>
+        <div style={{ padding: '4px 20px 12px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', borderBottom: `1px solid ${S.ln}` }}>
+          <span style={{ fontSize: 12, color: S.i3 }}>Статус:</span>{statuses.map((s) => { const on = mf.st.includes(s); return <button key={s} onClick={() => setMf({ ...mf, st: on ? mf.st.filter((x) => x !== s) : [...mf.st, s] })} style={{ ...chipStyle(on), height: 30, fontSize: 12 }}>{s}</button> })}
+          <select value={mf.growth} onChange={(e) => setMf({ ...mf, growth: e.target.value })} aria-label="Прирост" style={fsel}><option value="">Любой прирост</option><option value="up">Растут</option><option value="down">Падают</option><option value="zero">Без изменений</option></select>
+          <select value={mf.sort} onChange={(e) => setMf({ ...mf, sort: e.target.value })} aria-label="Сортировка" style={fsel}><option value="exp">По ожидаемому вкладу</option><option value="growth">По приросту</option><option value="done">По выполнению</option><option value="base">По baseline</option></select>
+          {hasF && <button onClick={() => { setMf({ st: [], growth: '', sort: mf.sort }); setStage('all'); setOwner('all'); setQ('') }} style={{ height: 32, border: 'none', background: 'none', color: '#1761CB', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Сбросить фильтры</button>}
+          <span style={{ fontSize: 12, color: S.i3, marginLeft: 'auto' }}>Направление, владелец и поиск — фильтры вверху страницы</span>
+        </div>
         <div className="ws-scroll" style={{ overflow: 'auto', maxHeight: 'calc(100vh - 220px)' }}><div style={{ minWidth: 820 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '70px minmax(260px,3fr) repeat(5,1fr) 1.4fr', gap: 10, padding: '8px 20px', borderBottom: `1px solid ${S.ln}`, position: 'sticky', top: 0, background: '#fff', zIndex: 2 }}><span style={{ ...th2, textAlign: 'left' }}>ID</span><span style={{ ...th2, textAlign: 'left' }}>Мера</span>{['Baseline', 'Сейчас', '+Expected', 'Цель 2027', 'Прирост'].map((h) => <span key={h} style={th2}>{h}</span>)}<span style={{ ...th2, textAlign: 'left' }}>Выполнение</span></div>
-          {projRows.map(({ t, exp, b, n, total, gr }) => { const done = exp > 0 && gr != null ? Math.max(0, Math.min(100, gr / exp * 100)) : 0
+          {projRows.length === 0 && <div style={{ padding: 20, fontSize: 14, color: S.i3 }}>Ничего не найдено — измени фильтры.</div>}
+          {projRows.map(({ t, exp, b, n, total, gr, done }) => {
             return <div key={t.id} className="ws-row" style={{ display: 'grid', gridTemplateColumns: '70px minmax(260px,3fr) repeat(5,1fr) 1.4fr', gap: 10, padding: '10px 20px', fontSize: 13, borderBottom: '1px solid #F1F2F4', alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: S.i3 }}>{t.id}</span><span style={{ lineHeight: 1.35 }}>{t.name}<span style={{ display: 'block', fontSize: 11, color: S.i3 }}>{t.stage} · {t.status}</span></span>
               <span style={{ textAlign: 'right' }}>{fmt(b)}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(n)}</span><span style={{ textAlign: 'right', color: '#3B6402' }}>{exp ? '+' + fmt(exp) : '—'}</span><span style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(total)}</span>
