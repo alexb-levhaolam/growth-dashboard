@@ -23,6 +23,7 @@ import MyProjects, { NewProjectModal } from './pm/MyProjects'
 import ProjectModal from './pm/ProjectModal'
 import { MyPlan, TeamPlan } from './pm/Plans'
 import { getLang, setLang, T } from './pm/i18n'
+import WeekPicker from './pm/WeekPicker'
 
 export default function App(){const[session,setSession]=useState(null);const[profile,setProfile]=useState(null);const[loading,setLoading]=useState(true);useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setLoading(false)});const{data:{subscription}}=supabase.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe()},[]);useEffect(()=>{if(!session?.user)return setProfile(null);supabase.from('profiles').select('*').eq('id',session.user.id).single().then(({data})=>setProfile(data))},[session]);if(loading)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;if(!session)return<Login/>;if(!profile)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;return<Main profile={profile}/>}
 
@@ -100,22 +101,17 @@ function Main({profile}){
     {/* WEEKLY */}
     {page==='weekly'&&!rep&&<div style={{padding:40,textAlign:'center',color:S.i3}}>Нет отчётов. Создайте первый отчёт.</div>}
     {page==='weekly'&&rep&&<>
-      <div className='lh-plate' style={{background:'linear-gradient(180deg,#6E9B0E,#497B02)',borderRadius:14,padding:'32px 32px 28px',marginBottom:22}}>
+      <div className='lh-plate' style={{background:({green:'linear-gradient(180deg,#5C8A14,#3F6B08)',yellow:'linear-gradient(180deg,#C77A06,#A35F00)',red:'linear-gradient(180deg,#C8321D,#A3220F)'})[rep.status]||'linear-gradient(180deg,#5C8A14,#3F6B08)',borderRadius:14,padding:'32px 32px 28px',marginBottom:22,transition:'background .25s'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div style={{fontSize:14,letterSpacing:'.1em',textTransform:'uppercase',color:'#FAFAFA',fontWeight:600}}>Growth · еженедельный отчёт</div>
-          <span style={{fontSize:14,color:'#fff'}}>{profile.name}</span>
         </div>
         {rep&&<><h1 className='lh-title' style={{margin:'4px 0 0',fontSize:32,color:'#fff',fontWeight:700}}>Неделя <Ed value={rep.week_label} canEdit={ce} onSave={v=>upRep({week_label:v})} style={{fontSize:32,color:'#fff',fontWeight:700}}/></h1>
           <div style={{marginTop:8,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-            {ce?<select value={rep.status} onChange={e=>upRep({status:e.target.value})} style={{fontSize:14,fontWeight:500,padding:'8px 16px',borderRadius:999,border:'none',background:STATUS_CFG[rep.status]?.bg,color:STATUS_CFG[rep.status]?.tx,cursor:'pointer'}}>{Object.entries(STATUS_CFG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>:<Chip bg={STATUS_CFG[rep.status]?.bg} tx={STATUS_CFG[rep.status]?.tx}>{STATUS_CFG[rep.status]?.label}</Chip>}
+            {ce?<select value={rep.status} onChange={e=>upRep({status:e.target.value})} style={{fontSize:14,fontWeight:600,padding:'8px 16px',borderRadius:999,border:'none',background:'#fff',color:({green:'#3F6B08',yellow:'#A35F00',red:'#A3220F'})[rep.status]||'#16181B',cursor:'pointer'}}>{Object.entries(STATUS_CFG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>:<Chip bg={STATUS_CFG[rep.status]?.bg} tx={STATUS_CFG[rep.status]?.tx}>{STATUS_CFG[rep.status]?.label}</Chip>}
             <Ed value={rep.status_note} canEdit={ce} onSave={v=>upRep({status_note:v})} ph="Описание статуса..." style={{fontSize:16,color:'rgba(255,255,255,.8)'}}/>
           </div>
         </>}
-        <div style={{marginTop:10,display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
-          {reports.map((r,i)=><button key={r.id} onClick={()=>setWeek(i)} style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:14,fontWeight:i===aIdx?600:500,background:i===aIdx?'#fff':'rgba(255,255,255,.14)',color:i===aIdx?'#121416':'#FAFAFA'}}>{r.week_label}</button>)}
-          {ce&&<button onClick={createWeek} style={{padding:'4px 12px',borderRadius:14,border:'1px dashed rgba(255,255,255,.5)',cursor:'pointer',fontSize:14,fontWeight:500,background:'rgba(255,255,255,.14)',color:'#FAFAFA'}}>+ новая неделя</button>}
-          {isA&&rep&&<button onClick={deleteWeek} style={{padding:'6px 14px',borderRadius:8,border:'none',cursor:'pointer',fontSize:14,fontWeight:500,background:'rgba(255,99,63,.25)',color:'#FF8A6F',display:'flex',alignItems:'center',gap:6}}>✕ Удалить отчёт</button>}
-        </div>
+        <div style={{marginTop:14}}><WeekPicker reports={reports} aIdx={aIdx} setWeek={setWeek} onCreate={ce?createWeek:null} onDelete={isA&&rep?deleteWeek:null}/></div>
       </div>
       <div style={{display:'flex',gap:2,marginBottom:16,background:'#fff',borderRadius:12,padding:8,boxShadow:S.sh,overflowX:'auto'}} className="lh-tabs">
         {weeklyTabs.map(t=><button key={t.id} onClick={()=>setView(t.id)} style={{flex:'0 0 auto',padding:'8px 14px',border:'none',borderRadius:8,cursor:'pointer',fontSize:14,fontWeight:500,background:view===t.id?'#DDF0B5':'transparent',color:view===t.id?'#2F5200':'#585E65',whiteSpace:'nowrap'}}>{t.l}</button>)}
@@ -171,7 +167,10 @@ function Main({profile}){
 
     </div>
     {/* переключатель языка — справа сверху */}
-    <div role="group" aria-label="Language" style={{position:'fixed',top:12,right:16,zIndex:900,display:'flex',gap:2,background:'#fff',border:'1px solid #E4E6E9',borderRadius:9,padding:3,boxShadow:'0 1px 3px rgba(16,24,40,.06)'}}>{['ru','en'].map(l=><button key={l} onClick={()=>getLang()!==l&&setLang(l)} aria-pressed={getLang()===l} style={{height:26,minWidth:32,border:'none',borderRadius:7,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit',background:getLang()===l?'#1F3D2B':'transparent',color:getLang()===l?'#fff':'#8A9099'}}>{l.toUpperCase()}</button>)}</div>
+    <div style={{position:'fixed',top:12,right:16,zIndex:900,display:'flex',gap:10,alignItems:'center'}}>
+      <span title={T('Кто смотрит отчёт')} style={{display:'inline-flex',alignItems:'center',gap:8,background:'#fff',border:'1px solid #E4E6E9',borderRadius:999,padding:'3px 12px 3px 3px',fontSize:13,color:'#16181B',boxShadow:'0 1px 3px rgba(16,24,40,.06)'}}><span style={{width:24,height:24,borderRadius:'50%',background:'#DDF0B5',color:'#2F5200',fontSize:11,fontWeight:700,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{String(profile.name||'?').slice(0,1).toUpperCase()}</span>{profile.name}<span style={{color:'#8A9099'}}>· {T(isA?'администратор':ce?'редактор':'просмотр')}</span></span>
+      <div role="group" aria-label="Language" style={{display:'flex',gap:2,background:'#fff',border:'1px solid #E4E6E9',borderRadius:9,padding:3,boxShadow:'0 1px 3px rgba(16,24,40,.06)'}}>{['ru','en'].map(l=><button key={l} onClick={()=>getLang()!==l&&setLang(l)} aria-pressed={getLang()===l} style={{height:26,minWidth:34,border:getLang()===l?'1px solid #B9DE73':'1px solid transparent',borderRadius:7,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit',background:getLang()===l?'#DDF0B5':'transparent',color:getLang()===l?'#2F5200':'#6B717A'}}>{l.toUpperCase()}</button>)}</div>
+    </div>
     {/* карточка проекта и создание проекта (новая система) */}
     {pmOpen&&allProjects.find(x=>x.id===pmOpen)&&<ProjectModal key={pmOpen} initialTab={pmTab} project={allProjects.find(x=>x.id===pmOpen)} allProjects={allProjects} steps={steps} comments={comments} profile={profile} ce={ce} people={people} onClose={()=>{setPmOpen(null);setPmTab(null)}} onOpen={(id)=>{setPmTab(null);setPmOpen(id)}} onNewSub={(pid)=>setPmNew(pid)} reload={reload}/>}
     {pmNew!==null&&<NewProjectModal parentId={pmNew} allProjects={allProjects} people={people} profile={profile} onClose={()=>setPmNew(null)} onCreated={(id)=>{setPmNew(null);setPmOpen(id)}} reload={reload}/>}
