@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { weekEnd, S, STATUS_CFG, PROJ_ST, Chip, pct, DChip, PlanChip, CpoCompare, Label, Linkify, Ed, EdNum, EList, cpoAdsOf, cpoTotalOf, ImageUpload } from '../lib/ui'
 import Plan from './Plan'
+import WeekProjects from '../pm/WeekProjects'
 
 // ═══ OVERVIEW ═══
-function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily,recalcAll,mPlans,reload}){
+function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,refreshDaily,recalcAll,mPlans,reload,steps,isA,onOpen}){
   if(!rep)return<div style={{padding:40,textAlign:'center',color:S.i3}}>Выберите отчёт</div>;const m=rep.metrics||{};const ch=rep.channels||[];const daily=rep.daily_data||[]
   const DEFAULT_HIDDEN=['Reddit','Pinterest','Rumble','TikTok']
   const visCh=rep.visible_channels||(ch.map(c=>c.name).filter(n=>!DEFAULT_HIDDEN.includes(n)))
@@ -155,21 +156,7 @@ function Overview({rep,reports,projects,comments,ce,up,tTasks,tProgress,print,re
         </div>})}
     </div>
 
-        {(()=>{const visIds=rep.visible_overview_projects||[];const visibleProjects=projects.filter(p=>p.status!=='done'&&visIds.includes(p.id))
-    return visibleProjects.length>0&&<>
-    <Label>Приоритетные проекты</Label>
-    <div className='lh-tasks lh-grid3' style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
-      {visibleProjects.map(p=>{const ps=PROJ_ST[p.status]||PROJ_ST.wait;const lc=comments.find(c=>c.project_id===p.id&&c.week_start===rep.week_start);const txt=lc?(lc.full_text||lc.summary||''):'';const isLong=txt.length>150;const isFull=expandedComm[p.id]
-        return<div key={p.id} style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'16px 18px',borderLeft:p.status==='risk'||p.status==='blocked'?'3px solid #DD2A02':'none',borderRadius:p.status==='risk'||p.status==='blocked'?'0 14px 14px 0':14}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,marginBottom:6}}><span style={{fontSize:16,fontWeight:600,lineHeight:1.35}}>{p.name}</span><span style={{flexShrink:0}}><Chip bg={ps.bg} tx={ps.tx}>{ps.l}</Chip></span></div>
-          {p.last_update&&<div style={{fontSize:14,color:S.i2,marginBottom:8,lineHeight:1.4}}>{p.last_update.slice(0,100)}{p.last_update.length>100?'…':''}</div>}
-          {lc&&<div style={{borderTop:`1px solid ${S.ln}`,paddingTop:8,marginTop:4}}>
-            <div style={{fontSize:12,color:S.i3,marginBottom:4}}>{lc.author} · {weekEnd(lc.week_start)}</div>
-            <div style={{fontSize:14,color:S.i2,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{isFull||!isLong?<Linkify>{txt}</Linkify>:<><Linkify>{txt.slice(0,150).replace(/\*([^*]*)$/,'$1')}</Linkify>… <button onClick={()=>setExpandedComm(prev=>({...prev,[p.id]:true}))} style={{fontSize:12,color:'#1761CB',background:'none',border:'none',cursor:'pointer',fontWeight:500}}>ещё</button></>}</div>
-          </div>}
-        </div>})}
-    </div>
-    </>})()}
+        <WeekProjects rep={rep} projects={projects} steps={steps||[]} comments={comments} ce={ce} isA={isA} up={up} onOpen={onOpen||(()=>{})}/>
 
     <div style={{display:'flex',gap:12,marginBottom:12,flexWrap:'wrap'}}>
       <div style={{flex:1,background:'var(--g-25,#F7FBEA)',borderRadius:14,padding:'22px 16px'}}>
