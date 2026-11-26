@@ -22,6 +22,7 @@ import MyReport from './pm/MyReport'
 import MyProjects, { NewProjectModal } from './pm/MyProjects'
 import ProjectModal from './pm/ProjectModal'
 import { MyPlan, TeamPlan } from './pm/Plans'
+import { getLang, setLang, T } from './pm/i18n'
 
 export default function App(){const[session,setSession]=useState(null);const[profile,setProfile]=useState(null);const[loading,setLoading]=useState(true);useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{setSession(session);setLoading(false)});const{data:{subscription}}=supabase.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe()},[]);useEffect(()=>{if(!session?.user)return setProfile(null);supabase.from('profiles').select('*').eq('id',session.user.id).single().then(({data})=>setProfile(data))},[session]);if(loading)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;if(!session)return<Login/>;if(!profile)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:S.bg,color:S.i3}}>Загрузка...</div>;return<Main profile={profile}/>}
 
@@ -55,7 +56,7 @@ function Main({profile}){
 
   const people=Array.from(new Set([...team.filter(m=>m.active!==false).map(m=>m.name),...allProfiles.map(p=>p.name)].filter(Boolean))).sort()
   const NAV=[
-    ...(ce?[{sep:'Моя работа · beta'},{id:'pm-report',l:'Мой отчёт',ic:'pen'},{id:'pm-plan',l:'Мой план работ',ic:'bars'},{id:'pm-projects',l:'Мои проекты',ic:'cards'},{id:'pm-team',l:'План работ отдела',ic:'cells'}]:[]),
+    ...(ce?[{sep:T('Моя работа')+' · beta'},{id:'pm-report',l:T('Мой отчёт'),ic:'pen'},{id:'pm-plan',l:T('Мой план работ'),ic:'bars'},{id:'pm-projects',l:T('Мои проекты'),ic:'cards'},{id:'pm-team',l:T('План работ отдела'),ic:'cells'}]:[]),
     {sep:'Отчёты'},
     {id:'home',l:'Главная',ic:'home'},
     {id:'weekly',l:'Еженедельный',ic:'calendar'},
@@ -169,6 +170,8 @@ function Main({profile}){
     {page==='admin'&&isA&&<Admin profiles={allProfiles} projects={projects} reports={reports} aIdx={aIdx} reload={reload} rep={rep} upRep={upRep}/>}
 
     </div>
+    {/* переключатель языка — справа сверху */}
+    <div role="group" aria-label="Language" style={{position:'fixed',top:12,right:16,zIndex:900,display:'flex',gap:2,background:'#fff',border:'1px solid #E4E6E9',borderRadius:9,padding:3,boxShadow:'0 1px 3px rgba(16,24,40,.06)'}}>{['ru','en'].map(l=><button key={l} onClick={()=>getLang()!==l&&setLang(l)} aria-pressed={getLang()===l} style={{height:26,minWidth:32,border:'none',borderRadius:7,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit',background:getLang()===l?'#1F3D2B':'transparent',color:getLang()===l?'#fff':'#8A9099'}}>{l.toUpperCase()}</button>)}</div>
     {/* карточка проекта и создание проекта (новая система) */}
     {pmOpen&&allProjects.find(x=>x.id===pmOpen)&&<ProjectModal key={pmOpen} initialTab={pmTab} project={allProjects.find(x=>x.id===pmOpen)} allProjects={allProjects} steps={steps} comments={comments} profile={profile} ce={ce} people={people} onClose={()=>{setPmOpen(null);setPmTab(null)}} onOpen={(id)=>{setPmTab(null);setPmOpen(id)}} onNewSub={(pid)=>setPmNew(pid)} reload={reload}/>}
     {pmNew!==null&&<NewProjectModal parentId={pmNew} allProjects={allProjects} people={people} profile={profile} onClose={()=>setPmNew(null)} onCreated={(id)=>{setPmNew(null);setPmOpen(id)}} reload={reload}/>}

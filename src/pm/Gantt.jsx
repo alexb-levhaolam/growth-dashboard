@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
+import { T, L } from './i18n'
 import { supabase } from '../lib/supabase'
 import { C, SST, HEALTH, iso, parse, addDays, monday, dm, weekLabel } from './pmlib'
 
 // ═══ ГАНТ: полосы (с перетаскиванием) или клетки-недели ═══
-const MS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+const MS = [T('янв'), T('фев'), T('мар'), T('апр'), T('май'), T('июн'), T('июл'), T('авг'), T('сен'), T('окт'), T('ноя'), T('дек')]
 const DAY = 864e5
 export const ganttStart = (weeksBack = 4) => addDays(monday(new Date()), -7 * weeksBack)
 
@@ -38,7 +39,7 @@ export default function Gantt({ rows, weeks = 26, start, colW = 44, labelW = 280
       const patch = await new Promise((r) => setOver((o) => { r(o[d.s.id]); return o }))
       if (!patch) return
       const { error } = await supabase.from('project_steps').update({ ...patch, updated_at: new Date().toISOString(), ...(d.s.source === 'sheet' ? { manual: true } : {}) }).eq('id', d.s.id)
-      if (error) { alert('Не удалось сохранить даты: ' + error.message); setOver((o) => { const n = { ...o }; delete n[d.s.id]; return n }); return }
+      if (error) { alert(T('Не удалось сохранить даты: ') + error.message); setOver((o) => { const n = { ...o }; delete n[d.s.id]; return n }); return }
       if (onSaved) await onSaved(d.s, patch)
       setOver((o) => { const n = { ...o }; delete n[d.s.id]; return n }) }
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up)
@@ -76,7 +77,7 @@ function Bars({ r, sv, X, px, grid, todayX, editable, startDrag, showTip, hideTi
   return <div style={{ position: 'relative', flex: 1, height: h }}>
     {grid}
     <span style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 2, background: '#E5484D', opacity: 0.5, zIndex: 1, pointerEvents: 'none' }} />
-    {Object.entries(byWeek).map(([ws, list]) => { const x = X(ws); if (x < 0) return null; return <span key={ws} onMouseEnter={(e) => showTip(e, 'Неделя ' + weekLabel(ws), list.map((c) => (c.health ? HEALTH[c.health][0] + ' · ' : '') + c.author + ': ' + c.full_text).join('\n\n'))} onMouseLeave={hideTip}
+    {Object.entries(byWeek).map(([ws, list]) => { const x = X(ws); if (x < 0) return null; return <span key={ws} onMouseEnter={(e) => showTip(e, T('Неделя ') + weekLabel(ws), list.map((c) => (c.health ? HEALTH[c.health][0] + ' · ' : '') + c.author + ': ' + c.full_text).join('\n\n'))} onMouseLeave={hideTip}
       style={{ position: 'absolute', left: x, width: px * 7, top: h - 10, height: 10, display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'help', zIndex: 3 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.dark, boxShadow: '0 0 0 2px #fff' }} /></span> })}
     {steps.map((s) => { const c = SST[s.status] || SST.todo; const left = X(s.start_date); const w = Math.max(8, ((parse(s.end_date) - parse(s.start_date)) / DAY + 1) * px - 3); const can = editable && s.canEdit
       return <div key={s.id} title={`${s.name} · ${dm(s.start_date)} – ${dm(s.end_date)} · ${c[0]}${s.owner ? ' · ' + s.owner : ''}`} onPointerDown={(e) => (can ? startDrag(e, s, 'move') : null)} onClick={() => (!can && r.onStep ? r.onStep(s) : null)}
@@ -104,7 +105,7 @@ function Cells({ r, weeks, t0, colW, todayIdx, showTip, hideTip }) {
       if (h) { bg = HCELL[h]; col = '#fff' } else if (missing) { bg = '#F1F3F5'; sh = 'inset 0 0 0 1.5px #F5A524'; col = C.ink4 } else if (own.length) { bg = '#E9EEF5'; sh = 'inset 0 0 0 1px #D3DCE8'; col = '#6B7A90' }
       if (i === todayIdx) sh = (sh === 'none' ? '' : sh + ', ') + '0 0 0 2px #E5484D'
       const active = own.length || ups.length
-      const text = own.map(({ s, k }) => `Этап ${k + 1}: ${s.name} (${dm(s.start_date)} – ${dm(s.end_date)})`).join('\n') + (ups.length ? '\n\n' + ups.map((c) => (c.health ? '● ' + HEALTH[c.health][0] + ' · ' : '') + c.author + ': ' + c.full_text).join('\n\n') : missing ? '\n\nОтчёта за неделю нет' : own.length && !past ? '\n\nзапланировано' : '')
+      const text = own.map(({ s, k }) => L(`Этап ${k + 1}: ${s.name} (${dm(s.start_date)} – ${dm(s.end_date)})`, `Step ${k + 1}: ${s.name} (${dm(s.start_date)} – ${dm(s.end_date)})`)).join('\n') + (ups.length ? '\n\n' + ups.map((c) => (c.health ? '● ' + HEALTH[c.health][0] + ' · ' : '') + c.author + ': ' + c.full_text).join('\n\n') : missing ? '\n\n' + T('Отчёта за неделю нет') : own.length && !past ? '\n\n' + T('запланировано') : '')
       return <button key={i} aria-label={r.label + ' · ' + weekLabel(ws)} onMouseEnter={active ? (e) => showTip(e, r.label + ' · ' + weekLabel(ws), text.trim()) : undefined} onMouseLeave={hideTip} onClick={active && r.onCell ? () => { hideTip(); r.onCell(ups.length ? 'reports' : 'plan') } : undefined}
         style={{ position: 'relative', width: colW - (newStep ? 6 : 2), height: 28, margin: `0 1px 0 ${newStep ? 5 : 1}px`, flexShrink: 0, borderRadius: 5, border: 'none', padding: 0, fontSize: 10, lineHeight: '28px', cursor: active ? 'pointer' : 'default', background: bg, color: col, boxShadow: sh }}>
         {ends ? '◆' : ''}{ups.length > 0 && <span style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: '50%', background: C.dark, boxShadow: '0 0 0 1.5px #fff' }} />}
@@ -116,8 +117,8 @@ export function Legend({ cells }) {
   const sw = (bg, sh) => <span style={{ width: 18, height: 12, borderRadius: 3, background: bg, boxShadow: sh || 'none', display: 'inline-block' }} />
   const it = (el, l) => <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{el}{l}</span>
   return <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12, color: C.ink3, alignItems: 'center' }}>
-    {cells ? [it(sw(HCELL.green), 'По плану'), it(sw(HCELL.amber), 'Есть риск'), it(sw(HCELL.red), 'Проблема'), it(sw('#F1F3F5', 'inset 0 0 0 1.5px #F5A524'), 'отчёта нет'), it(sw('#E9EEF5', 'inset 0 0 0 1px #D3DCE8'), 'запланировано'), it(<span>◆</span>, 'конец этапа')]
+    {cells ? [it(sw(HCELL.green), T('По плану')), it(sw(HCELL.amber), T('Есть риск')), it(sw(HCELL.red), T('Проблема')), it(sw('#F1F3F5', 'inset 0 0 0 1.5px #F5A524'), T('отчёта нет')), it(sw('#E9EEF5', 'inset 0 0 0 1px #D3DCE8'), T('запланировано')), it(<span>◆</span>, T('конец этапа'))]
       : Object.values(SST).map((c) => it(sw(c[1], `inset 0 0 0 1px ${c[3]}`), c[0]))}
-    {it(<span style={{ width: 8, height: 8, borderRadius: '50%', background: C.dark, display: 'inline-block' }} />, 'есть отчёт — наведи, чтобы прочитать')}
+    {it(<span style={{ width: 8, height: 8, borderRadius: '50%', background: C.dark, display: 'inline-block' }} />, T('есть отчёт — наведи, чтобы прочитать'))}
   </div>
 }
