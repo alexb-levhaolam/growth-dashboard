@@ -47,7 +47,7 @@ export default function ProjectModal({ project: p, allProjects, steps, comments,
       <div style={{ flex: 1, overflow: 'auto', padding: '22px 28px' }}>
         {tab === 'reports' && <Reports p={p} fam={fam} famComments={famComments} steps={steps} profile={profile} ce={ce} reload={reload} onOpen={onOpen} />}
         {tab === 'plan' && <Plan p={p} mySteps={mySteps} subs={subs} steps={steps} ce={ce} onEdit={setSe} onOpen={onOpen} onNewSub={onNewSub} reload={reload} />}
-        {tab === 'info' && <Info p={p} subs={subs} ce={ce} people={people} upProj={upProj} onOpen={onOpen} />}
+        {tab === 'info' && <Info p={p} subs={subs} ce={ce} isA={profile.role === 'admin'} people={people} upProj={upProj} onOpen={onOpen} allProjects={allProjects} comments={comments} onClose={onClose} reload={reload} />}
       </div>
     </div>
     {se && <StepEditor init={se} people={people} onClose={() => setSe(null)} reload={reload} />}
@@ -142,7 +142,16 @@ function Plan({ p, mySteps, subs, steps, ce, onEdit, onOpen, onNewSub, reload })
 }
 
 // ─── детали ───
-function Info({ p, subs, ce, people, upProj, onOpen }) {
+function Info({ p, subs, ce, isA, people, upProj, onOpen, allProjects, comments, onClose, reload }) {
+  const hasHistory = comments.some((c) => c.project_id === p.id) || subs.length > 0 || !!p.workshop_id
+  const archive = async () => { if (!confirm(`Убрать «${p.name}» в архив? Проект и вся его история сохранятся, вернуть можно в «Архиве проектов».`)) return
+    const { error } = await supabase.from('projects').update({ archived_at: new Date().toISOString(), archive_reason: 'archived' }).eq('id', p.id); if (error) { alert('Ошибка: ' + error.message); return } onClose(); reload() }
+  const remove = async () => { if (!confirm(`Удалить «${p.name}» (${p.id}) навсегда? Этапы проекта тоже удалятся. Это нельзя отменить.`)) return
+    const { error } = await supabase.from('projects').delete().eq('id', p.id); if (error) { alert('Не удалось удалить: ' + error.message); return } onClose(); reload() }
+  const mergeFrom = async (srcId) => { const src = allProjects.find((x) => x.id === srcId); if (!src) return
+    if (!confirm(`Подтянуть историю «${src.name}» (${src.id}) в «${p.name}» (${p.id})?\n\nВсе отчёты старого проекта появятся здесь. Старый проект уйдёт в «Архив проектов → Объединённые», его можно разъединить обратно.`)) return
+    const { error } = await supabase.from('projects').update({ merged_into: p.id, archived_at: new Date().toISOString(), archive_reason: 'merged' }).eq('id', src.id); if (error) alert('Ошибка: ' + error.message); else reload() }
+  const mergeOpts = allProjects.filter((x) => x.id !== p.id && !x.archived_at && x.parent_id !== p.id).sort((a, b) => String(a.name).localeCompare(String(b.name)))
   const [d, setD] = useState({ name: p.name, description: p.description || '', owner: p.owner, category: p.category || 'other', expected_sales: p.expected_sales ?? '', baseline: p.baseline ?? '' })
   const dirty = d.name !== p.name || d.description !== (p.description || '') || d.owner !== p.owner || d.category !== (p.category || 'other') || String(d.expected_sales) !== String(p.expected_sales ?? '') || String(d.baseline) !== String(p.baseline ?? '')
   const save = () => upProj({ name: d.name.trim() || p.name, description: d.description, owner: d.owner, category: d.category, expected_sales: d.expected_sales === '' ? null : +d.expected_sales, baseline: d.baseline === '' ? null : +d.baseline })
@@ -160,6 +169,14 @@ function Info({ p, subs, ce, people, upProj, onOpen }) {
         <label style={label}>Было (до проекта)<input value={d.baseline} disabled={!ce} inputMode="numeric" onChange={(e) => setD({ ...d, baseline: e.target.value.replace(/\D/g, '') })} placeholder="—" style={input} /></label>
         <label style={label}>Доп. продажи в месяц<input value={d.expected_sales} disabled={!ce} inputMode="numeric" onChange={(e) => setD({ ...d, expected_sales: e.target.value.replace(/\D/g, '') })} placeholder="—" style={input} /></label>
       </div>
+      {ce && <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
+        <label style={label}>Подтянуть историю из старого проекта<select value="" onChange={(e) => mergeFrom(e.target.value)} style={input}><option value="">выбрать проект…</option>{mergeOpts.map((x) => <option key={x.id} value={x.id}>{x.name} · {x.id}</option>)}</select></label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={archive} style={btn(false)}>В архив</button>
+          {isA && <button onClick={remove} disabled={hasHistory} title={hasHistory ? 'У проекта есть история или подпроекты — его можно только убрать в архив' : ''} style={{ ...btn(false), color: '#B42318', borderColor: '#FBD3CC', opacity: hasHistory ? 0.45 : 1, cursor: hasHistory ? 'not-allowed' : 'pointer' }}>Удалить навсегда</button>}
+        </div>
+        <span style={{ fontSize: 12, color: C.ink4, lineHeight: 1.45 }}>Удалить навсегда можно только пустой проект (без отчётов, подпроектов и связи с Workshop) — например, созданный для теста. Всё остальное убирается в архив.</span>
+      </div>}
       {subs.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><span style={{ fontSize: 13, fontWeight: 600 }}>Подпроекты</span>{subs.map((s) => <button key={s.id} onClick={() => onOpen(s.id)} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, background: '#F9FAFB', border: `1px solid ${C.line}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', fontSize: 13, textAlign: 'left', fontFamily: 'inherit', color: C.ink }}><span>{s.id} · {s.name}</span><span style={{ color: C.ink4 }}>{s.owner}</span></button>)}</div>}
     </div>
   </div>
