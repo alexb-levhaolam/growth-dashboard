@@ -4,6 +4,8 @@ try { LANG = localStorage.getItem('lh_lang') || 'ru' } catch (e) {}
 export const getLang = () => LANG
 export const setLang = (l) => { try { localStorage.setItem('lh_lang', l) } catch (e) {} window.location.reload() }
 const EN = {
+"Нажми, чтобы изменить название": "Click to rename",
+"Зелёная точка — все отчёты готовы, жёлтая — есть недописанные.": "Green dot — all reports done, yellow — some missing.",
 "Продажи": "Sales",
 "Цель": "Target",
 "Продажи вносят администраторы": "Sales are entered by admins",

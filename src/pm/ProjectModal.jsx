@@ -37,7 +37,9 @@ export default function ProjectModal({ project: p, allProjects, steps, comments,
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Dot color={DIR_COLORS[catOf(p)]} />{dirLabel(p)}</span>
               {p.workshop_id && <span style={{ fontSize: 11, color: C.ink4 }}>{T('· из Workshop')}</span>}
             </div>
-            <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.25 }}>{p.name}</span>
+            {ce ? <input key={p.id + p.name} defaultValue={p.name} aria-label={T('Название')} title={T('Нажми, чтобы изменить название')} onBlur={(e) => { e.target.style.borderColor = 'transparent'; e.target.style.background = 'transparent'; const v = e.target.value.trim(); if (v && v !== p.name) upProj({ name: v }); else e.target.value = p.name }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }}
+              style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.25, border: '1px solid transparent', borderRadius: 8, padding: '2px 6px', margin: '0 0 0 -7px', background: 'transparent', color: C.ink, fontFamily: 'inherit', width: '100%' }} onFocus={(e) => { e.target.style.borderColor = '#B9DE73'; e.target.style.background = '#fff' }} />
+              : <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.25 }}>{p.name}</span>}
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
             <Pill cfg={st} />

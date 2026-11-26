@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { T, L } from './i18n'
+import WeekPicker from './WeekPicker'
 import { supabase } from '../lib/supabase'
 import { C, PST, HEALTH, DIR_COLORS, catOf, dirLabel, weekLabel, dm, recentWeeks, overlapsWeek, mineOf, Pill, Dot, btn, input, HealthPick, PhotoAttach, Chips, saveReport } from './pmlib'
 
@@ -20,9 +21,7 @@ export default function MyReport({ projects, steps, comments, profile, ce, onOpe
   return <div style={{ color: C.ink, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1000 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 640 }}><span style={{ fontSize: 26, fontWeight: 700 }}>{T('Мой отчёт за неделю')}</span><span style={{ fontSize: 14, color: C.ink3, lineHeight: 1.45 }}>{T('Каждый понедельник напиши, что сделано за прошедшую неделю по каждому своему проекту. Отчёт сразу попадает в проект и в отчёты отдела.')}</span></div>
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: C.ink4 }}>{T('Неделя')}
-        <select value={ws} onChange={(e) => setWs(e.target.value)} style={{ ...input, width: 'auto', height: 40, fontWeight: 600 }}>{weeks.map((w, i) => <option key={w} value={w}>{weekLabel(w)}{i === 0 ? T(' · прошлая') : ''}{wkStat(w)}</option>)}</select>
-      </label>
+      <WeekPicker light reports={weeks.slice().reverse().map((w) => { const st = wkStat(w); return { week_start: w, status: st === '' ? null : st.includes('✓') ? 'green' : 'yellow' } })} aIdx={weeks.length - 1 - weeks.indexOf(ws)} setWeek={(i) => setWs(weeks[weeks.length - 1 - i])} hint={T('Зелёная точка — все отчёты готовы, жёлтая — есть недописанные.')} />
     </div>
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       {stat(active.length + ' ' + (active.length === 1 ? T('проект') : active.length < 5 && active.length > 0 ? T('проекта') : T('проектов')) + T(' в эту неделю'), '#fff', C.ink2)}

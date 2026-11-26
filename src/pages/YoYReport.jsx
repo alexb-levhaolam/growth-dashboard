@@ -111,6 +111,8 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:14,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>CPO и Spend · {yr}</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
+          <ChRow label="CPO общий" field="cpo_total" yr1={yr} color1="#DD2A02" hideYtd/>
+          <ChRow label="CPO рекламы" field="cpo_ads" yr1={yr} color1="#1761CB" hideYtd/>
           <ChRow label="CPO Meta" field="cpo_meta" yr1={yr} color1="#FF6C1C"/>
           <ChRow label="CPO Google" field="cpo_google" yr1={yr} color1="#1761CB"/>
           <ChRow label="Spend Meta" field="spend_meta" yr1={yr} color1="#FF6C1C"/>
@@ -166,6 +168,8 @@ function YoYReport(){
       <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:24,overflowX:'auto'}}>
         <div style={{padding:'10px 16px',fontSize:14,fontWeight:600,color:S.i3,letterSpacing:'.06em',textTransform:'uppercase'}}>CPO · 2025 vs 2026</div>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:14,minWidth:800}}><thead><TH/></thead><tbody>
+          <ChRow label="CPO общий" field="cpo_total" yr1={2025} yr2={2026} color1="#9AA0A6" color2="#DD2A02" hideYtd/>
+          <ChRow label="CPO рекламы" field="cpo_ads" yr1={2025} yr2={2026} color1="#9AA0A6" color2="#1761CB" hideYtd/>
           <ChRow label="CPO Meta" field="cpo_meta" yr1={2025} yr2={2026} color1="#FF6C1C" color2="#F6360B"/>
           <ChRow label="CPO Google" field="cpo_google" yr1={2025} yr2={2026}/>
         </tbody></table>
