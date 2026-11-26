@@ -112,10 +112,7 @@ async function runSync(tabs, sb) {
     if (stale.length) { await sb.from('project_comments').delete().in('id', stale); res.removedComments += stale.length; }
     // подпроекты из таблицы → отдельные проекты с parent_id (ручные правки в дашборде не трогаем)
     const rowOf = { [T]: row };
-<<<<<<< HEAD
-=======
     try {
->>>>>>> main
     for (const s of subs) {
       const sSteps = steps[s.id] || []; const ss = sSteps.map((x) => x.start).sort((a, b) => a - b), se = sSteps.map((x) => x.end).sort((a, b) => a - b);
       const sf = { workshop_id: s.id, name: s.name || s.id, owner: s.owner || row.owner || '—', parent_id: row.id, category: CAT[String(s.stage || '').split(',')[0].trim()] || row.category || 'other',
@@ -139,10 +136,7 @@ async function runSync(tabs, sb) {
     if (stepsToWrite.length) { const { error } = await sb.from('project_steps').upsert(stepsToWrite, { onConflict: 'ext_key' }); if (error) throw new Error(`steps ${T}: ${error.message}`); res.steps += stepsToWrite.length; }
     const keepSteps = new Set(wantSteps.map((w) => w.ext_key)); const staleSteps = (oldSteps || []).filter((o) => !o.manual && !o.hidden && !keepSteps.has(o.ext_key)).map((o) => o.id);
     if (staleSteps.length) { await sb.from('project_steps').delete().in('id', staleSteps); res.removedSteps += staleSteps.length; }
-<<<<<<< HEAD
-=======
     } catch (e) { res.stepsError = res.stepsError || String(e.message || e); }
->>>>>>> main
     // автостатус: только «ожидание» → «в работе», при первом комментарии
     if ((row.status || 'wait') === 'wait' && !(row.manual_fields || []).includes('status') && want.some((w) => w.week_start <= today)) { await sb.from('projects').update({ status: 'progress' }).eq('id', row.id); res.toProgress.push(T); }
   }
