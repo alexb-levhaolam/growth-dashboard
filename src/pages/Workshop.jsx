@@ -111,7 +111,7 @@ export default function Workshop({ ce }) {
       const r = await fetch('/api/workshop?action=refresh', { method: 'POST', headers: { Authorization: 'Bearer ' + (session?.access_token || '') } })
       const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || 'Ошибка обновления')
       const next = { tabs: d.tabs, fetchedAt: d.fetchedAt }; WS_MEM = next; setRaw(next)
-      setSyncInfo([d.created?.length && `новых проектов: ${d.created.length}`, d.linked?.length && `связано с 2026: ${d.linked.length}`, d.toProgress?.length && `«в работе»: ${d.toProgress.length}`, `комментариев недель: ${d.comments ?? 0}`].filter(Boolean).join(' · '))
+      setSyncInfo([d.created?.length && `новых проектов: ${d.created.length}`, d.linked?.length && `связано с 2026: ${d.linked.length}`, d.toProgress?.length && `«в работе»: ${d.toProgress.length}`, `комментариев недель: ${d.comments ?? 0}`, `этапов: ${d.steps ?? 0}`, d.subsCreated?.length && `новых подпроектов: ${d.subsCreated.length}`, d.stepsError && `⚠ этапы не перенесены: ${d.stepsError}`].filter(Boolean).join(' · '))
     } catch (e) { if (!quiet) setErr(e.message) } finally { setRefreshing(false) }
   }
   useEffect(() => { if (!WS_MEM) load() }, [])

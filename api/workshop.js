@@ -112,6 +112,10 @@ async function runSync(tabs, sb) {
     if (stale.length) { await sb.from('project_comments').delete().in('id', stale); res.removedComments += stale.length; }
     // подпроекты из таблицы → отдельные проекты с parent_id (ручные правки в дашборде не трогаем)
     const rowOf = { [T]: row };
+<<<<<<< HEAD
+=======
+    try {
+>>>>>>> main
     for (const s of subs) {
       const sSteps = steps[s.id] || []; const ss = sSteps.map((x) => x.start).sort((a, b) => a - b), se = sSteps.map((x) => x.end).sort((a, b) => a - b);
       const sf = { workshop_id: s.id, name: s.name || s.id, owner: s.owner || row.owner || '—', parent_id: row.id, category: CAT[String(s.stage || '').split(',')[0].trim()] || row.category || 'other',
@@ -135,6 +139,10 @@ async function runSync(tabs, sb) {
     if (stepsToWrite.length) { const { error } = await sb.from('project_steps').upsert(stepsToWrite, { onConflict: 'ext_key' }); if (error) throw new Error(`steps ${T}: ${error.message}`); res.steps += stepsToWrite.length; }
     const keepSteps = new Set(wantSteps.map((w) => w.ext_key)); const staleSteps = (oldSteps || []).filter((o) => !o.manual && !o.hidden && !keepSteps.has(o.ext_key)).map((o) => o.id);
     if (staleSteps.length) { await sb.from('project_steps').delete().in('id', staleSteps); res.removedSteps += staleSteps.length; }
+<<<<<<< HEAD
+=======
+    } catch (e) { res.stepsError = res.stepsError || String(e.message || e); }
+>>>>>>> main
     // автостатус: только «ожидание» → «в работе», при первом комментарии
     if ((row.status || 'wait') === 'wait' && !(row.manual_fields || []).includes('status') && want.some((w) => w.week_start <= today)) { await sb.from('projects').update({ status: 'progress' }).eq('id', row.id); res.toProgress.push(T); }
   }
@@ -145,6 +153,8 @@ async function runSync(tabs, sb) {
 }
 
 const sbAdmin = () => createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY);
+const sbAsUser = (req) => { if (process.env.SUPABASE_SERVICE_KEY) return sbAdmin(); const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  return createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } }); };
 
 // Читаем таблицу целиком и кладём в кэш (Supabase → workshop_cache). Дашборд дальше читает кэш, а не Google.
 async function fetchSheet() {
@@ -174,7 +184,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && (req.query.action === 'refresh' || req.query.action === 'sync')) {
       const user = await requireUser(req);
       if (!user) return res.status(401).json({ error: 'Нужно войти в дашборд' });
-      const r = await refreshAll(sb); return res.json({ ok: true, tabs: r.tabs, fetchedAt: r.fetchedAt, ...r.sync });
+      const r = await refreshAll(sbAsUser(req)); return res.json({ ok: true, tabs: r.tabs, fetchedAt: r.fetchedAt, ...r.sync });
     }
     if (req.method === 'POST') {
       const user = await requireUser(req);
