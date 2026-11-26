@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/export-cron", "schedule": "0 14 * * 2" },
-    { "path": "/api/workshop?action=cron", "schedule": "0 22 * * *" }
+    { "path": "/api/workshop?action=cron", "schedule": "0 22 * * *" },
+    { "path": "/api/pm-remind?action=cron", "schedule": "0 10 * * 1" }
   ]
 }
