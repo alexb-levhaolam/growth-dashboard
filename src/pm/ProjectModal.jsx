@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { C, PST, SST, HEALTH, DIR_COLORS, PROJ_CATS, catOf, dirLabel, iso, parse, addDays, weekLabel, dm, recentWeeks, Avatar, Pill, Dot, btn, input, label, Modal, HealthPick, PhotoAttach, Chips, saveReport } from './pmlib'
+import Gantt, { ganttStart } from './Gantt'
+import { monday, C, PST, SST, HEALTH, DIR_COLORS, PROJ_CATS, catOf, dirLabel, iso, parse, addDays, weekLabel, dm, recentWeeks, Avatar, Pill, Dot, btn, input, label, Modal, HealthPick, PhotoAttach, Chips, saveReport } from './pmlib'
 
 // ═══ КАРТОЧКА ПРОЕКТА: отчёты по неделям · план и этапы · детали ═══
-export default function ProjectModal({ project: p, allProjects, steps, comments, profile, ce, people, onClose, onOpen, onNewSub, reload }) {
-  const [tab, setTab] = useState('reports')
+export default function ProjectModal({ project: p, allProjects, steps, comments, profile, ce, people, onClose, onOpen, onNewSub, reload, initialTab }) {
+  const [tab, setTab] = useState(initialTab || 'reports')
   const [se, setSe] = useState(null)
   const subs = allProjects.filter((x) => x.parent_id === p.id && !x.archived_at)
   const parent = p.parent_id ? allProjects.find((x) => x.id === p.parent_id) : null
@@ -46,7 +47,7 @@ export default function ProjectModal({ project: p, allProjects, steps, comments,
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: '22px 28px' }}>
         {tab === 'reports' && <Reports p={p} fam={fam} famComments={famComments} steps={steps} profile={profile} ce={ce} reload={reload} onOpen={onOpen} />}
-        {tab === 'plan' && <Plan p={p} mySteps={mySteps} subs={subs} steps={steps} ce={ce} onEdit={setSe} onOpen={onOpen} onNewSub={onNewSub} reload={reload} />}
+        {tab === 'plan' && <Plan p={p} mySteps={mySteps} subs={subs} steps={steps} comments={comments} ce={ce} onEdit={setSe} onOpen={onOpen} onNewSub={onNewSub} reload={reload} />}
         {tab === 'info' && <Info p={p} subs={subs} ce={ce} isA={profile.role === 'admin'} people={people} upProj={upProj} onOpen={onOpen} allProjects={allProjects} comments={comments} onClose={onClose} reload={reload} />}
       </div>
     </div>
@@ -103,7 +104,7 @@ function Reports({ p, fam, famComments, profile, ce, reload, onOpen }) {
 }
 
 // ─── план и этапы ───
-function Plan({ p, mySteps, subs, steps, ce, onEdit, onOpen, onNewSub, reload }) {
+function Plan({ p, mySteps, subs, steps, comments, ce, onEdit, onOpen, onNewSub, reload }) {
   const all = [...mySteps, ...subs.flatMap((s) => steps.filter((x) => x.project_id === s.id))]
   const a = all.length ? all.reduce((m, s) => (s.start_date < m ? s.start_date : m), all[0].start_date) : null
   const b = all.length ? all.reduce((m, s) => (s.end_date > m ? s.end_date : m), all[0].end_date) : null
@@ -129,6 +130,10 @@ function Plan({ p, mySteps, subs, steps, ce, onEdit, onOpen, onNewSub, reload })
       <span style={{ fontSize: 13, color: C.ink3 }}>{a ? `Сроки проекта: ${dm(a)} – ${dm(b)}. Клик по этапу — изменить название, описание, даты, исполнителя, статус.` : 'Этапов пока нет. Добавь первый.'}</span>
       {ce && <div style={{ display: 'flex', gap: 8 }}>{!p.parent_id && <button onClick={() => onNewSub(p.id)} style={btn(false)}>+ Подпроект</button>}<button onClick={newStep} style={btn(true)}>+ Этап</button></div>}
     </div>
+    {all.length > 0 && (() => { const gs = monday(new Date(Math.min(parse(a).getTime(), ganttStart(2).getTime()))); const wk = Math.min(60, Math.max(16, Math.ceil((parse(b) - gs) / 864e5 / 7) + 2))
+      const rows = [{ key: p.id, label: 'Этапы проекта', sub: p.id, onLabel: null, steps: mySteps.map((s) => ({ ...s, canEdit: ce })), comments: comments.filter((c) => c.project_id === p.id), onStep: onEdit },
+        ...subs.map((sp) => ({ key: sp.id, label: sp.name, sub: sp.id + ' · подпроект · ' + sp.owner, indent: 8, onLabel: () => onOpen(sp.id), steps: steps.filter((x) => x.project_id === sp.id), comments: comments.filter((c) => c.project_id === sp.id), onStep: () => onOpen(sp.id) }))]
+      return <Gantt rows={rows} start={gs} weeks={wk} colW={40} labelW={230} mode="bars" editable={ce} headLabel="Перетащи этап или потяни за край" onStepClick={onEdit} onSaved={() => reload()} /> })()}
     <div>{mySteps.map((s) => <Row key={s.id} s={s} editable={ce} />)}</div>
     {subs.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{ fontSize: 12, fontWeight: 600, color: C.ink4, textTransform: 'uppercase', letterSpacing: '.06em' }}>Подпроекты</span>
@@ -137,7 +142,6 @@ function Plan({ p, mySteps, subs, steps, ce, onEdit, onOpen, onNewSub, reload })
         {steps.filter((x) => x.project_id === sp.id).sort((x, y) => String(x.start_date).localeCompare(String(y.start_date))).map((s) => <Row key={s.id} s={s} editable={false} />)}
       </div>)}
     </div>}
-    <span style={{ fontSize: 12, color: C.ink4 }}>Гант с перетаскиванием этапов появится на шаге 2.</span>
   </div>
 }
 
