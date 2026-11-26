@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from './lib/supabase'
-import { weekEnd, S, STATUS_CFG, Chip, Ed } from './lib/ui'
+import { weekEnd, S, STATUS_CFG, Chip, Ed, cpoAdsOf, cpoTotalOf } from './lib/ui'
 import Login from './pages/Login'
 import Overview from './pages/Overview'
 import Tactical from './pages/Tactical'
@@ -91,7 +91,7 @@ function Main({profile}){
     <button className='lh-burger' onClick={()=>setMenuOpen(!menuOpen)} style={{display:'none',position:'fixed',top:12,left:12,zIndex:1001,width:40,height:40,borderRadius:8,border:'none',background:S.gd,color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>☰</button>
 
     {/* HOME */}
-    {page==='home'&&<Home profile={profile} rep={rep} projects={projects} comments={comments} mPlans={mPlans} navTo={navTo} isA={ce}/>}
+    {page==='home'&&<Home profile={profile} rep={rep} projects={projects} comments={comments} mPlans={mPlans} navTo={navTo} isA={ce} ce={ce} steps={steps} onOpen={(id)=>{setPmTab(null);setPmOpen(id)}}/>}
 
     {/* НОВАЯ СИСТЕМА · beta */}
     {page==='pm-report'&&ce&&<MyReport projects={projects} steps={steps} comments={comments} profile={profile} ce={ce} onOpen={setPmOpen} reload={reload}/>}
@@ -112,6 +112,11 @@ function Main({profile}){
             <Ed value={rep.status_note} canEdit={ce} onSave={v=>upRep({status_note:v})} ph="Описание статуса..." style={{fontSize:16,color:'rgba(255,255,255,.8)'}}/>
           </div>
         </>}
+        {(()=>{const m=rep.metrics||{};const ch=rep.channels||[];const wm=String(rep.week_start||'').slice(0,7);const mp=(mPlans||[]).find(p=>p.id===wm);const dim=wm?new Date(+wm.slice(0,4),+wm.slice(5,7),0).getDate():30
+          const pS=mp?.total_plan?Math.round(mp.total_plan/dim*7):m.planSales;const cA=m.cpoAdsOverride!=null?m.cpoAdsOverride:cpoAdsOf(ch);const cT=m.cpoTotalOverride!=null?m.cpoTotalOverride:cpoTotalOf(m);const bud=m.totalSpentBM;const pB=mp?.plan_budget?Math.round(mp.plan_budget/dim*7):null
+          const tiles=[['Продажи',m.totalSales,pS,false,v=>Math.round(v).toLocaleString('ru-RU')],['CPO рекламы',cA||null,mp?.plan_cpo_ads,true,v=>'$'+Math.round(v)],['CPO общий',cT||null,mp?.plan_cpo_total,true,v=>'$'+Math.round(v)],['Бюджет',bud||null,pB,true,v=>'$'+Math.round(v).toLocaleString('ru-RU')]]
+          return<div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:10,marginTop:16}} className="lh-grid3">{tiles.map(([l,v,p,lower,f])=>{const d=v!=null&&p?Math.round((v-p)/p*100):null;const w=v!=null&&p?Math.min(100,v/p/1.25*100):0
+            return<div key={l} style={{background:'rgba(255,255,255,.14)',borderRadius:12,padding:'12px 14px',display:'flex',flexDirection:'column',gap:4}}><span style={{fontSize:13,color:'rgba(255,255,255,.85)'}}>{l}</span><span style={{display:'flex',alignItems:'baseline',gap:8}}><span style={{fontSize:24,fontWeight:700,color:'#fff'}}>{v!=null?f(v):'—'}</span>{d!=null&&<span style={{fontSize:12,fontWeight:700,color:'#fff',background:'rgba(255,255,255,.2)',borderRadius:999,padding:'1px 7px'}}>{d>0?'+':''}{d}%</span>}</span>{p?<span style={{position:'relative',height:6,background:'rgba(255,255,255,.22)',borderRadius:999,marginTop:2}}><span style={{position:'absolute',left:0,top:0,bottom:0,width:w+'%',borderRadius:999,background:(lower?v<=p:v>=p)?'#fff':'#FFD2C7'}}/><span style={{position:'absolute',top:-3,bottom:-3,left:'80%',width:2,background:'#fff',borderRadius:1}}/></span>:null}<span style={{fontSize:12,color:'rgba(255,255,255,.75)'}}>{p?'план '+f(p):'план не задан'}</span></div>})}</div>})()}
         <div style={{marginTop:14}}><WeekPicker reports={reports} aIdx={aIdx} setWeek={setWeek} onCreate={ce?createWeek:null} onDelete={isA&&rep?deleteWeek:null}/></div>
       </div>
       <div style={{display:'flex',gap:2,marginBottom:16,background:'#fff',borderRadius:12,padding:8,boxShadow:S.sh,overflowX:'auto'}} className="lh-tabs">

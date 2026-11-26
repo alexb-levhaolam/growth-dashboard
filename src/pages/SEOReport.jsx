@@ -7,7 +7,7 @@ function SEOReport(){
   const[tab,setTab]=useState('weekly')
   const[wData,setWData]=useState([]);const[mData,setMData]=useState([])
   const[loading,setLoading]=useState(true);const[importing,setImporting]=useState(false)
-  const[expanded,setExpanded]=useState({})
+  const[expanded,setExpanded]=useState({});const[metric,setMetric]=useState('organic_visits')
 
   const load=async()=>{setLoading(true);const[w,m]=await Promise.all([supabase.from('seo_weekly').select('*').order('id',{ascending:false}),supabase.from('seo_monthly').select('*').order('id',{ascending:false})]);if(w.data)setWData(w.data);if(m.data)setMData(m.data);setLoading(false)}
   useEffect(()=>{load()},[])
@@ -42,6 +42,10 @@ function SEOReport(){
       {[{id:'weekly',l:'Недельный'},{id:'monthly',l:'Месячный'}].map(t=><button key={t.id} onClick={()=>{setTab(t.id);setExpanded({})}} style={chipStyle(tab===t.id)}>{t.l}</button>)}
       <button onClick={()=>importData(tab)} disabled={importing} style={{marginLeft:'auto',padding:'10px 18px',borderRadius:8,border:'none',background:S.gm,color:'#fff',fontSize:14,fontWeight:500,cursor:'pointer',opacity:importing?.5:1}}>{importing?'Импорт...':'Импорт из Google Sheet'}</button>
     </div>
+    {(()=>{const MET=[['organic_visits','Орг. визиты'],['organic_sales','Орг. продажи'],['ai_visits','ИИ визиты'],['ai_sales','ИИ продажи'],['gsc_impressions','GSC показы'],['gsc_clicks','GSC клики']];const last=sorted[sorted.length-1]||{},prev=sorted[sorted.length-2]||{};const f=v=>v==null?'—':v>=10000?Math.round(v/1000)+'k':Math.round(v).toLocaleString('ru-RU');const cur=MET.find(m=>m[0]===metric)||MET[0]
+      return<><div style={{display:'grid',gridTemplateColumns:'repeat(6,minmax(0,1fr))',gap:10,marginBottom:14}} className="lh-grid3">{MET.map(([k,l])=>{const d=pct(last[k],prev[k]);const on=metric===k;return<button key={k} onClick={()=>setMetric(k)} style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:3,background:'#fff',borderRadius:14,padding:'12px 14px',cursor:'pointer',textAlign:'left',fontFamily:'inherit',border:on?'2px solid #8CC63F':'1px solid #ECEEF1',boxShadow:on?'0 2px 8px rgba(110,155,14,.15)':'none'}}><span style={{fontSize:12,color:S.i3}}>{l}</span><span style={{fontSize:22,fontWeight:700,color:S.ink}}>{f(last[k])}</span><span style={{fontSize:11,fontWeight:600,color:d==null?'#9AA0A6':d>=0?'#1B8A00':'#DD2A02'}}>{d==null?'—':(d>0?'+':'')+d+'%'} {tab==='weekly'?'к прошлой неделе':'к прошлому месяцу'}</span></button>})}</div>
+      <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'14px 18px 6px',marginBottom:20}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}><span style={{fontSize:16,fontWeight:600}}>{cur[1]} · {tab==='weekly'?'по неделям':'по месяцам'}</span><span style={{fontSize:12,color:S.i3}}>нажми на карточку выше, чтобы сменить показатель</span></div><SEOChart data={sorted.map(r=>r[cur[0]]??null)} labels={labels} color="#6E9B0E" height={200} title={cur[1]}/></div></>})()}
+
 
     {/* ORGANIC + AI TRAFFIC */}
     <div style={{background:S.sf,borderRadius:14,boxShadow:S.sh,padding:'8px 0',marginBottom:22,overflowX:'auto'}}>
