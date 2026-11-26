@@ -58,29 +58,30 @@ function Main({profile}){
 
   const people=Array.from(new Set([...team.filter(m=>m.active!==false).map(m=>m.name),...allProfiles.map(p=>p.name)].filter(Boolean))).sort()
   const NAV=[
-    ...(ce?[{sep:T('Моя работа')+' · beta'},{id:'pm-report',l:T('Мой отчёт'),ic:'pen'},{id:'pm-plan',l:T('Мой план работ'),ic:'bars'},{id:'pm-projects',l:T('Мои проекты'),ic:'cards'},{id:'pm-team',l:T('План работ отдела'),ic:'cells'}]:[]),
-    {sep:'Отчёты'},
-    {id:'home',l:'Главная',ic:'home'},
-    {id:'weekly',l:'Еженедельный',ic:'calendar'},
-    ...(ce?[{id:'monthly',l:'Ежемесячный',ic:'chart-bar'}]:[]),
-    {id:'yoy',l:'Годовой / YoY',ic:'trending-up'},{id:'workshop',l:'Workshop 2027',ic:'map'},{id:'seo',l:'SEO отчёт',ic:'target'},
-    {sep:'Управление'},
-    {id:'projects-all',l:'Проекты',ic:'layout-kanban'},{id:'archive',l:'Архив проектов',ic:'archive'},
-    {id:'tactical-all',l:'Тактические цели',ic:'target'},
-    ...(isA?[{id:'team',l:'Команда',ic:'users'},{id:'export',l:'Выгрузка',ic:'target'}]:[]),
-    {sep:'Настройки'},
-    ...(isA?[{id:'channels',l:'Каналы и планы',ic:'adjustments'},{id:'integrations',l:'Интеграции',ic:'plug'},{id:'bot',l:'Slack бот',ic:'robot'},{id:'admin',l:'Администрирование',ic:'settings'}]:[]),
+    {id:'home',l:T('Главная'),ic:'home'},
+    ...(ce?[{sep:T('Моя работа')},{id:'pm-report',l:T('Мой отчёт'),ic:'pen'},{id:'pm-plan',l:T('Мой план работ'),ic:'bars'},{id:'pm-projects',l:T('Мои проекты'),ic:'cards'}]:[]),
+    {sep:T('Отдел')},
+    {id:'pm-team',l:T('План работ'),ic:'cells'},
+    {id:'weekly',l:T('Отчёт за неделю'),ic:'calendar'},
+    ...(ce?[{id:'monthly',l:T('Отчёт за месяц'),ic:'chart-bar'}]:[]),
+    {id:'yoy',l:T('Год к году'),ic:'trending-up'},
+    {id:'seo',l:'SEO',ic:'target'},
+    {id:'workshop',l:'Workshop 2027',ic:'map'},
+    {id:'tactical-all',l:T('Тактические цели'),ic:'target'},
+    {sep:T('Управление')},
+    {id:'projects-all',l:T('Все проекты (таблица)'),ic:'layout-kanban'},{id:'archive',l:T('Архив проектов'),ic:'archive'},
+    ...(isA?[{id:'team',l:T('Команда'),ic:'users'},{id:'channels',l:T('Планы и бюджеты'),ic:'adjustments'},{id:'export',l:T('Выгрузка'),ic:'target'},{id:'integrations',l:T('Интеграции'),ic:'plug'},{id:'bot',l:T('Slack бот'),ic:'robot'},{id:'admin',l:T('Настройки доступа'),ic:'settings'}]:[]),
   ]
 
   const navTo=(p)=>{setPage(p);setMenuOpen(false)};return<div className='lh-app' style={{display:'grid',gridTemplateColumns:'220px 1fr',minHeight:'100vh',background:S.bg}}>
     {/* ═══ SIDEBAR ═══ */}
     <div className={'lh-sidebar'+(menuOpen?' open':'')} style={{background:S.sf,borderRight:`1px solid ${S.ln}`,padding:'20px 10px',display:'flex',flexDirection:'column',gap:1,position:'sticky',top:0,height:'100vh',overflowY:'auto'}}>
-      <div style={{padding:'8px 14px 24px',display:'flex',flexDirection:'column',gap:2,lineHeight:1.1}}><span style={{font:'500 12px/1.2 Poppins,sans-serif',color:S.i3,letterSpacing:'.04em'}}>Lev Haolam</span><span style={{font:'700 20px/1.1 Poppins,sans-serif',color:S.gd}}>Growth</span></div>
-      {NAV.map((n,i)=>n.sep?<div key={i} style={{font:'600 12px/1 Poppins,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',padding:'18px 14px 6px'}}>{n.sep}</div>:<button key={n.id} onClick={()=>navTo(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:8,font:'500 14px/1.3 Poppins,sans-serif',color:page===n.id?S.gm:S.i2,cursor:'pointer',border:'none',background:page===n.id?S.gp:'transparent',width:'100%',textAlign:'left',fontWeight:page===n.id?600:500}}><span style={{fontSize:18,width:20,textAlign:'center'}}>{n.ic==='pen'?'✎':n.ic==='cards'?'▦':n.ic==='bars'?'▤':n.ic==='cells'?'▥':n.ic==='home'?'⌂':n.ic==='map'?'▦':n.ic==='archive'?'⊟':n.ic==='calendar'?'☰':n.ic==='chart-bar'?'▣':n.ic==='trending-up'?'↗':n.ic==='layout-kanban'?'▤':n.ic==='target'?'◎':n.ic==='users'?'⊛':n.ic==='adjustments'?'⚙':n.ic==='plug'?'⚡':n.ic==='robot'?'⊞':n.ic==='settings'?'⋮':'·'}</span>{n.l}</button>)}
+      <div style={{padding:'8px 14px 24px',display:'flex',flexDirection:'column',gap:2,lineHeight:1.1}}><span style={{font:'500 12px/1.2 Inter,sans-serif',color:S.i3,letterSpacing:'.04em'}}>Lev Haolam</span><span style={{font:'700 20px/1.1 Inter,sans-serif',color:S.gd}}>Growth</span></div>
+      {NAV.map((n,i)=>n.sep?<div key={i} style={{font:'600 12px/1 Inter,sans-serif',color:'#9AA0A6',letterSpacing:'.08em',textTransform:'uppercase',padding:'18px 14px 6px'}}>{n.sep}</div>:<button key={n.id} onClick={()=>navTo(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:8,font:'500 14px/1.3 Inter,sans-serif',color:page===n.id?S.gm:S.i2,cursor:'pointer',border:'none',background:page===n.id?S.gp:'transparent',width:'100%',textAlign:'left',fontWeight:page===n.id?600:500}}><span style={{fontSize:18,width:20,textAlign:'center'}}>{n.ic==='pen'?'✎':n.ic==='cards'?'▦':n.ic==='bars'?'▤':n.ic==='cells'?'▥':n.ic==='home'?'⌂':n.ic==='map'?'▦':n.ic==='archive'?'⊟':n.ic==='calendar'?'☰':n.ic==='chart-bar'?'▣':n.ic==='trending-up'?'↗':n.ic==='layout-kanban'?'▤':n.ic==='target'?'◎':n.ic==='users'?'⊛':n.ic==='adjustments'?'⚙':n.ic==='plug'?'⚡':n.ic==='robot'?'⊞':n.ic==='settings'?'⋮':'·'}</span>{n.l}</button>)}
       <div style={{marginTop:'auto',padding:'14px 10px',borderTop:`1px solid ${S.ln}`}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:34,height:34,borderRadius:'50%',background:S.gm,display:'flex',alignItems:'center',justifyContent:'center',font:'600 13px/1 Poppins',color:'#fff'}}>{(profile.name||'?')[0]?.toUpperCase()}</div>
-          <div><div style={{font:'600 13px/1 Poppins,sans-serif'}}>{profile.name||profile.email}</div><div style={{font:'500 11px/1 Poppins,sans-serif',color:'#9AA0A6'}}>{profile.role}</div></div>
+          <div style={{width:34,height:34,borderRadius:'50%',background:S.gm,display:'flex',alignItems:'center',justifyContent:'center',font:'600 13px/1 Inter',color:'#fff'}}>{(profile.name||'?')[0]?.toUpperCase()}</div>
+          <div><div style={{font:'600 13px/1 Inter,sans-serif'}}>{profile.name||profile.email}</div><div style={{font:'500 11px/1 Inter,sans-serif',color:'#9AA0A6'}}>{profile.role}</div></div>
         </div>
         <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,width:'100%',padding:'8px',borderRadius:8,border:`1px solid ${S.ln}`,background:'transparent',cursor:'pointer',fontSize:13,color:S.i3,fontWeight:500}}>Выйти</button>
       </div>
@@ -96,7 +97,7 @@ function Main({profile}){
     {/* НОВАЯ СИСТЕМА · beta */}
     {page==='pm-report'&&ce&&<MyReport projects={projects} steps={steps} comments={comments} profile={profile} ce={ce} onOpen={setPmOpen} reload={reload}/>}
     {page==='pm-plan'&&ce&&<MyPlan projects={projects} steps={steps} comments={comments} profile={profile} ce={ce} people={people} onOpen={(id)=>{setPmTab('plan');setPmOpen(id)}} reload={reload}/>}
-    {page==='pm-team'&&ce&&<TeamPlan projects={projects} steps={steps} comments={comments} people={people} onOpen={(id)=>{setPmTab(null);setPmOpen(id)}} openTab={(id,tab)=>{setPmTab(tab);setPmOpen(id)}}/>}
+    {page==='pm-team'&&<TeamPlan projects={projects} steps={steps} comments={comments} people={people} onOpen={(id)=>{setPmTab(null);setPmOpen(id)}} openTab={(id,tab)=>{setPmTab(tab);setPmOpen(id)}}/>}
     {page==='pm-projects'&&ce&&<MyProjects projects={projects} allProjects={allProjects} steps={steps} comments={comments} profile={profile} ce={ce} onOpen={setPmOpen} onNew={(pid)=>setPmNew(pid||'')}/>}
 
     {/* WEEKLY */}
